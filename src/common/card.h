@@ -24,7 +24,7 @@
 #include <gcrypt.h>
 
 gcry_error_t card_open (const char *port, int *slot);
-gcry_error_t card_init (int slot, int wait_for_card);
+gcry_error_t card_init (int slot, int wait, int require_card_switch);
 void card_close (int slot);
 
 gcry_error_t card_info (int slot,

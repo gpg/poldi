@@ -69,7 +69,10 @@ options_parse_conf (options_callback_t callback, void *opaque,
   filename_fp = fopen (filename, "r");
   if (! filename_fp)
     {
-      err = gpg_error_from_errno (errno);
+      if (errno == ENOENT)
+	err = 0;
+      else
+	err = gpg_error_from_errno (errno);
       goto out;
     }
 

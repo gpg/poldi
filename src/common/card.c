@@ -69,7 +69,7 @@ card_open (const char *port, int *slot)
 /* Wait until a new card has been inserted into the reader.  Return 0
    on success.  */
 static int
-wait_for_new_card (int slot)
+wait_for_card (int slot, int require_card_switch)
 {
   unsigned int status, changed;
 
@@ -77,7 +77,8 @@ wait_for_new_card (int slot)
     {
       status = changed = 0;
       apdu_get_status (slot, 0, &status, &changed);
-      if (changed != change_counter || (status & 2) != (last_status & 2))
+      if (((! require_card_switch) || (changed != change_counter))
+	  || ((status & 2) != (last_status & 2)))
         {
           change_counter = changed;
           last_status = status;
@@ -99,17 +100,17 @@ wait_for_new_card (int slot)
 }
 
 gpg_error_t
-card_init (int slot, int wait_for_card)
+card_init (int slot, int wait, int require_card_switch)
 {
   /* This is the AID (Application IDentifier) for OpenPGP.  */
   char const aid[] = { 0xD2, 0x76, 0x00, 0x01, 0x24, 0x01 };
   gpg_error_t err;
   
   apdu_get_status (slot, 0, &last_status, &change_counter);
-  if (wait_for_card)
+  if (wait)
     {
       apdu_activate (slot);
-      wait_for_new_card (slot);
+      wait_for_card (slot, require_card_switch);
     }
   
   /* Select OpenPGP Application.  */

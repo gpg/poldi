@@ -1,3 +1,15 @@
+2004-11-27  Moritz Schulte  <moritz@g10code.com>
+
+	* options.c (options_parse_conf): Do not fail if file does not
+	exist.
+
+	* card.c (wait_for_new_card): Renamed to ...
+	(wait_for_card): ... this; new argument: require_card_switch;
+	adjust function accordingly; adjust callers.
+	(card_init): Rename argument `wait_for_card' to `wait'; new
+	argument: require_card_switch; pass to wait_for_card.
+	* card.h (card_open): Update declaration.
+
 2004-11-13  Moritz Schulte  <moritz@g10code.com>
 
 	* support.c (file_to_string): NUL-terminate string.
