@@ -39,6 +39,11 @@
 
 #include <syslog.h>
 
+/* To help tracking changed cards we use this counter and save the
+   last known status.  */
+static unsigned int change_counter;
+static unsigned int last_status;
+
 gpg_error_t
 card_open (const char *port, int *slot)
 {
@@ -61,31 +66,52 @@ card_open (const char *port, int *slot)
   return err;
 }
 
+/* Wait until a new card has been inserted into the reader.  Return 0
+   on success.  */
+static int
+wait_for_new_card (int slot)
+{
+  unsigned int status, changed;
+
+  for (;;)
+    {
+      status = changed = 0;
+      apdu_get_status (slot, 0, &status, &changed);
+      if (changed != change_counter || (status & 2) != (last_status & 2))
+        {
+          change_counter = changed;
+          last_status = status;
+          if ((status & 2))
+            return 0;
+        } 
+#ifdef HAVE_NANOSLEEP      
+      {
+        struct timespec t;
+
+        t.tv_sec = 0;
+        t.tv_nsec = 300000000;
+        nanosleep (&t, NULL);  /* Wait 300ms.  */
+      }
+#else
+      sleep (1);
+#endif
+    }
+}
+
 gpg_error_t
 card_init (int slot, int wait_for_card)
 {
   /* This is the AID (Application IDentifier) for OpenPGP.  */
   char const aid[] = { 0xD2, 0x76, 0x00, 0x01, 0x24, 0x01 };
-  int reader_status;
   gpg_error_t err;
-  int ret;
   
+  apdu_get_status (slot, 0, &last_status, &change_counter);
   if (wait_for_card)
     {
-      while (1)
-	{
-	  ret = apdu_get_status (slot, 0, &reader_status, NULL);
-	  if ((ret != 0) || (reader_status & 3))
-	    break;
-	  sleep (1);
-	}
-      if (ret)
-	{
-	  err = gpg_error (GPG_ERR_CARD);
-	  goto out;
-	}
+      apdu_activate (slot);
+      wait_for_new_card (slot);
     }
-
+  
   /* Select OpenPGP Application.  */
   err = iso7816_select_application (slot, aid, sizeof (aid));
 

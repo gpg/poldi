@@ -433,7 +433,7 @@ file_to_string (const char *filename, char **string)
 	  err = gpg_error_from_errno (errno);
 	  goto out;
 	}
-      string_new = malloc (statbuf.st_size);
+      string_new = malloc (statbuf.st_size + 1);
       if (! string_new)
 	{
 	  err = gpg_error_from_errno (errno);
@@ -445,20 +445,20 @@ file_to_string (const char *filename, char **string)
 	  err = gpg_error_from_errno (errno);
 	  goto out;
 	}
+      string_new[statbuf.st_size] = 0;
       fclose (fp);		/* FIXME?  */
       fp = NULL;
     }
 
   err = 0;
+  *string = string_new;
 
  out:
 
   if (fp)
     fclose (fp);
 
-  if (! err)
-    *string = string_new;
-  else
+  if (err)
     free (string_new);
 
   return err;

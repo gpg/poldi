@@ -1,0 +1,6 @@
+2004-11-13  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (file_to_string): NUL-terminate string.
+	* card.c (wait_for_new_card): New function, merged from gscutils ...
+	(card_init): ... use it here.
+
