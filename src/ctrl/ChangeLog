@@ -1,0 +1,8 @@
+2004-11-27  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c (cmd_test): Adjust card_init caller.
+	(cmd_dump): Likewise.
+	(cmd_set_key): Likewise.
+	Implement require-card-switch option.
+	(cmd_test): Do not require that the uid of the current process is
+	equal to the one of the user to test authentication for.

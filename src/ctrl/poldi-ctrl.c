@@ -54,6 +54,7 @@ struct poldi_ctrl_opt
   const char *account;
   const char *serialno;
   int fake_wait_for_card;
+  int require_card_switch;
   int cmd_test;
   int cmd_dump;
   int cmd_set_key;
@@ -85,6 +86,7 @@ struct poldi_ctrl_opt poldi_ctrl_opt =
     0,
     0,
     0,
+    0,
     0
   };
 
@@ -107,6 +109,7 @@ enum arg_opt_ids
     arg_disable_opensc,
     arg_debug_ccid_driver,
     arg_fake_wait_for_card,
+    arg_require_card_switch
   };
 
 static ARGPARSE_OPTS arg_opts[] =
@@ -149,6 +152,8 @@ static ARGPARSE_OPTS arg_opts[] =
 #endif
     { arg_fake_wait_for_card,
       "fake-wait-for-card", 0, "Fake wait-for-card feature"    },
+    { arg_require_card_switch,
+      "require-card-switch", 0, "Require re-insertion of card" },
     { 0,
       NULL,            0, NULL                                 }
   };
@@ -280,6 +285,11 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 	poldi_ctrl_opt.fake_wait_for_card = 1;
       break;
 
+    case arg_require_card_switch:
+      if (parsing_stage)
+	poldi_ctrl_opt.require_card_switch = 1;
+      break;
+
     default:
       err = GPG_ERR_INTERNAL;	/* FIXME?  */
       break;
@@ -330,7 +340,9 @@ cmd_test (void)
     }
   else
     printf ("Waiting for card...\n");
-  err = card_init (slot, !poldi_ctrl_opt.fake_wait_for_card);
+  err = card_init (slot,
+		   !poldi_ctrl_opt.fake_wait_for_card,
+		   poldi_ctrl_opt.require_card_switch);
   if (err)
     goto out;
 
@@ -347,7 +359,7 @@ cmd_test (void)
   printf ("Account: %s\n", account);
 
   pwent = getpwnam (account);
-  if ((! pwent) || (pwent->pw_uid != getuid ()))
+  if (! pwent)
     {
       err = gpg_error (GPG_ERR_INTERNAL);	/* FIXME */
       goto out;
@@ -423,7 +435,7 @@ cmd_dump (void)
   if (err)
     goto out;
 
-  err = card_init (slot, 0);
+  err = card_init (slot, 0, 0);
   if (err)
     goto out;
 
@@ -690,7 +702,7 @@ cmd_set_key (void)
   if (err)
     goto out;
 
-  err = card_init (slot, 0);
+  err = card_init (slot, 0, 0);
   if (err)
     goto out;
 
