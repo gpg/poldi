@@ -18,7 +18,6 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
-RSA_KEY_ID=1
 RSA_KEY_ELEMENTS_N=2
 
 if [ $# != 2 ]; then
@@ -30,13 +29,6 @@ key_id=$1
 key_no=$2
 
 gpg_output=$(gpg --with-key-data --list-key $1)
-pub_key=$(echo -e "$gpg_output" | grep "^pub")
-pub_key_type=$(echo -e "$pub_key" | cut -d : -f 4)
-
-if [ "$pub_key_type" != "$RSA_KEY_ID" ]; then
-    echo "Invalid key" >&2
-    exit 1
-fi
 
 key_data=$(echo -e "$gpg_output" | \
   awk -F : "BEGIN         { key_idx = -1; } \

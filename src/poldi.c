@@ -148,8 +148,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
     }
 
   /* Ask PAM for username.  */
-  ret = pam_get_user (pam_handle, (const char **) &username, NULL);
-  if (ret != PAM_SUCCESS)
+  ret = pam_get_item (pam_handle, PAM_USER, (const char **) &username);
+  if ((ret != PAM_SUCCESS) || (! username))
     {
       POLDI_LOG (ERR, "Failed to retrieve username");
       err = GPG_ERR_INTERNAL;	/* errno? */
@@ -256,9 +256,21 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
 	POLDI_LOG (DEBUG, "Signature matches data");
     }
 
+  /* Make username available to application.  */
+
+  ret = pam_set_item (pam_handle, PAM_USER, username);
+  if (ret != PAM_SUCCESS)
+    {
+      POLDI_LOG (ERR, "Failed to set username item");
+      err = GPG_ERR_INTERNAL;
+      goto out;
+    }
+  username = NULL;  
+
   /* Done.  */
 
  out:
+  
   if (serialno)
     free (serialno);
   if (login)

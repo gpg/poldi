@@ -1,3 +1,12 @@
+2004-10-10  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-key2sexp: Do not report error in case hte master key is
+	not RSA.
+
+	* poldi.c (pam_sm_authenticate): Use pam_get_item instead of
+	pam_get_user.
+	(pam_sm_authenticate): Use pam_set_item for username.
+
 2004-06-22  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi.c (pam_sm_authenticate): Ask for PIN only, when the
