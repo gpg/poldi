@@ -1,0 +1,4 @@
+2004-11-27  Moritz Schulte  <moritz@g10code.com>
+
+	* pam_poldi.c (wait_for_card): Adjust card_init caller.
+	Implement require_card_switch option.

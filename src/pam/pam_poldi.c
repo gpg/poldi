@@ -64,6 +64,7 @@ struct pam_poldi_opt
   int disable_ccid;    /* Disable the use of the internal CCID driver. */
   int debug_ccid_driver;	/* Debug the internal CCID driver.  */
   int fake_wait_for_card;
+  int require_card_switch;
   const char *logfile;
 } pam_poldi_opt;
 
@@ -80,7 +81,8 @@ struct pam_poldi_opt pam_poldi_opt =
     0,
     0,
     0,
-    NULL,
+    0,
+    NULL
   };
 
 
@@ -97,7 +99,8 @@ enum arg_opt_ids
     arg_disable_ccid,
     arg_debug_ccid_driver,
     arg_fake_wait_for_card,
-    arg_logfile,
+    arg_require_card_switch,
+    arg_logfile
   };
 
 /* Option specifications. */
@@ -125,6 +128,8 @@ static ARGPARSE_OPTS arg_opts[] =
 #endif
     { arg_fake_wait_for_card,
       "fake-wait-for-card", 0, "fake wait-for-card-feature" },
+    { arg_require_card_switch,
+      "require-card-switch", 0, "Require re-insertion of card" },
     { arg_logfile,
       "log-file", 2, "Specify file to use for logging" },
     { 0 }
@@ -171,6 +176,10 @@ pam_poldi_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 
     case arg_fake_wait_for_card:
       pam_poldi_opt.fake_wait_for_card = 1;
+      break;
+
+    case arg_require_card_switch:
+      pam_poldi_opt.require_card_switch = 1;
       break;
 
     case arg_logfile:
@@ -347,20 +356,20 @@ lookup_key (const char *username, gcry_sexp_t *key)
 }
 
 static gpg_error_t
-wait_for_card (int slot,
-	       int fake, const struct pam_conv *conv, const char **serialno)
+wait_for_card (int slot, int fake, int require_card_switch,
+	       const struct pam_conv *conv, const char **serialno)
 {
   const char *serialno_new;
   gpg_error_t err;
 
   if (fake)
-    err = ask_user (conv, "Press ENTER ...", NULL);
+    err = ask_user (conv, "Press ENTER when card is available ...", NULL);
   else
     err = tell_user (conv, "Insert card ...");
   if (err)
     goto out;
 
-  err = card_init (slot, ! fake);
+  err = card_init (slot, ! fake, require_card_switch);
   if (err)
     goto out;
 
@@ -474,7 +483,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
       /* Got key.  */
 
       err = wait_for_card (slot, pam_poldi_opt.fake_wait_for_card,
-			   conv, &serialno);
+			   pam_poldi_opt.require_card_switch, conv, &serialno);
       if (err)
 	goto out;
 
@@ -499,7 +508,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
   else
     {
       err = wait_for_card (slot, pam_poldi_opt.fake_wait_for_card,
-			   conv, &serialno);
+			   pam_poldi_opt.require_card_switch, conv, &serialno);
       if (err)
 	goto out;
 
