@@ -1,0 +1,10 @@
+2004-06-22  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am (libscd_a_SOURCES): Removed: opt.c.
+	* opt.c: Removed file.
+
+	* scd.h: Include "../options.h", do not declare struct opt.
+
+	* Removed files from jnlib.
+
+	* Updated code from GnuPG.

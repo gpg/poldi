@@ -25,8 +25,7 @@
 #error GPG_ERR_SOURCE_DEFAULT already defined
 #endif
 #define GPG_ERR_SOURCE_DEFAULT  GPG_ERR_SOURCE_USER_1
-
-#if 0
+#include <gpg-error.h>
 
 #include "../jnlib/xmalloc.h"
 #define xfree(a)         free ((a))
@@ -34,44 +33,10 @@
 #define xtrycalloc(a,b)  calloc ((a),(b))
 #define xtryrealloc(a,b) realloc ((a),(b))
 #define xtrystrdup(a)    strdup ((a))
+
 #include "../jnlib/logging.h"
 
-/* We don't have any internationalisation yet; shortcut the usual macros. */
-#define _(a) (a)
-#define N_(a) (a)
-
-#else
-#include "logging.h"
-#include "mischelp.h"
-#include "xmalloc.h"
-#include <gpgme.h>
-#define xfree(a)         free ((a))
-#define xtrymalloc(a)    malloc ((a))
-#define xtrycalloc(a,b)  calloc ((a),(b))
-#define xtryrealloc(a,b) realloc ((a),(b))
-#define xtrystrdup(a)    strdup ((a))
-#endif
-
-/* Global flags.  */
-struct opt
-{
-  unsigned int debug; /* debug flags (DBG_foo_VALUE) */
-  int debug_sc;     /* OpenSC debug level */
-  int verbose;      /* verbosity level */
-  int quiet;        /* be as quiet as possible */
-  int dry_run;      /* don't change any persistent data */
-  int batch;        /* batch mode */
-  const char *homedir; /* configuration directory name */
-  const char *ctapi_driver; /* Library to access the ctAPI. */
-  const char *pcsc_driver;  /* Library to access the PC/SC system. */
-  const char *reader_port;  /* NULL or reder port to use. */
-  int disable_opensc;  /* Disable the use of the OpenSC framework. */
-  int disable_ccid;    /* Disable the use of the internal CCID driver. */
-  int allow_admin;     /* Allow the use of admin commands for certain
-                          cards. */
-};
-extern struct opt opt;
-
+#include "../options.h"
 
 #define DBG_COMMAND_VALUE 1	/* debug commands i/o */
 #define DBG_MPI_VALUE	  2	/* debug mpi details */

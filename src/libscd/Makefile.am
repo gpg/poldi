@@ -23,6 +23,5 @@ noinst_LIBRARIES = libscd.a
 
 libscd_a_SOURCES = \
 	apdu.c apdu.h ccid-driver.c ccid-driver.h  \
-	iso7816.c iso7816.h logging.c logging.h    \
-	mischelp.h tlv.c tlv.h xmalloc.c xmalloc.h \
-	scd.h opt.c dynload.h libjnlib-config.h
+	iso7816.c iso7816.h tlv.c tlv.h \
+	scd.h dynload.h libjnlib-config.h
