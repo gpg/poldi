@@ -46,9 +46,15 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
   unsigned char *serialno = NULL;
   size_t serialno_n = 0;
   unsigned char *login = NULL;
-  size_t login_n = 0;
   int ret = PAM_SUCCESS;
-  
+
+  /* Ask PAM for username.  */
+  ret = pam_get_item (pam_handle, PAM_USER, (const void **) &username);
+  if (ret != PAM_SUCCESS)
+    err = GPG_ERR_INTERNAL;
+  if (err)
+    goto out;
+
   /* Ask PAM for conv structure.  */
   ret = pam_get_item (pam_handle, PAM_CONV, (const void **) &conv);
   if (ret != PAM_SUCCESS)
@@ -56,21 +62,29 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
       err = GPG_ERR_INTERNAL;
       goto out;
     }
-  
+
+  /* Ask for PIN.  */
+  ret = (*conv->conv) (sizeof (messages) / (sizeof (*messages)), pmessages,
+		       &responses, conv->appdata_ptr);
+  if (ret != PAM_SUCCESS)
+    err = GPG_ERR_INTERNAL;
+  if (err)
+    goto out;
+
   /* Open card.  */
   err = card_open (NULL, &slot, &serialno, &serialno_n);
   if (err)
     goto out;
 
   /* Lookup card information.  */
-  err = card_info (slot, key_fpr, &login, &login_n);
+  err = card_info (slot, key_fpr);
   if (err)
     goto out;
 
-  ret = pam_get_item (pam_handle, PAM_USER, (const void **) &username);
-  if (ret != PAM_SUCCESS)
-    err = GPG_ERR_INTERNAL;
-  else if (strcmp (username, login))
+  err = keyid_to_username (key_fpr, &login);
+  if (err)
+    goto out;
+  if (strcmp (username, login))
     /* User identity does not match card login data.  */
     err = GPG_ERR_INTERNAL;
   if (err)
@@ -86,13 +100,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
   if (err)
     goto out;
 
-  /* Ask for PIN.  */
-  ret = (*conv->conv) (sizeof (messages) / (sizeof (*messages)), pmessages,
-		       &responses, conv->appdata_ptr);
-  if (ret != PAM_SUCCESS)
-    err = GPG_ERR_INTERNAL;
-  else
-    err = card_pin_provide (slot, responses[0].resp);
+  err = card_pin_provide (slot, responses[0].resp);
   if (err)
     goto out;
 
@@ -109,12 +117,17 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
   /* Done.  */
 
  out:
+  if (login)
+    free (login);
   if (response)
     free (response);
   if (challenge)
     free (challenge);
   if (key)
     key_destroy (key);
+
+  if (slot != -1)
+    card_close (slot);
 
   return err ? PAM_AUTH_ERR : PAM_SUCCESS;
 }

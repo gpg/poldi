@@ -1,3 +1,22 @@
+2004-05-13  Moritz Schulte  <moritz@g10ode.com>
+
+	* card.h (card_info): Change arguments.
+	* card.c (card_info): Likewise, don't return login data.
+
+	* defs.h.in (POLDI_USERS_DB_FILE): New symbol.
+
+	* support.c (keyid_to_username): New function.
+	* support.h (keyid_to_username): Declare.
+
+	* poldi.c (pam_sm_authenticate): Adjusted for keyid_to_username.
+	Initialize card after the PIN has been provided.
+	Don't forget to call card_close.
+
+2004-05-13  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (key_get_sexp): s/MMAP_FAILED/MAP_FAILED/.
+	Include <errno.h>.
+
 2004-05-13  Moritz Schulte  <moritz@g10code.com>
 
 	* support.h: Fix Copyright-line, fix license.

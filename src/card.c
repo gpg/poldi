@@ -74,15 +74,13 @@ card_close (int slot)
 }
 
 gpg_error_t
-card_info (int slot, unsigned char *key_fpr, unsigned char **login, size_t *login_n)
+card_info (int slot, unsigned char *key_fpr)
 {
   gpg_error_t err = GPG_ERR_NO_ERROR;
   unsigned char *fprs = NULL;
   const unsigned char *value = NULL;
   size_t fprs_n = 0, value_n = 0;
   unsigned int i = 0, j = 0;
-  unsigned char *login_new = NULL;
-  size_t login_new_n = 0;
 
   /* Read fingerprint.  */
   err = iso7816_get_data (slot, 0x6E, &fprs, &fprs_n);
@@ -93,22 +91,11 @@ card_info (int slot, unsigned char *key_fpr, unsigned char **login, size_t *logi
 	     && (! (value_n > (fprs_n - (value - fprs))))
 	     && (value_n >= 60))) /* FIXME: Shouldn't this be "==
 				     60"?  */
-	err = GPG_ERR_INTERNAL;	/* ? */
+	err = gpg_error (GPG_ERR_INTERNAL);
       else
 	/* Copy out third key FPR.  */
 	for (i = 0, j = 0; i < 20; i++, j += 2)
 	  sprintf (key_fpr + j, "%02X", (value + (2 * 20))[i]);
-    }
-
-  if (! err)
-    {
-      /* Read login data (account).  */
-      err = iso7816_get_data (slot, 0x005E, &login_new, &login_new_n);
-      if (! err)
-	{
-	  *login = login_new;
-	  *login_n = login_new_n;
-	}
     }
 
   return err;

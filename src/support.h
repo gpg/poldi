@@ -30,5 +30,6 @@ gpg_error_t challenge_verify (poldi_key_t key,
 			      unsigned char *respone, size_t response_n);
 gpg_error_t key_get (poldi_key_t *key, unsigned char *key_id);
 void key_destroy (poldi_key_t key);
+gpg_error_t keyid_to_username (unsigned char *key_id, unsigned char **username);
 
 #endif

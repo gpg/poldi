@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 #include <gcrypt.h>
 
@@ -81,8 +82,7 @@ challenge_verify_sexp (gcry_sexp_t sexp_key,
   /* Create according S-Expressions.  */
   if (! err)
     err = gcry_sexp_build (&sexp_data, NULL,
-			   "(data (flags pkcs1) (hash %s %b))",
-			   gcry_md_algo_name (CHALLENGE_MD_ALGORITHM),
+			   "(data (flags pkcs1) (hash sha1 %b))",
 			   challenge_n, challenge);
   if (! err)
     err = gcry_sexp_build (&sexp_signature, NULL, "(sig-val (rsa (s %m)))",
@@ -124,7 +124,7 @@ key_get_sexp (gcry_sexp_t *key, unsigned char *key_id)
   gpg_error_t err = GPG_ERR_NO_ERROR;
   gcry_sexp_t key_new = NULL;
   char *filename = NULL;
-  void *buffer = MMAP_FAILED;
+  void *buffer = MAP_FAILED;
   struct stat statbuf;
   int fd = -1, ret = 0;
 
@@ -151,14 +151,14 @@ key_get_sexp (gcry_sexp_t *key, unsigned char *key_id)
   if (! err)
     {
       buffer = mmap (NULL, statbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-      if (buffer == MMAP_FAILED)
+      if (buffer == MAP_FAILED)
 	err = gpg_err_code_from_errno (errno);
     }
 
   if (! err)
     err = gcry_sexp_new (&key_new, buffer, statbuf.st_size, 0);
 
-  if (buffer)
+  if (buffer != MAP_FAILED)
     munmap (buffer, statbuf.st_size);
   if (fd)
     close (fd);
@@ -214,4 +214,59 @@ key_destroy (poldi_key_t key)
       if (key->key_sexp)
 	key_destroy_sexp (key->key_sexp);
     }
+}
+
+
+gpg_error_t
+keyid_to_username (unsigned char *key_id, unsigned char **username)
+{
+  gpg_error_t err = GPG_ERR_NO_ERROR;
+  const char *delimiters = "\t\n ";
+  FILE *usersdb = NULL;
+  char *line = NULL, *line_key_id = NULL, *line_username = NULL;;
+  unsigned char *username_cp = NULL;
+  size_t line_n = 0;
+  ssize_t ret = 0;
+
+  usersdb = fopen (POLDI_USERS_DB_FILE, "r");
+  if (usersdb)
+    {
+      do
+	{
+	  /* Get next line.  */
+	  line = NULL;
+	  line_n = 0;
+	  ret = getline (&line, &line_n, usersdb);
+	  if (ret != -1)
+	    {
+	      line_key_id = strtok (line, delimiters);
+	      if (*line_key_id)
+		{
+		  line_username = strtok (NULL, delimiters);
+		  if (*line_username)
+		    {
+		      if ((! strtok (NULL, delimiters))  && (! strcmp (key_id, line_key_id)))
+			{
+			  /* Match.  */
+			  username_cp = strdup (line_username);
+			  if (! username_cp)
+			    break;
+			}
+		    }
+		}
+
+	      free (line);
+	    }
+	}
+      while ((! username_cp) && (ret != -1));
+
+      fclose (usersdb);
+    }
+
+  if (username_cp)
+    *username = username_cp;
+  else
+    err = gpg_error (GPG_ERR_INTERNAL);
+
+  return err;
 }

@@ -27,7 +27,7 @@ gpg_error_t card_open (const char *port, int *slot,
 		       unsigned char **serial_no, size_t *serial_no_n);
 void card_close (int slot);
 
-gpg_error_t card_info (int slot, unsigned char *key_fpr, unsigned char **login, size_t *login_n);
+gpg_error_t card_info (int slot, unsigned char *key_fpr);
 
 gpg_error_t card_pin_provide (int slot, unsigned char *pin);
 
