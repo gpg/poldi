@@ -355,6 +355,8 @@ cmd_test (void)
 
   key_path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
   err = file_to_string (key_path, &key_string);
+  if ((! err) && (! key_string))
+    err = gpg_error (GPG_ERR_NO_PUBKEY);
   if (err)
     goto out;
 
