@@ -24,7 +24,7 @@ min_automake_version="1.7.9"
 
 # Version number: Remember to change it immediately *after* a release.
 #                 Add a "-cvs" prefix for non-released code.
-AC_INIT(poldi, 0.2-cvs, gnupg-devel@gnupg.org)
+AC_INIT(poldi, 0.2-cvs1, gnupg-devel@gnupg.org)
 
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
