@@ -1,5 +1,5 @@
 /* poldi-ctrl.c - Poldi maintaince tool
-   Copyright (C) 2004 Free Software Foundation, Inc.
+   Copyright (C) 2004 g10 Code GmbH.
  
    This file is part of Poldi.
   
@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <pwd.h>
 
 #include <gcrypt.h>
@@ -296,8 +297,8 @@ cmd_test (void)
   size_t signature_n;
   gpg_error_t err;
   int slot;
-  char *serialno;
-  char *account;
+  const char *serialno;
+  const char *account;
   char *pin;
   struct passwd *pwent;
   char *key_path;
@@ -352,7 +353,7 @@ cmd_test (void)
       goto out;
     }
 
-  key_path = make_filename ("~/", POLDI_PERSONAL_KEY, NULL);
+  key_path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
   err = file_to_string (key_path, &key_string);
   if (err)
     goto out;
@@ -362,7 +363,7 @@ cmd_test (void)
     goto out;
 
   /* FIXME?  */
-  pin = getpass (POLDI_PIN_QUERY_MSG);
+  pin = getpass (POLDI_PIN2_QUERY_MSG);
   if (! pin)
     {
       err = gpg_error_from_errno (errno);
@@ -391,9 +392,9 @@ cmd_test (void)
 
   if (slot != -1)
     card_close (slot);
-  free (account);
+  free ((void *) account);
   free (pin);
-  free (serialno);
+  free ((void *) serialno);
   free (key_string);
   free (key_path);
   gcry_sexp_release (key_sexp);
@@ -405,16 +406,16 @@ static gpg_error_t
 cmd_dump (void)
 {
   gcry_sexp_t key;
-  char *serial;
+  const char *serialno;
   gpg_error_t err;
   int slot;
   char *pin;
 
   slot = -1;
-  serial = NULL;
+  serialno = NULL;
   key = NULL;
 
-  pin = getpass ("Enter CHV3: ");
+  pin = getpass (POLDI_PIN3_QUERY_MSG);
 
   err = card_open (NULL, &slot);
   if (err)
@@ -428,7 +429,7 @@ cmd_dump (void)
   if (err)
     goto out;
 
-  err = card_info (slot, &serial, NULL);
+  err = card_info (slot, &serialno, NULL);
   if (err)
     goto out;
 
@@ -437,7 +438,7 @@ cmd_dump (void)
     goto out;
   
   printf ("Slot: %i\n", slot);
-  printf ("Serial: %s\n", serial);
+  printf ("Serial number: %s\n", serialno);
   printf ("Key:\n");
   gcry_sexp_dump (key);
 
@@ -446,7 +447,7 @@ cmd_dump (void)
   if (slot != -1)
     card_close (slot);
   gcry_sexp_release (key);
-  free (serial);
+  free ((void *) serialno);
   free (pin);
 
   return err;
@@ -513,14 +514,93 @@ cmd_list_users (void)
 }
 
 static gpg_error_t
+key_file_create (const char *account, const char *serialno)
+{
+  struct passwd *pwent;
+  struct stat statbuf;
+  gpg_error_t err;
+  char *path;
+  int ret;
+  int fd;
+
+  path = NULL;
+  
+  pwent = getpwnam (account);
+  if (! pwent)
+    {
+      err = gpg_error (GPG_ERR_NOT_FOUND);
+      goto out;
+    }
+
+  path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
+  fd = open (path, O_WRONLY | O_CREAT, 0644);
+  if (fd == -1)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  ret = close (fd);
+  if (ret == -1)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  ret = stat (path, &statbuf);
+  if (ret == -1)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  ret = chown (path, pwent->pw_uid, statbuf.st_gid);
+  if (ret == -1)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  err = 0;
+
+ out:
+
+  free (path);
+
+  return err;
+}
+
+static gpg_error_t
+key_file_remove (const char *serialno)
+{
+  gpg_error_t err;
+  char *path;
+  int ret;
+
+  path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
+
+  ret = unlink (path);
+  if (ret == -1)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  err = 0;
+
+ out:
+
+  free (path);
+
+  return err;
+}
+
+static gpg_error_t
 cmd_add_user (void)
 {
-  char users_file[] = POLDI_USERS_DB_FILE;
   const char *serialno;
   const char *account;
-  FILE *users_file_fp;
   gpg_error_t err;
-  int ret;
 
   serialno = poldi_ctrl_opt.serialno;
   account = poldi_ctrl_opt.account;
@@ -531,21 +611,13 @@ cmd_add_user (void)
       exit (EXIT_FAILURE);
     }
 
-  users_file_fp = fopen (users_file, "a");
-  if (! users_file_fp)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-  fprintf (users_file_fp, "%s\t%s\n", serialno, account);
-  ret = fclose (users_file_fp);
-  if (ret)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
+  err = usersdb_add_entry (account, serialno);
+  if (err)
+    goto out;
 
-  err = 0;
+  err = key_file_create (account, serialno);
+  if (err)
+    goto out;
 
  out:
 
@@ -555,102 +627,37 @@ cmd_add_user (void)
 static gpg_error_t
 cmd_remove_user (void)
 {
-  char users_file_old[] = POLDI_USERS_DB_FILE;
-  char users_file_new[] = POLDI_USERS_DB_FILE ".new";
-  FILE *users_file_old_fp;
-  FILE *users_file_new_fp;
-  const char *account;
-  char *line;
-  size_t line_n;
-  size_t account_n;
+  const char *serialno;
   gpg_error_t err;
-  int ret;
-  char *s;
 
-  account = poldi_ctrl_opt.account;
-  if (! account)
+  if (poldi_ctrl_opt.serialno)
+    serialno = poldi_ctrl_opt.serialno;
+  else if (poldi_ctrl_opt.account)
     {
-      fprintf (stderr, "Error: Account needs to be given.\n");
+      serialno = NULL;
+      err = username_to_serialno (poldi_ctrl_opt.account, &serialno);
+      if (err)
+	goto out;
+    }
+  else
+    {
+      fprintf (stderr, "Error: Account or Serial number needs to be given.\n");
       exit (EXIT_FAILURE);
     }
-  account_n = strlen (account);
 
-  line = NULL;
-  users_file_old_fp = NULL;
-  users_file_new_fp = NULL;
-
-  users_file_old_fp = fopen (users_file_old, "r");
-  if (! users_file_old_fp)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-  users_file_new_fp = fopen (users_file_new, "w");
-  if (! users_file_new_fp)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-
-  while (1)
-    {
-      free (line);
-      line = NULL;
-      line_n = 0;
-
-      ret = getline (&line, &line_n, users_file_old_fp);
-      if (ret == -1)
-	{
-	  err = gpg_error_from_errno (errno);
-	  break;
-	}
-      s = line;
-      while (*s && (! ((*s == '\t') || (*s == ' '))))
-	s++;
-      if (! *s)
-	{
-	  err = gpg_error (GPG_ERR_INTERNAL); /* FIXME? */
-	  break;
-	}
-      while (*s && ((*s == '\t') || (*s == ' ')))
-	s++;
-      if (! *s)
-	{
-	  err = gpg_error (GPG_ERR_INTERNAL); /* FIXME? */
-	  break;
-	}
-      
-      if ((! strncmp (s, account, account_n)) && s[account_n] == '\n')
-	continue;
-      fprintf (users_file_new_fp, "%s", line);
-      /* FIXME: ferror? */
-    }
+  err = usersdb_remove_entry (poldi_ctrl_opt.account, serialno);
   if (err)
     goto out;
 
-  fclose (users_file_old_fp);	/* FIXME: it's alright to ignore
-				   errors here, right?  */
-  users_file_old_fp = NULL;
-  ret = fclose (users_file_new_fp);
-  users_file_new_fp = NULL;
-  if (ret)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-
-  ret = rename (users_file_new, users_file_old);
-  if (ret == -1)
-    err = gpg_error_from_errno (errno);
+  err = key_file_remove (serialno);
+  if (err)
+    goto out;
 
  out:
 
-  free (line);
-  if (users_file_old_fp)
-    fclose (users_file_old_fp);
-  if (users_file_new_fp)
-    fclose (users_file_new_fp);
-  
+  if (serialno != poldi_ctrl_opt.serialno)
+    free ((void *) serialno);
+
   return err;
 }
 
@@ -664,16 +671,18 @@ cmd_set_key (void)
   FILE *path_fp;
   int slot;
   char *key_string;
+  const char *serialno;
+  char *pin;
   gcry_sexp_t key_sexp;
   int ret;
 
   slot = -1;
+  pin = NULL;
   path = NULL;
   path_fp = NULL;
+  serialno = NULL;
   key_sexp = NULL;
   key_string = NULL;
-
-  path = make_filename ("~/", POLDI_PERSONAL_KEY, NULL);
 
   err = card_open (NULL, &slot);
   if (err)
@@ -682,6 +691,23 @@ cmd_set_key (void)
   err = card_init (slot, 0);
   if (err)
     goto out;
+
+  err = card_info (slot, &serialno, NULL);
+  if (err)
+    goto out;
+
+  pin = getpass (POLDI_PIN3_QUERY_MSG);
+  if (! pin)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  err = card_pin_provide (slot, 3, pin);
+  if (err)
+    goto out;
+
+  path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
 
   err = card_read_key (slot, &key_sexp);
   if (err)
@@ -713,7 +739,9 @@ cmd_set_key (void)
   
  out:
 
+  free (pin);
   free (path);
+  free ((void *) serialno);
   if (path_fp)
     fclose (path_fp);
   free (key_string);
@@ -730,12 +758,27 @@ cmd_show_key (void)
   gpg_error_t err;
   char *path;
   char *key_string;
+  uid_t uid;
+  struct passwd *pwent;
+  const char *serialno;
 
   path = NULL;
+  serialno = NULL;
   key_string = NULL;
 
-  path = make_filename ("~/", POLDI_PERSONAL_KEY, NULL);
+  uid = getuid ();
+  pwent = getpwuid (uid);
+  if (! pwent)
+    {
+      err = gpg_error (GPG_ERR_INTERNAL);
+      goto out;
+    }
 
+  err = username_to_serialno (pwent->pw_name, &serialno);
+  if (err)
+    goto out;
+
+  path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
   err = file_to_string (path, &key_string);
   if (err)
     goto out;
@@ -746,6 +789,7 @@ cmd_show_key (void)
 
   free (path);
   free (key_string);
+  free ((void *) serialno);
 
   return err;
 }

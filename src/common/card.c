@@ -101,7 +101,7 @@ card_close (int slot)
 }
 
 gpg_error_t
-card_info (int slot, char **serial_no, char **fingerprint)
+card_info (int slot, const char **serial_no, const char **fingerprint)
 {
   size_t fingerprint_new_n;
   char *fingerprint_new;
@@ -133,7 +133,6 @@ card_info (int slot, char **serial_no, char **fingerprint)
 
       for (i = 0; i < data_n; i++)
 	sprintf (serial_no_new + (i * 2), "%02X", data[i]);
-      *serial_no = serial_no_new;
     }
 
   if (fingerprint)
@@ -175,9 +174,9 @@ card_info (int slot, char **serial_no, char **fingerprint)
   if (! err)
     {
       if (serial_no)
-	*serial_no = serial_no_new;
+	*serial_no = (const char *) serial_no_new;
       if (fingerprint)
-	*fingerprint = fingerprint_new;
+	*fingerprint = (const char *) fingerprint_new;
     }
   else
     {
@@ -213,10 +212,6 @@ card_read_key (int slot, gcry_sexp_t *key)
   n_mpi = NULL;
   key_sexp = NULL;
 
-  err = iso7816_verify (slot, 0x83, "12345678", 8);
-  if (err)
-    goto out;
-  
   rc = iso7816_read_public_key (slot, "\xA4", 2, &buffer, &buffer_n);
   if (rc)
     {

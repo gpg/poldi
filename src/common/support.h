@@ -27,7 +27,10 @@ gpg_error_t challenge_generate (unsigned char **challenge, size_t *challenge_n);
 gpg_error_t challenge_verify (gcry_sexp_t key,
 			      unsigned char *challenge, size_t challenge_n,
 			      unsigned char *respone, size_t response_n);
-gpg_error_t serialno_to_username (char *serialno, char **username);
+gpg_error_t serialno_to_username (const char *serialno, const char **username);
+gpg_error_t username_to_serialno (const char *username, const char **serialno);
+gpg_error_t usersdb_remove_entry (const char *username, const char *serialno);
+gpg_error_t usersdb_add_entry (const char *username, const char *serialno);
 gpg_error_t sexp_to_string (gcry_sexp_t sexp, char **sexp_string);
 gpg_error_t file_to_string (const char *filename, char **string);
 gpg_error_t string_to_sexp (gcry_sexp_t *sexp, char *string);

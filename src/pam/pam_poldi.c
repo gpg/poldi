@@ -279,7 +279,7 @@ do_auth (int slot, const struct pam_conv *conv, gcry_sexp_t key)
   response = NULL;
   pin = NULL;
 
-  err = ask_user (conv, POLDI_PIN_QUERY_MSG, &pin);
+  err = ask_user (conv, POLDI_PIN2_QUERY_MSG, &pin);
   if (err)
     goto out;
 
@@ -308,25 +308,31 @@ do_auth (int slot, const struct pam_conv *conv, gcry_sexp_t key)
 }
 
 static gpg_error_t
-lookup_key (char *username, gcry_sexp_t *key)
+lookup_key (const char *username, gcry_sexp_t *key)
 {
   gcry_sexp_t key_sexp;
   char *key_string;
   char *key_path;
+  const char *serialno;
   gpg_error_t err;
   struct passwd *pwent;
 
-  key_string = NULL;
+  serialno = NULL;
   key_path = NULL;
+  key_string = NULL;
 
   pwent = getpwnam (username);
-  if (! (pwent && pwent->pw_dir))
+  if (! pwent)
     {
       err = gpg_error (GPG_ERR_INTERNAL); /* FIXME */
       goto out;
     }
 
-  key_path = make_filename (pwent->pw_dir, POLDI_PERSONAL_KEY, NULL);
+  err = username_to_serialno (username, &serialno);
+  if (err)
+    goto out;
+
+  key_path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
   err = file_to_string (key_path, &key_string);
   if (err)
     goto out;
@@ -339,16 +345,18 @@ lookup_key (char *username, gcry_sexp_t *key)
 
  out:
 
-  free (key_string);
   free (key_path);
+  free (key_string);
+  free ((void *) serialno);
 
   return err;
 }
 
 static gpg_error_t
-wait_for_card (int slot, int fake, const struct pam_conv *conv, char **serialno)
+wait_for_card (int slot,
+	       int fake, const struct pam_conv *conv, const char **serialno)
 {
-  char *serialno_new;
+  const char *serialno_new;
   gpg_error_t err;
 
   if (fake)
@@ -405,8 +413,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
   gcry_sexp_t key;
   gpg_error_t err;
   char *username;
-  char *serialno;
-  char *account;
+  const char *serialno;
+  const char *account;
   int slot;
   int ret;
 
@@ -535,8 +543,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
  out:
   
   gcry_sexp_release (key);
-  free (serialno);
-  free (account);
+  free ((void *) serialno);
+  free ((void *) account);
   if (slot != -1)
     card_close (slot);
 

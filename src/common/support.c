@@ -113,57 +113,242 @@ challenge_verify (gcry_sexp_t key,
   return err;
 }
 
-gpg_error_t
-serialno_to_username (char *serialno, char **username)
+static gpg_error_t
+usersdb_translate (const char *serialno, const char *username, const char **found)
 {
-  gpg_error_t err = GPG_ERR_NO_ERROR;
   const char *delimiters = "\t\n ";
-  FILE *usersdb = NULL;
-  char *line = NULL, *line_serialno = NULL, *line_username = NULL;;
-  char *username_cp = NULL;
-  size_t line_n = 0;
-  ssize_t ret = 0;
+  gpg_error_t err;
+  FILE *usersdb;
+  char *line;
+  char *line_serialno;
+  char *line_username;
+  char *token_found;
+  size_t line_n;
+  ssize_t ret;
+
+  err = 0;
+  line = NULL;
+  token_found = NULL;
+  line_serialno = NULL;
+  line_username = NULL;
 
   usersdb = fopen (POLDI_USERS_DB_FILE, "r");
-  if (usersdb)
+  if (! usersdb)
     {
-      do
-	{
-	  /* Get next line.  */
-	  line = NULL;
-	  line_n = 0;
-	  ret = getline (&line, &line_n, usersdb);
-	  if (ret != -1)
-	    {
-	      line_serialno = strtok (line, delimiters);
-	      if (line_serialno)
-		{
-		  line_username = strtok (NULL, delimiters);
-		  if (line_username)
-		    {
-		      if ((! strtok (NULL, delimiters))
-			  && (! strcmp (serialno, line_serialno)))
-			{
-			  /* Match.  */
-			  username_cp = strdup (line_username);
-			  if (! username_cp)
-			    break;
-			}
-		    }
-		}
-
-	      free (line);
-	    }
-	}
-      while ((! username_cp) && (ret != -1));
-
-      fclose (usersdb);
+      err = gpg_error_from_errno (errno);
+      goto out;
     }
 
-  if (username_cp)
-    *username = username_cp;
-  else
-    err = gpg_error (GPG_ERR_INTERNAL);
+  while (1)
+    {
+      /* Get next line.  */
+      line = NULL;
+      line_n = 0;
+      ret = getline (&line, &line_n, usersdb);
+      if (ret == -1)
+	{
+	  if (ferror (usersdb))
+	    err = gpg_error_from_errno (errno);
+	  else
+	    err = gpg_error (GPG_ERR_NOT_FOUND);
+	  break;
+	}
+
+      line_serialno = strtok (line, delimiters);
+      if (! line_serialno)
+	{
+	  err = gpg_error (GPG_ERR_INTERNAL); /* FIXME?  */
+	  break;
+	}
+
+      line_username = strtok (NULL, delimiters);
+      if (! line_username)
+	{
+	  err = gpg_error (GPG_ERR_INTERNAL); /* FIXME?  */
+	  break;
+	}
+
+      if (serialno)
+	{
+	  if (! strcmp (serialno, line_serialno))
+	    {
+	      token_found = strdup (line_username);
+	      if (! token_found)
+		err = gpg_error_from_errno (errno);
+	      break;
+	    }
+	}
+      else
+	{
+	  if (! strcmp (username, line_username))
+	    {
+	      token_found = strdup (line_serialno);
+	      if (! token_found)
+		err = gpg_error_from_errno (errno);
+	      break;
+	    }
+	}
+
+      free (line);
+    }
+  if (err)
+    goto out;
+
+  *found = (const char *) token_found;
+
+ out:
+
+  if (usersdb)
+    fclose (usersdb);
+  free (line);
+
+  return err;
+}
+
+gpg_error_t
+serialno_to_username (const char *serialno, const char **username)
+{
+  return usersdb_translate (serialno, NULL, username);
+}
+
+gpg_error_t
+username_to_serialno (const char *username, const char **serialno)
+{
+  return usersdb_translate (NULL, username, serialno);
+}
+
+gpg_error_t
+usersdb_add_entry (const char *username, const char *serialno)
+{
+  char users_file[] = POLDI_USERS_DB_FILE;
+  FILE *users_file_fp;
+  gpg_error_t err;
+  int ret;
+
+  users_file_fp = NULL;
+  
+  users_file_fp = fopen (users_file, "a");
+  if (! users_file_fp)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  fprintf (users_file_fp, "%s\t%s\n", serialno, username);
+  if (ferror (users_file_fp))
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+  
+  ret = fclose (users_file_fp);
+  users_file_fp = NULL;
+  if (ret)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+  
+  err = 0;
+
+ out:
+
+  if (users_file_fp)
+    fclose (users_file_fp);
+
+  return err;
+}
+
+gpg_error_t
+usersdb_remove_entry (const char *username, const char *serialno)
+{
+  char users_file_old[] = POLDI_USERS_DB_FILE;
+  char users_file_new[] = POLDI_USERS_DB_FILE ".new";
+  char delimiters[] = "\t\n ";
+  FILE *users_file_old_fp;
+  FILE *users_file_new_fp;
+  char *line;
+  char *line_serialno;
+  char *line_username;
+  size_t line_n;
+  ssize_t ret;
+  gpg_error_t err;
+
+  line_n = 0;
+  line = NULL;
+  users_file_old_fp = NULL;
+  users_file_new_fp = NULL;
+
+  users_file_old_fp = fopen (users_file_old, "r");
+  if (! users_file_old_fp)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+  users_file_new_fp = fopen (users_file_new, "w");
+  if (! users_file_new_fp)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  err = 0;
+  while (1)
+    {
+      ret = getline (&line, &line_n, users_file_old_fp);
+      if (ret == -1)
+	{
+	  if (ferror (users_file_old_fp))
+	    err = gpg_error_from_errno (errno);
+	  break;
+	}
+
+      line_serialno = strtok (line, delimiters);
+      if (! line_serialno)
+	{
+	  err = gpg_error (GPG_ERR_INTERNAL); /* FIXME?  */
+	  break;
+	}
+
+      line_username = strtok (NULL, delimiters);
+      if (! line_username)
+	{
+	  err = gpg_error (GPG_ERR_INTERNAL); /* FIXME?  */
+	  break;
+	}
+
+      if ((username && strcmp (username, line_username))
+	  || (serialno && strcmp (serialno, line_serialno)))
+	fprintf (users_file_new_fp, "%s\t%s\n", line_serialno, line_username);
+
+      free (line);
+      line = NULL;
+      line_n = 0;
+    }
+
+  fclose (users_file_old_fp);	/* FIXME: it's alright to ignore
+				   errors here, right?  */
+  users_file_old_fp = NULL;
+  
+  ret = fclose (users_file_new_fp);
+  users_file_new_fp = NULL;
+  if (ret)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  ret = rename (users_file_new, users_file_old);
+  if (ret == -1)
+    err = gpg_error_from_errno (errno);
+
+ out:
+
+  free (line);
+  if (users_file_old_fp)
+    fclose (users_file_old_fp);
+  if (users_file_new_fp)
+    fclose (users_file_new_fp);
 
   return err;
 }

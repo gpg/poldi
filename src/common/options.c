@@ -1,5 +1,5 @@
 /* poldi.c - PAM authentication via OpenPGP smartcards.
-   Copyright (C) 2004 Free Software Foundation, Inc.
+   Copyright (C) 2004 g10 Code GmbH.
  
    This file is part of Libgcrypt.
   
