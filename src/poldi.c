@@ -48,8 +48,10 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
   unsigned char *login = NULL;
   int ret = PAM_SUCCESS;
 
+  openlog ("poldi", LOG_PID, LOG_USER);
+
   /* Ask PAM for username.  */
-  ret = pam_get_item (pam_handle, PAM_USER, (const void **) &username);
+  ret = pam_get_user (pam_handle, (const char **) &username, NULL);
   if (ret != PAM_SUCCESS)
     err = GPG_ERR_INTERNAL;
   if (err)

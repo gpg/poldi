@@ -53,3 +53,7 @@ CLEANFILES = \
 	$(BUILT_SOURCES) pam_poldi.so
 
 EXTRA_DIST = defs.h.in $(bin_SCRIPTS)
+
+bin_PROGRAMS = poldi-run
+poldi_run_SOURCES = poldi-run.c
+poldi_run_LDADD = libpam_poldi.a libscd/libscd.a $(LIBGCRYPT_LIBS)

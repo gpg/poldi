@@ -1,3 +1,8 @@
+2004-05-13  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi.c (pam_sm_authenticate): Use pam_get_user instead of
+	pam_get_item.  D'oh.
+
 2004-05-13  Moritz Schulte  <moritz@g10ode.com>
 
 	* card.h (card_info): Change arguments.
