@@ -17,16 +17,27 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
-AM_CFLAGS = $(GPG_ERROR_CFLAGS)
+noinst_LIBRARIES = libpoldi-common.a
 
-noinst_LIBRARIES = libscd.a
+libpoldi_common_a_SOURCES = \
+	card.c card.h support.c support.h options.c options.h
 
-libscd_a_SOURCES = \
-	scd.h init.c \
-	apdu.c apdu.h ccid-driver.c ccid-driver.h  \
-	iso7816.c iso7816.h tlv.c tlv.h \
-	dynload.h libjnlib-config.h
+libpoldi_common_a_CFLAGS = \
+	-Wall -I$(top_builddir)/src/include \
+	-I$(top_srcdir)/src/include -I$(top_srcdir)/src \
+	$(LIBGCRYPT_CFLAGS) $(GPG_ERROR_CFLAGS)
 
-libscd_a_CFLAGS = \
-	-Wall -I$(top_builddir)/src/include -I$(top_srcdir)/src/include \
-	-I$(top_srcdir)/src $(GPG_ERROR_CFLAGS)
+BUILT_SOURCES = \
+	defs.h
+
+generate = \
+	sed \
+         -e 's,[@]POLDI_CONF_DIRECTORY[@],$(POLDI_CONF_DIRECTORY),g'
+
+defs.h: defs.h.in
+	$(generate) < $< > $@
+
+EXTRA_DIST = \
+	defs.h.in options.h support.h card.h
+
+CLEANFILES = $(BUILT_SOURCES)

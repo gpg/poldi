@@ -1,3 +1,11 @@
+2004-10-23  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Updated libusb related code from gnupg.
+
+2004-10-22  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Use AC_GNU_SOURCE.
+
 2004-06-22  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac: Check for GnuPG types.

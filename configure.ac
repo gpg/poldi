@@ -24,7 +24,7 @@ min_automake_version="1.7.9"
 
 # Version number: Remember to change it immediately *after* a release.
 #                 Add a "-cvs" prefix for non-released code.
-AC_INIT(poldi, 0.1, gnupg-devel@gnupg.org)
+AC_INIT(poldi, 0.2, gnupg-devel@gnupg.org)
 
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
@@ -32,7 +32,7 @@ VERSION=$PACKAGE_VERSION
 NEED_LIBGCRYPT_VERSION=0
 NEED_GPG_ERROR_VERSION=0.7
 	
-AC_CONFIG_SRCDIR(src/poldi.c)
+AC_CONFIG_SRCDIR(src/pam/pam_poldi.c)
 AM_CONFIG_HEADER(config.h)
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
@@ -42,6 +42,8 @@ AC_SUBST(POLDI_CONF_DIRECTORY)
 
 PAM_MODULE_DIRECTORY="/lib/security"
 AC_SUBST(PAM_MODULE_DIRECTORY)
+
+AC_GNU_SOURCE
 
 # Some status variables to give feedback at the end of a configure run
 #have_gpg_error=no
@@ -92,18 +94,17 @@ AM_PATH_GPG_ERROR("$NEED_GPG_ERROR_VERSION",
                   have_gpg_error=yes,have_gpg_error=no)
 
 
+#
 # libusb allows us to use the integrated CCID smartcard reader driver.
 #
-# Note, that we need the CVS version.  FIXME: libusb should have a
-# regular check as the other libraries do.
-#
-AC_CHECK_LIB(usb, usb_find_device,
-              [ LIBUSB_LIBS="$LIBUSB_LIBS -lusb"
-                AC_DEFINE(HAVE_LIBUSB,1,
-                         [defined if libusb is available])
+LIBUSB_LIBS=""
+AC_CHECK_LIB(usb, usb_bulk_write,
+             [ LIBUSB_LIBS="$LIBUSB_LIBS -lusb"
+               AC_DEFINE(HAVE_LIBUSB,1,
+               [defined if libusb is available])
              ])
 AC_SUBST(LIBUSB_LIBS)
-
+AC_CHECK_FUNCS(usb_get_busses memicmp stpcpy strlwr strtoul memmove stricmp)
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -194,7 +195,10 @@ fi
 
 AC_CONFIG_FILES([Makefile
 		 doc/Makefile
+		 src/Makefile
 		 src/jnlib/Makefile
 		 src/libscd/Makefile
-		 src/Makefile])
+		 src/common/Makefile
+		 src/pam/Makefile
+		 src/ctrl/Makefile])
 AC_OUTPUT

@@ -17,16 +17,28 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
-AM_CFLAGS = $(GPG_ERROR_CFLAGS)
+PAM_MODULE_DIRECTORY = "@PAM_MODULE_DIRECTORY@"
 
-noinst_LIBRARIES = libscd.a
+AM_CFLAGS = \
+	-Wall -fPIC \
+	-I$(top_srcdir)/src -I$(top_builddir)/src -I$(top_builddir) \
+	 $(LIBGCRYPT_CFLAGS) $(GPG_ERROR_CFLAGS)
 
-libscd_a_SOURCES = \
-	scd.h init.c \
-	apdu.c apdu.h ccid-driver.c ccid-driver.h  \
-	iso7816.c iso7816.h tlv.c tlv.h \
-	dynload.h libjnlib-config.h
+pam_poldi.o: pam_poldi.c
+	$(CC) $(AM_CFLAGS) $(CFLAGS) -c -o pam_poldi.o $(top_srcdir)/src/pam/pam_poldi.c
 
-libscd_a_CFLAGS = \
-	-Wall -I$(top_builddir)/src/include -I$(top_srcdir)/src/include \
-	-I$(top_srcdir)/src $(GPG_ERROR_CFLAGS)
+pam_poldi.so: pam_poldi.o ../common/libpoldi-common.a ../jnlib/libjnlib.a \
+	      ../libscd/libscd.a
+	$(LD) --shared -x \
+	      -o $@ pam_poldi.o \
+	      ../common/libpoldi-common.a ../jnlib/libjnlib.a \
+	     ../libscd/libscd.a $(LIBGCRYPT_LDFLAGS) $(LIBGCRYPT_LIBS) $(LIBUSB_LIBS) -lc
+
+all-local: pam_poldi.so
+
+install-pam-module:
+	$(INSTALL) pam_poldi.so $(PAM_MODULE_DIRECTORY)
+
+EXTRA_DIST = pam_poldi.c
+
+CLEANFILES = pam_poldi.o pam_poldi.so

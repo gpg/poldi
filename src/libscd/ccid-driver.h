@@ -50,22 +50,48 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * $Id: ccid-driver.h,v 1.1.2.9 2004/10/14 09:12:36 werner Exp $
  */
 
 #ifndef CCID_DRIVER_H
 #define CCID_DRIVER_H
 
+/* The CID driver returns the same error codes as the statsu words
+   used by GnuPG's apdu.h.  For ease of maintenance they should always
+   match.  */
+#define CCID_DRIVER_ERR_OUT_OF_CORE    0x10001 
+#define CCID_DRIVER_ERR_INV_VALUE      0x10002
+#define CCID_DRIVER_ERR_INCOMPLETE_CARD_RESPONSE = 0x10003
+#define CCID_DRIVER_ERR_NO_DRIVER      0x10004
+#define CCID_DRIVER_ERR_NOT_SUPPORTED  0x10005
+#define CCID_DRIVER_ERR_LOCKING_FAILED 0x10006
+#define CCID_DRIVER_ERR_BUSY           0x10007
+#define CCID_DRIVER_ERR_NO_CARD        0x10008
+#define CCID_DRIVER_ERR_CARD_INACTIVE  0x10009
+#define CCID_DRIVER_ERR_CARD_IO_ERROR  0x1000a
+#define CCID_DRIVER_ERR_GENERAL_ERROR  0x1000b
+#define CCID_DRIVER_ERR_NO_READER      0x1000c
+#define CCID_DRIVER_ERR_ABORTED        0x1000d
 
 struct ccid_driver_s;
 typedef struct ccid_driver_s *ccid_driver_t;
 
-int ccid_open_reader (ccid_driver_t *handle, int readerno);
+int ccid_set_debug_level (int level);
+char *ccid_get_reader_list (void);
+int ccid_open_reader (ccid_driver_t *handle, const char *readerid);
+int ccid_shutdown_reader (ccid_driver_t handle);
 int ccid_close_reader (ccid_driver_t handle);
 int ccid_get_atr (ccid_driver_t handle,
                   unsigned char *atr, size_t maxatrlen, size_t *atrlen);
 int ccid_slot_status (ccid_driver_t handle, int *statusbits);
 int ccid_transceive (ccid_driver_t handle,
                      const unsigned char *apdu, size_t apdulen,
+                     unsigned char *resp, size_t maxresplen, size_t *nresp);
+int ccid_transceive_secure (ccid_driver_t handle,
+                     const unsigned char *apdu, size_t apdulen,
+                     int pin_mode, 
+                     int pinlen_min, int pinlen_max, int pin_padlen, 
                      unsigned char *resp, size_t maxresplen, size_t *nresp);
 
 
