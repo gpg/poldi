@@ -77,10 +77,11 @@ section entitled ``Copying''.
 @end ifnottex
 
 @menu
-* Introduction::                 What is Poldi.
+* Introduction::                 What is Poldi
+* Using Poldi::                  Using Poldi
 
 Appendices
-* Copying::                     The GNU General Public License.
+* Copying::                     The GNU General Public License
 
 @detailmenu
  --- The Detailed Node Listing ---
@@ -92,14 +93,141 @@ Introduction
 
 @node Introduction
 @chapter Introduction
-Poldi rocks.
+Welcome to Poldi.
 
 @menu
 * Overview::                    Overview
+* Building::                    Building Poldi
 @end menu
 
 @node Overview
 @section Overview
+
+Poldi is a PAM module, which implements authentication via OpenPGP
+smartcards.  After it has received the correct passphrase (PIN) from
+the user, a challenge-response protocol is used for authentication.
+
+To be able to establish the authentication, Poldi has to know the
+public key belonging to the secret key, which is contained on a
+smartcard.  Since the protocol used is independent from OpenPGP, the
+key material from a given public OpenPGP key must be converted into a
+simple S-Expression first; this is what the @code{poldi-key2sexp}
+script contained in the Poldi package is to be used for.
+
+Since the actual authentication mechanism is independent from Unix
+usernames, the smartcards (or rather: the keys on smartcards) must be
+mapped to Unix usernames by Poldi.
+
+@node Building
+@section Building
+
+Building Poldi should be pretty straightforward.  Of course, you have
+to make sure that all necessary build dependencies are fulfilled.
+Currently these dependencies can be reduced to the libraries Libgcrypt
+and Libgpg-error, which should be available from any GNU mirror.
+Furthermore, GnuPG is required by ``poldi-key2sexp''.
+
+Details on the build procedure can be found in the file ``INSTALL''.
+
+@node Using Poldi
+@chapter Using Poldi
+
+In this chapter you will find information on the correct configuration
+and Usage of Poldi.
+
+@menu
+* Configuration::               Configuring Poldi
+* PAM::                         Integration with PAM
+* Usage::                       Using authentication through Poldi
+@end menu
+
+@node Configuration
+@section Configuration
+
+All configuration files of Poldi are stored beneath
+``@code{sysconfdir}/poldi''.
+
+Poldi's main configuration file is
+``@code{sysconfdir}/poldi/poldi.conf''.  The syntax of this
+configuration file is identical to the one used by several other GnuPG
+components; options, and their values, are written next each other,
+seperated by a whitespace - one such configuration item per line.
+
+Poldi supports the following options:
+
+@table @code
+@item ctapi-driver <driver name>
+@item pcsc-driver <driver name>
+@item reader-port <reader port>
+@item disable-ccid
+@item disable-opensc
+@end table
+
+The semantics used by Poldi in respect to choosing a default card
+driver and handling of the card driver specific options should match
+those of scdaemon.  Therefore Poldi tries to use the pcsc ``driver''
+named ``libpcsclite.so'' in case no other driver is specified.
+
+The public keys are stored in files beneath the directory
+``keys''. which have to follow the naming scheme ``<key
+fingerprint>.key''.  The key fingerprint has to be the one of the
+third (!) key on the smartcard, since that one is to be used for
+authentication.  Remember that these key files have to contain a
+single S-Expression holding the key material, as spitted out by
+@code{poldi-key2sexp}.
+
+The mapping between keys and Unix usernames must be established by
+appending appropriate entries to the file ``users''.  Such an entry
+has to be of the following form:
+
+<key fingerprint> <tab character> <Unix username>.
+
+An example follows.
+
+First we have to find out the key fingerprint to use:
+
+$ echo ``GETATTR KEY-FPR'' | scdaemon --server
+OK GNU Privacy Guard's Smartcard server ready
+S KEY-FPR 1 46F1F7B9C00FF3B8C7B49A33C0D0CE171CFCE219
+S KEY-FPR 2 A9BE2B955A3D6C3C59F2C7F918EFA9A5BF4DB088
+S KEY-FPR 3 20AC993F852BCD6FF0243973530EE508A73DF91A
+OK
+$
+
+Now we export the key material of the third (or: the second sub-key)
+of the public key and store it in
+``@code{sysconfdir}/keys/20AC993F852BCD6FF0243973530EE508A73DF91A.key'':
+
+$ poldi-key2sexp 20AC993F852BCD6FF0243973530EE508A73DF91A 2 > @code{sysconfdir}/poldi/keys/20AC993F852BCD6FF0243973530EE508A73DF91A.key
+(public-key
+ (rsa
+  (n #BE5CC2D5068E07E5D044DE63ED8EB029FF94B81606AA9FB639E970F73D805A1053634840EFAC8C9013CBDB88B35EA8BBB29D07F2FE78FAF22194A58D2D95CCEC8DE2AC749D46994976B0C22788A4788D3A5CFA48A796423B781E5E25A10A9274D53DE5706F6D1E264E46E6AA00DBD9A41E1027E1A604C7C5E50AC98B5483F1AF#)
+  (e #C2E0C0BD#)))
+$
+
+Now we add an appropriate entry, which maps the key on the smartcard
+to the Unix account (which is ``moritz'' in this example):
+
+$ echo -e '20AC993F852BCD6FF0243973530EE508A73DF91A\tmoritz' >> @code{sysconfdir}/poldi/users
+
+@node PAM
+@section PAM
+
+After installing the Poldi PAM module into the system, it is necessary
+to configure PAM accordingly in order to use the module.  Details on
+the configuration PAM can be found in the PAM manuals.
+
+Keep in mind that it is easy to lock yourself out of the system by
+using authentication rules, which are too strict.  In case
+authentication through Poldi is the only allowed authentication
+mechanism, bugs in Poldi could make it impossible to log in.
+
+@node Usage
+@section Usage
+
+After the initial configuration of Poldi and the integration within
+the PAM system, authentication based on OpenPGP smartcards should
+work.  In case it does not, please send a bug report.
 
 @include gpl.texi
 
