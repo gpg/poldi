@@ -315,18 +315,10 @@ lookup_key (const char *username, gcry_sexp_t *key)
   char *key_path;
   const char *serialno;
   gpg_error_t err;
-  struct passwd *pwent;
 
   serialno = NULL;
   key_path = NULL;
   key_string = NULL;
-
-  pwent = getpwnam (username);
-  if (! pwent)
-    {
-      err = gpg_error (GPG_ERR_INTERNAL); /* FIXME */
-      goto out;
-    }
 
   err = username_to_serialno (username, &serialno);
   if (err)
@@ -334,6 +326,8 @@ lookup_key (const char *username, gcry_sexp_t *key)
 
   key_path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
   err = file_to_string (key_path, &key_string);
+  if ((! err) && (! key_string))
+    err = gpg_error (GPG_ERR_NO_PUBKEY);
   if (err)
     goto out;
 
