@@ -352,7 +352,7 @@ cmd_test (void)
       goto out;
     }
 
-  key_path = make_filename ("~", POLDI_PERSONAL_KEY, NULL);
+  key_path = make_filename ("~/", POLDI_PERSONAL_KEY, NULL);
   err = file_to_string (key_path, &key_string);
   if (err)
     goto out;
@@ -673,7 +673,7 @@ cmd_set_key (void)
   key_sexp = NULL;
   key_string = NULL;
 
-  path = make_filename ("~", POLDI_PERSONAL_KEY, NULL);
+  path = make_filename ("~/", POLDI_PERSONAL_KEY, NULL);
 
   err = card_open (NULL, &slot);
   if (err)
@@ -734,7 +734,7 @@ cmd_show_key (void)
   path = NULL;
   key_string = NULL;
 
-  path = make_filename ("~", POLDI_PERSONAL_KEY, NULL);
+  path = make_filename ("~/", POLDI_PERSONAL_KEY, NULL);
 
   err = file_to_string (path, &key_string);
   if (err)
