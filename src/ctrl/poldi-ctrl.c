@@ -171,11 +171,8 @@ my_strusage (int level)
     case 13:
       p = VERSION;
       break;
-    case 17:
-      p = "Fixme OS";
-      break;
     case 19:
-      p = "Please report bugs to FIXME\n";
+      p = "Please report bugs to <" PACKAGE_BUGREPORT ">\n";
       break;
     case 1:
     case 40:

@@ -1,3 +1,7 @@
+2004-11-29  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c: Fix contact address.
+
 2004-11-27  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi-ctrl.c (cmd_test): Adjust card_init caller.
