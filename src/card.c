@@ -33,6 +33,7 @@ gpg_error_t
 card_open (const char *port, int *slot,
 	   unsigned char **serial_no, size_t *serial_no_n)
 {
+  /* This is the AID (Application IDentifier) for OpenPGP.  */
   char const aid[] = { 0xD2, 0x76, 0x00, 0x01, 0x24, 0x01 };
   gpg_error_t err = GPG_ERR_NO_ERROR;
   unsigned char *serial = NULL;
@@ -50,7 +51,7 @@ card_open (const char *port, int *slot,
       /* FIXME: verify correctness of CHV status bytes?  */
     }
   else
-    err = GPG_ERR_INTERNAL;	/* ? */
+    err = GPG_ERR_CARD;
 
   if (! err)
     {

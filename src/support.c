@@ -61,7 +61,7 @@ challenge_generate (unsigned char **challenge, size_t *challenge_n)
   return err;
 }
 
-gpg_error_t
+static gpg_error_t
 challenge_verify_sexp (gcry_sexp_t sexp_key,
 		       unsigned char *challenge, size_t challenge_n,
 		       unsigned char *response, size_t response_n)
@@ -118,7 +118,7 @@ challenge_verify (poldi_key_t key,
   return err;
 }
 
-gpg_error_t
+static gpg_error_t
 key_get_sexp (gcry_sexp_t *key, unsigned char *key_id)
 {
   gpg_error_t err = GPG_ERR_NO_ERROR;
@@ -171,7 +171,7 @@ key_get_sexp (gcry_sexp_t *key, unsigned char *key_id)
   return err;
 }
 	       
-void
+static void
 key_destroy_sexp (gcry_sexp_t key)
 {
   gcry_sexp_release (key);
@@ -215,7 +215,6 @@ key_destroy (poldi_key_t key)
 	key_destroy_sexp (key->key_sexp);
     }
 }
-
 
 gpg_error_t
 keyid_to_username (unsigned char *key_id, unsigned char **username)

@@ -1,3 +1,24 @@
+2004-06-22  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi.c (pam_sm_authenticate): Ask for PIN only, when the
+	username retrieved through PAM matches the one associated with the
+	authentication key contained on the card.
+
+	* options.c, options.h: New files.
+	* Makefile.am (libpam_poldi_a_SOURCES): Added: options.c,
+	options.h.
+
+	* Added jnlib into directory "jnlib".
+	* Makefile.am (SUBDIRS): Added: jnlib.
+
+	* defs.h.in: Added symbol: POLDI_CONF_FILE.
+
+	* poldi.c: Added logging and stuff.
+
+	* support.c (challenge_verify_sexp): Declare static.
+	(key_get_sexp): Likewise.
+	(key_destroy_sexp): Likewise.
+
 2004-05-13  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi.c (pam_sm_authenticate): Use pam_get_user instead of

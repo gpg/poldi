@@ -17,7 +17,7 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
-SUBDIRS = libscd
+SUBDIRS = jnlib libscd
 PAM_MODULE_DIRECTORY = "@PAM_MODULE_DIRECTORY@"
 
 generate = \
@@ -33,14 +33,16 @@ defs.h: defs.h.in
 	$(generate) < $< > $@
 
 noinst_LIBRARIES = libpam_poldi.a
-libpam_poldi_a_SOURCES = card.c card.h support.c support.h poldi.c
+libpam_poldi_a_SOURCES = card.c card.h support.c support.h poldi.c \
+			 options.c options.h
 
 PAM_POLDI_LIBS = \
 	$(LIBGCRYPT_LIBS) $(GPG_ERROR_LIBS) -lc
 
-pam_poldi.so: libpam_poldi.a libscd/libscd.a
+pam_poldi.so: libpam_poldi.a jnlib/libjnlib.a libscd/libscd.a
 	$(LD) --shared -x -u pam_sm_authenticate -u pam_sm_setcred \
-	      -o $@ libpam_poldi.a libscd/libscd.a $(PAM_POLDI_LIBS)
+	      -o $@ libpam_poldi.a \
+	      libscd/libscd.a jnlib/libjnlib.a $(PAM_POLDI_LIBS)
 
 all-local: pam_poldi.so
 
@@ -54,6 +56,6 @@ CLEANFILES = \
 
 EXTRA_DIST = defs.h.in $(bin_SCRIPTS)
 
-bin_PROGRAMS = poldi-run
+noinst_PROGRAMS = poldi-run
 poldi_run_SOURCES = poldi-run.c
-poldi_run_LDADD = libpam_poldi.a libscd/libscd.a $(LIBGCRYPT_LIBS)
+poldi_run_LDADD = libpam_poldi.a libscd/libscd.a jnlib/libjnlib.a $(LIBGCRYPT_LIBS)
