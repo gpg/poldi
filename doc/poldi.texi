@@ -171,9 +171,9 @@ named ``libpcsclite.so'' in case no other driver is specified.
 The public keys are stored in files beneath the directory
 ``keys''. which have to follow the naming scheme ``<key
 fingerprint>.key''.  The key fingerprint has to be the one of the
-third (!) key on the smartcard, since that one is to be used for
-authentication.  Remember that these key files have to contain a
-single S-Expression holding the key material, as spitted out by
+third (!) key on the smartcard, since that is the one reserved for
+authentication purposes.  Remember that these key files have to
+contain a single S-Expression holding the key material, as returned by
 @code{poldi-key2sexp}.
 
 The mapping between keys and Unix usernames must be established by
