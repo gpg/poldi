@@ -1,3 +1,8 @@
+2004-11-29  Moritz Schulte  <moritz@g10code.com>
+
+	* THANKS: New file.
+	* configure.ac: Bumped version number up to 0.2; released.
+
 2004-11-27  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac: Bumped version up to 0.2-cvs2.
