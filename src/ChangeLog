@@ -1,0 +1,16 @@
+2004-05-13  Moritz Schulte  <moritz@g10code.com>
+
+	* support.h: Fix Copyright-line, fix license.
+	* poldi.c: Likewise.
+	* defs.h.in: Likewise.
+	* card.c: Likewise.
+	* card.h: Likewise.
+
+	* support.c (key_get_sexp): Use MMAP_FAILED.
+	(key_get_sexp) Use memset to zero-out struct.
+	(key_get_sexp): Use sizeof instead of strlen in order to fix an
+	off-by-one error.
+	Use gpg_err_code_from_errno wherever necesarry.
+	Fix Copyright-line, fix license.
+	
+

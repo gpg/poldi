@@ -1,20 +1,20 @@
 /* support.c - PAM authentication via OpenPGP smartcards.
-   Copyright (C) 2004, Free Software Foundation, Inc.
+   Copyright (C) 2004 g10 Code GmbH
  
    This file is part of Poldi.
   
    Poldi is free software; you can redistribute it and/or modify it
-   under the terms of the GNU Lesser general Public License as
-   published by the Free Software Foundation; either version 2.1 of
-   the License, or (at your option) any later version.
+   under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
   
    Poldi is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Lesser General Public License for more details.
+   General Public License for more details.
   
-   You should have received a copy of the GNU Lesser General Public
-   License along with this program; if not, write to the Free Software
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.  */
 
@@ -49,7 +49,7 @@ challenge_generate (unsigned char **challenge, size_t *challenge_n)
 
   challenge_new = malloc (challenge_new_n);
   if (! challenge_new)
-    err = GPG_ERR_ENOMEM;
+    err = gpg_err_code_from_errno (errno);
   else
     {
       gcry_create_nonce (challenge_new, challenge_new_n);
@@ -73,16 +73,20 @@ challenge_verify_sexp (gcry_sexp_t sexp_key,
   /* Convert buffers into MPIs.  */
   if (! err)
     {
-      if (gcry_mpi_scan (&mpi_signature, GCRYMPI_FMT_USG, response, response_n, NULL))
+      if (gcry_mpi_scan (&mpi_signature, GCRYMPI_FMT_USG, response, response_n,
+			 NULL))
 	err = GPG_ERR_INTERNAL;	/* FIXME.  */
     }
 
   /* Create according S-Expressions.  */
   if (! err)
-    err = gcry_sexp_build (&sexp_data, NULL, "(data (flags pkcs1) (hash %s %b))",
-			   gcry_md_algo_name (CHALLENGE_MD_ALGORITHM), challenge_n, challenge);
+    err = gcry_sexp_build (&sexp_data, NULL,
+			   "(data (flags pkcs1) (hash %s %b))",
+			   gcry_md_algo_name (CHALLENGE_MD_ALGORITHM),
+			   challenge_n, challenge);
   if (! err)
-    err = gcry_sexp_build (&sexp_signature, NULL, "(sig-val (rsa (s %m)))", mpi_signature);
+    err = gcry_sexp_build (&sexp_signature, NULL, "(sig-val (rsa (s %m)))",
+			   mpi_signature);
 
   /* Verify.  */
   if (! err)
@@ -120,13 +124,15 @@ key_get_sexp (gcry_sexp_t *key, unsigned char *key_id)
   gpg_error_t err = GPG_ERR_NO_ERROR;
   gcry_sexp_t key_new = NULL;
   char *filename = NULL;
-  void *buffer = (void *) -1;
-  struct stat statbuf = {};
+  void *buffer = MMAP_FAILED;
+  struct stat statbuf;
   int fd = -1, ret = 0;
 
-  filename = malloc (strlen (POLDI_KEY_DIRECTORY) + strlen (key_id) + 5);
+  memset (&statbuf, 0, sizeof (statbuf));
+
+  filename = malloc (sizeof (POLDI_KEY_DIRECTORY) + strlen (key_id) + 5);
   if (! filename)
-    err = GPG_ERR_ENOMEM;
+    err = gpg_err_code_from_errno (errno);
   else
     sprintf (filename, "%s/%s.key", POLDI_KEY_DIRECTORY, key_id);
 
@@ -134,19 +140,19 @@ key_get_sexp (gcry_sexp_t *key, unsigned char *key_id)
     {
       fd = open (filename, O_RDONLY);
       if (fd == -1)
-	err = GPG_ERR_INTERNAL;	/* FIXME.  */
+	err = gpg_err_code_from_errno (errno);
     }
   if (! err)
     {
       ret = fstat (fd, &statbuf);
       if (ret == -1)
-	err = GPG_ERR_INTERNAL; /* FIXME.  */
+	err = gpg_err_code_from_errno (errno);
     }
   if (! err)
     {
       buffer = mmap (NULL, statbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-      if (buffer == (void *) -1)
-	err = GPG_ERR_INTERNAL; /* FIXME.  */
+      if (buffer == MMAP_FAILED)
+	err = gpg_err_code_from_errno (errno);
     }
 
   if (! err)
@@ -179,7 +185,7 @@ key_get (poldi_key_t *key, unsigned char *key_id)
 
   key_new = malloc (sizeof (*key_new));
   if (! key_new)
-    err = GPG_ERR_ENOMEM;
+    err = gpg_err_code_from_errno (errno);
   else
     {
       key_new->key_sexp = NULL;
