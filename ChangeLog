@@ -1,3 +1,7 @@
+2004-06-22  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Check for GnuPG types.
+
 2004-05-13  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac: Fix comment.

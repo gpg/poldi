@@ -113,9 +113,17 @@ AC_C_CONST
 AC_C_INLINE
 AC_TYPE_SIZE_T
 
+# Necessary for libscd.
+GNUPG_CHECK_TYPEDEF(byte, HAVE_BYTE_TYPEDEF)
+GNUPG_CHECK_TYPEDEF(ushort, HAVE_USHORT_TYPEDEF)
+GNUPG_CHECK_TYPEDEF(ulong, HAVE_ULONG_TYPEDEF)
+GNUPG_CHECK_TYPEDEF(u16, HAVE_U16_TYPEDEF)
+GNUPG_CHECK_TYPEDEF(u32, HAVE_U32_TYPEDEF)
+
 AC_CHECK_SIZEOF(unsigned short)
 AC_CHECK_SIZEOF(unsigned int)
 AC_CHECK_SIZEOF(unsigned long)
+
  
 # Checks for library functions.
 
@@ -184,5 +192,9 @@ if test "$die" = "yes"; then
 ***]])
 fi
 
-AC_CONFIG_FILES([Makefile doc/Makefile src/Makefile src/libscd/Makefile])
+AC_CONFIG_FILES([Makefile
+		 doc/Makefile
+		 src/jnlib/Makefile
+		 src/libscd/Makefile
+		 src/Makefile])
 AC_OUTPUT
