@@ -1,3 +1,7 @@
+2005-07-13  Moritz Schulte  <moritz@g10code.com>
+
+	* pam_poldi.c (wait_for_card): Adjust to new card_info() API.
+
 2004-11-27  Moritz Schulte  <moritz@g10code.com>
 
 	* pam_poldi.c (wait_for_card): Adjust card_init caller.

@@ -1,5 +1,5 @@
 /* tlv.c - Tag-Length-Value Utilities
- *	Copyright (C) 2003, 2004 Free Software Foundation, Inc.
+ *	Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
  *
@@ -25,7 +25,15 @@
 #include <string.h>
 #include <assert.h>
 
+#if GNUPG_MAJOR_VERSION == 1
+#define GPG_ERR_EOF               (-1)
+#define GPG_ERR_BAD_BER           (1)  /*G10ERR_GENERAL*/
+#define GPG_ERR_INV_SEXP          (45) /*G10ERR_INV_ARG*/
+typedef int gpg_error_t;
+#define gpg_error(n) (n)
+#else
 #include <gpg-error.h>
+#endif
 
 #include "tlv.h"
 
@@ -113,16 +121,31 @@ do_find_tlv (const unsigned char *buffer, size_t length,
 
 /* Locate a TLV encoded data object in BUFFER of LENGTH and
    return a pointer to value as well as its length in NBYTES.  Return
-   NULL if it was not found.  Note, that the function does not check
-   whether the value fits into the provided buffer. */
+   NULL if it was not found or if the object does not fit into the buffer. */
 const unsigned char *
 find_tlv (const unsigned char *buffer, size_t length,
           int tag, size_t *nbytes)
 {
-  return do_find_tlv (buffer, length, tag, nbytes, 0);
+  const unsigned char *p;
+
+  p = do_find_tlv (buffer, length, tag, nbytes, 0);
+  if (p && *nbytes > (length - (p-buffer)))
+    p = NULL; /* Object longer than buffer. */
+  return p;
 }
 
 
+
+/* Locate a TLV encoded data object in BUFFER of LENGTH and
+   return a pointer to value as well as its length in NBYTES.  Return
+   NULL if it was not found.  Note, that the function does not check
+   whether the value fits into the provided buffer. */
+const unsigned char *
+find_tlv_unchecked (const unsigned char *buffer, size_t length,
+                    int tag, size_t *nbytes)
+{
+  return do_find_tlv (buffer, length, tag, nbytes, 0);
+}
 
 
 /* ASN.1 BER parser: Parse BUFFER of length SIZE and return the tag
@@ -206,3 +229,76 @@ parse_ber_header (unsigned char const **buffer, size_t *size,
   *size = length;
   return 0;
 }
+
+
+/* FIXME: The following function should not go into this file but for
+   now it is easier to keep it here. */
+
+/* Return the next token of an canconical encoded S-expression.  BUF
+   is the pointer to the S-expression and BUFLEN is a pointer to the
+   length of this S-expression (used to validate the syntax).  Both
+   are updated to reflect the new position.  The token itself is
+   returned as a pointer into the orginal buffer at TOK and TOKLEN.
+   If a parentheses is the next token, TOK will be set to NULL.
+   TOKLEN is checked to be within the bounds.  On error a error code
+   is returned and all pointers should are not guaranteed to point to
+   a meanigful value. DEPTH should be initialized to 0 and will
+   reflect on return the actual depth of the tree. To detect the end
+   of the S-expression it is advisable to check DEPTH after a
+   successful return:
+
+   depth = 0;
+   while (!(err = parse_sexp (&buf, &buflen, &depth, &tok, &toklen))
+          && depth)
+     process_token (tok, toklen);
+   if (err)  
+     handle_error ();
+ */
+gpg_error_t
+parse_sexp (unsigned char const **buf, size_t *buflen,
+            int *depth, unsigned char const **tok, size_t *toklen)
+{
+  const unsigned char *s;
+  size_t n, vlen;
+
+  s = *buf;
+  n = *buflen;
+  *tok = NULL;
+  *toklen = 0;
+  if (!n)
+    return *depth ? gpg_error (GPG_ERR_INV_SEXP) : 0;
+  if (*s == '(')
+    {
+      s++; n--;
+      (*depth)++;
+      *buf = s;
+      *buflen = n;
+      return 0;
+    }
+  if (*s == ')')
+    {
+      if (!*depth)
+        return gpg_error (GPG_ERR_INV_SEXP);
+      *toklen = 1;
+      s++; n--;
+      (*depth)--;
+      *buf = s;
+      *buflen = n;
+      return 0;
+    }
+  for (vlen=0; n && *s && *s != ':' && (*s >= '0' && *s <= '9'); s++, n--)
+    vlen = vlen*10 + (*s - '0');
+  if (!n || *s != ':')
+    return gpg_error (GPG_ERR_INV_SEXP);
+  s++; n--;
+  if (vlen > n)
+    return gpg_error (GPG_ERR_INV_SEXP);
+  *tok = s;
+  *toklen = vlen;
+  s += vlen;
+  n -= vlen;
+  *buf = s;
+  *buflen = n;
+  return 0;
+}
+

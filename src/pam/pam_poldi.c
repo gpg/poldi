@@ -1,5 +1,5 @@
 /* poldi.c - PAM authentication via OpenPGP smartcards.
-   Copyright (C) 2004 g10 Code GmbH
+   Copyright (C) 2004, 2005 g10 Code GmbH
  
    This file is part of Poldi.
   
@@ -373,7 +373,7 @@ wait_for_card (int slot, int fake, int require_card_switch,
   if (err)
     goto out;
 
-  err = card_info (slot, &serialno_new, NULL);
+  err = card_info (slot, &serialno_new, NULL, NULL);
   if (err)
     goto out;
 

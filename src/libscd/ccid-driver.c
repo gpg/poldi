@@ -1,5 +1,5 @@
 /* ccid-driver.c - USB ChipCardInterfaceDevices driver
- *	Copyright (C) 2003, 2004 Free Software Foundation, Inc.
+ *	Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
  *      Written by Werner Koch.
  *
  * This file is part of GnuPG.
@@ -52,7 +52,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * $Id: ccid-driver.c,v 1.1.2.21 2004/10/20 08:54:45 wk Exp $
+ * $Date: 2005/06/16 08:11:59 $
  */
 
 
@@ -108,9 +108,6 @@
 #  include "scdaemon.h"
 #endif
 
-/* Define to print information pertaining the T=1 protocol. */
-#undef DEBUG_T1 
-
 
 # define DEBUGOUT(t)         do { if (debug_level) \
                                   log_debug (DRVNAME t); } while (0)
@@ -120,6 +117,8 @@
                                   log_debug (DRVNAME t,(a),(b)); } while (0)
 # define DEBUGOUT_3(t,a,b,c) do { if (debug_level) \
                                   log_debug (DRVNAME t,(a),(b),(c));} while (0)
+# define DEBUGOUT_4(t,a,b,c,d) do { if (debug_level) \
+                              log_debug (DRVNAME t,(a),(b),(c),(d));} while (0)
 # define DEBUGOUT_CONT(t)    do { if (debug_level) \
                                   log_printf (t); } while (0)
 # define DEBUGOUT_CONT_1(t,a)  do { if (debug_level) \
@@ -141,6 +140,8 @@
                      fprintf (stderr, DRVNAME t, (a), (b)); } while (0)
 # define DEBUGOUT_3(t,a,b,c)  do { if (debug_level) \
                      fprintf (stderr, DRVNAME t, (a), (b), (c)); } while (0)
+# define DEBUGOUT_4(t,a,b,c,d)  do { if (debug_level) \
+                     fprintf (stderr, DRVNAME t, (a), (b), (c), (d));} while(0)
 # define DEBUGOUT_CONT(t)     do { if (debug_level) \
                      fprintf (stderr, t); } while (0)
 # define DEBUGOUT_CONT_1(t,a) do { if (debug_level) \
@@ -183,9 +184,18 @@ enum {
 };
 
 
+/* Two macro to detect whether a CCID command has failed and to get
+   the error code.  These macros assume that we can access the
+   mandatory first 10 bytes of a CCID message in BUF. */
+#define CCID_COMMAND_FAILED(buf) ((buf)[7] & 0x40)
+#define CCID_ERROR_CODE(buf)     (((unsigned char *)(buf))[8])
+
+
 /* We need to know the vendor to do some hacks. */
 enum {
-  VENDOR_SCM = 0x04e6
+  VENDOR_SCM    = 0x04e6,
+  VENDOR_CHERRY = 0x046a,
+  VENDOR_GEMPC  = 0x08e6
 };
 
 
@@ -198,6 +208,10 @@ struct ccid_driver_s
   unsigned short id_vendor;
   unsigned short id_product;
   unsigned short bcd_device;
+  int ifc_no;
+  int ep_bulk_out;
+  int ep_bulk_in;
+  int ep_intr;
   int seqno;
   unsigned char t1_ns;
   unsigned char t1_nr;
@@ -207,18 +221,24 @@ struct ccid_driver_s
   int ifsd;
   int powered_off;
   int has_pinpad;
+  int apdu_level;     /* Reader supports short APDU level exchange.  */
 };
 
 
 static int initialized_usb; /* Tracks whether USB has been initialized. */
-static int debug_level;     /* Flag to control the debug output.  */
+static int debug_level;     /* Flag to control the debug output. 
+                               0 = No debugging
+                               1 = USB I/O info
+                               2 = T=1 protocol tracing
+                              */
 
 
 static unsigned int compute_edc (const unsigned char *data, size_t datalen,
                                  int use_crc);
 static int bulk_out (ccid_driver_t handle, unsigned char *msg, size_t msglen);
 static int bulk_in (ccid_driver_t handle, unsigned char *buffer, size_t length,
-                    size_t *nread, int expected_type, int seqno);
+                    size_t *nread, int expected_type, int seqno, int timeout,
+                    int no_debug);
 
 /* Convert a little endian stored 4 byte value into an unsigned
    integer. */
@@ -237,6 +257,53 @@ set_msg_len (unsigned char *msg, unsigned int length)
   msg[4] = length >> 24;
 }
 
+
+/* Pint an error message for a failed CCID command including a textual
+   error code.  MSG is shall be the CCID message of at least 10 bytes. */
+static void
+print_command_failed (const unsigned char *msg)
+{
+  const char *t;
+  char buffer[100];
+  int ec;
+
+  if (!debug_level)
+    return;
+
+  ec = CCID_ERROR_CODE (msg);
+  switch (ec)
+    {
+    case 0x00: t = "Command not supported"; break;
+    
+    case 0xE0: t = "Slot busy"; break;
+    case 0xEF: t = "PIN cancelled"; break;
+    case 0xF0: t = "PIN timeout"; break;
+
+    case 0xF2: t = "Automatic sequence ongoing"; break;
+    case 0xF3: t = "Deactivated Protocol"; break;
+    case 0xF4: t = "Procedure byte conflict"; break;
+    case 0xF5: t = "ICC class not supported"; break;
+    case 0xF6: t = "ICC protocol not supported"; break;
+    case 0xF7: t = "Bad checksum in ATR"; break;
+    case 0xF8: t = "Bad TS in ATR"; break;
+
+    case 0xFB: t = "An all inclusive hardware error occurred"; break;
+    case 0xFC: t = "Overrun error while talking to the ICC"; break;
+    case 0xFD: t = "Parity error while talking to the ICC"; break;
+    case 0xFE: t = "CCID timed out while talking to the ICC"; break;
+    case 0xFF: t = "Host aborted the current activity"; break;
+
+    default:
+      if (ec > 0 && ec < 128)
+        sprintf (buffer, "Parameter error at offset %d", ec);
+      else
+        sprintf (buffer, "Error code %02X", ec);
+      t = buffer;
+      break;
+    }
+  DEBUGOUT_1 ("CCID command failed: %s\n", t);
+}
+  
 
 
 
@@ -260,6 +327,7 @@ parse_ccid_descriptor (ccid_driver_t handle,
   handle->max_ifsd = 32;
   handle->ifsd = 0;
   handle->has_pinpad = 0;
+  handle->apdu_level = 0;
   DEBUGOUT_3 ("idVendor: %04X  idProduct: %04X  bcdDevice: %04X\n",
               handle->id_vendor, handle->id_product, handle->bcd_device);
   if (buflen < 54 || buf[0] < 54)
@@ -372,9 +440,15 @@ parse_ccid_descriptor (ccid_driver_t handle,
       have_tpdu = 1;
     } 
   else if ((us & 0x00020000))
-    DEBUGOUT ("    Short APDU level exchange\n");
+    {
+      DEBUGOUT ("    Short APDU level exchange\n");
+      handle->apdu_level = 1;
+    }
   else if ((us & 0x00040000))
-    DEBUGOUT ("    Short and extended APDU level exchange\n");
+    {
+      DEBUGOUT ("    Short and extended APDU level exchange\n");
+      handle->apdu_level = 1;
+    }
   else if ((us & 0x00070000))
     DEBUGOUT ("    WARNING: conflicting exchange levels\n");
 
@@ -391,7 +465,7 @@ parse_ccid_descriptor (ccid_driver_t handle,
   if (buf[49] == 0xff)
     DEBUGOUT_CONT ("echo\n");
   else
-    DEBUGOUT_1 ("  %02X\n", buf[48]);
+    DEBUGOUT_CONT_1 ("  %02X\n", buf[48]);
 
   DEBUGOUT (  "  wlcdLayout           ");
   if (!buf[50] && !buf[51])
@@ -421,10 +495,10 @@ parse_ccid_descriptor (ccid_driver_t handle,
     DEBUGOUT_LF ();
   }
 
-  if (!have_t1 || !have_tpdu || !have_auto_conf)
+  if (!have_t1 || !(have_tpdu  || handle->apdu_level) || !have_auto_conf)
     {
       DEBUGOUT ("this drivers requires that the reader supports T=1, "
-                "TPDU level exchange and auto configuration - "
+                "TPDU or APDU level exchange and auto configuration - "
                 "this is not available\n");
       return -1;
     }
@@ -434,12 +508,20 @@ parse_ccid_descriptor (ccid_driver_t handle,
      send a frame of n*wMaxPacketSize back to us.  Given that
      wMaxPacketSize is 64 for these readers we set the IFSD to a value
      lower than that:
-        64 - 10 CCID header -  4 T1frame - 2 reserved = 48 */
+        64 - 10 CCID header -  4 T1frame - 2 reserved = 48
+     Product Ids:
+	 0xe001 - SCR 331 
+	 0x5111 - SCR 331-DI 
+	 0x5115 - SCR 335 
+	 0xe003 - SPR 532 
+  */
   if (handle->id_vendor == VENDOR_SCM
-      /* FIXME: check whether it is the same
-                firmware version for all drivers.  */
-      && handle->bcd_device < 0x0513
-      && handle->max_ifsd > 48)
+      && handle->max_ifsd > 48      
+      && (  (handle->id_product == 0xe001 && handle->bcd_device < 0x0516)
+          ||(handle->id_product == 0x5111 && handle->bcd_device < 0x0620)
+          ||(handle->id_product == 0x5115 && handle->bcd_device < 0x0514)
+          ||(handle->id_product == 0xe003 && handle->bcd_device < 0x0504)
+          ))
     {
       DEBUGOUT ("enabling workaround for buggy SCM readers\n");
       handle->max_ifsd = 48;
@@ -473,7 +555,7 @@ get_escaped_usb_string (usb_dev_handle *idev, int idx,
      all in a 2 bute Unicode encoding using little endian. */
   rc = usb_control_msg (idev, USB_ENDPOINT_IN, USB_REQ_GET_DESCRIPTOR,
                         (USB_DT_STRING << 8), 0, 
-                        buf, sizeof buf, 1000 /* ms timeout */);
+                        (char*)buf, sizeof buf, 1000 /* ms timeout */);
   if (rc < 4)
     langid = 0x0409; /* English.  */
   else
@@ -481,7 +563,7 @@ get_escaped_usb_string (usb_dev_handle *idev, int idx,
 
   rc = usb_control_msg (idev, USB_ENDPOINT_IN, USB_REQ_GET_DESCRIPTOR,
                         (USB_DT_STRING << 8) + idx, langid,
-                        buf, sizeof buf, 1000 /* ms timeout */);
+                        (char*)buf, sizeof buf, 1000 /* ms timeout */);
   if (rc < 2 || buf[1] != USB_DT_STRING)
     return NULL; /* Error or not a string. */
   len = buf[0];
@@ -546,6 +628,36 @@ make_reader_id (usb_dev_handle *idev,
 }
 
 
+/* Helper to find the endpoint from an interface descriptor.  */
+static int
+find_endpoint (struct usb_interface_descriptor *ifcdesc, int mode)
+{
+  int no;
+  int want_bulk_in = 0;
+
+  if (mode == 1)
+    want_bulk_in = 0x80;
+  for (no=0; no < ifcdesc->bNumEndpoints; no++)
+    {
+      struct usb_endpoint_descriptor *ep = ifcdesc->endpoint + no;
+      if (ep->bDescriptorType != USB_DT_ENDPOINT)
+        ;
+      else if (mode == 2
+          && ((ep->bmAttributes & USB_ENDPOINT_TYPE_MASK)
+              == USB_ENDPOINT_TYPE_INTERRUPT)
+          && (ep->bEndpointAddress & 0x80))
+        return (ep->bEndpointAddress & 0x0f);
+      else if (((ep->bmAttributes & USB_ENDPOINT_TYPE_MASK)
+                == USB_ENDPOINT_TYPE_BULK)
+               && (ep->bEndpointAddress & 0x80) == want_bulk_in)
+        return (ep->bEndpointAddress & 0x0f);
+    }
+  /* Should never happen.  */
+  return mode == 2? 0x83 : mode == 1? 0x82 :1;
+}
+
+
+
 /* Combination function to either scan all CCID devices or to find and
    open one specific device. 
 
@@ -579,7 +691,9 @@ scan_or_find_devices (int readerno, const char *readerid,
                       char **r_rid,
                       struct usb_device **r_dev,
                       unsigned char **ifcdesc_extra,
-                      size_t *ifcdesc_extra_len)
+                      size_t *ifcdesc_extra_len,
+                      int *interface_number,
+                      int *ep_bulk_out, int *ep_bulk_in, int *ep_intr)
 {
   char *rid_list = NULL;
   int count = 0;
@@ -597,6 +711,8 @@ scan_or_find_devices (int readerno, const char *readerid,
     *ifcdesc_extra = NULL;
   if (ifcdesc_extra_len)
     *ifcdesc_extra_len = 0;
+  if (interface_number)
+    *interface_number = 0;
 
   /* See whether we want scan or find mode. */
   if (scan_mode) 
@@ -653,9 +769,7 @@ scan_or_find_devices (int readerno, const char *readerid,
                                   && ifcdesc->bInterfaceProtocol == 0)
                               || (ifcdesc->bInterfaceClass == 255
                                   && dev->descriptor.idVendor == 0x04e6
-                                  && dev->descriptor.idProduct == 0xe003
-                                  && ifcdesc->bInterfaceSubClass == 1
-                                  && ifcdesc->bInterfaceProtocol == 1)))
+                                  && dev->descriptor.idProduct == 0xe003)))
                         {
                           idev = usb_open (dev);
                           if (!idev)
@@ -721,6 +835,16 @@ scan_or_find_devices (int readerno, const char *readerid,
                                               ifcdesc->extralen);
                                       *ifcdesc_extra_len = ifcdesc->extralen;
                                     }
+                                  if (interface_number)
+                                    *interface_number = (ifcdesc->
+                                                         bInterfaceNumber);
+                                  if (ep_bulk_out)
+                                    *ep_bulk_out = find_endpoint (ifcdesc, 0);
+                                  if (ep_bulk_in)
+                                    *ep_bulk_in = find_endpoint (ifcdesc, 1);
+                                  if (ep_intr)
+                                    *ep_intr = find_endpoint (ifcdesc, 2);
+
 
                                   if (r_dev)
                                     *r_dev = dev;
@@ -765,7 +889,8 @@ scan_or_find_devices (int readerno, const char *readerid,
 
 /* Set the level of debugging to to usea dn return the old level.  -1
    just returns the old level.  A level of 0 disables debugging, 1
-   enables debugging, other values are not yet defined. */
+   enables debugging, 2 enables additional tracing of the T=1
+   protocol, other values are not yet defined. */
 int
 ccid_set_debug_level (int level)
 {
@@ -787,7 +912,8 @@ ccid_get_reader_list (void)
       initialized_usb = 1;
     }
 
-  scan_or_find_devices (-1, NULL, &reader_list, NULL, NULL, NULL);
+  scan_or_find_devices (-1, NULL, &reader_list, NULL, NULL, NULL, NULL,
+                        NULL, NULL, NULL);
   return reader_list;
 }
 
@@ -804,6 +930,7 @@ ccid_open_reader (ccid_driver_t *handle, const char *readerid)
   unsigned char *ifcdesc_extra = NULL;
   size_t ifcdesc_extra_len;
   int readerno;
+  int ifc_no, ep_bulk_out, ep_bulk_in, ep_intr;
 
   *handle = NULL;
 
@@ -832,7 +959,8 @@ ccid_open_reader (ccid_driver_t *handle, const char *readerid)
     readerno = 0;  /* Default. */
 
   idev = scan_or_find_devices (readerno, readerid, &rid, &dev,
-                               &ifcdesc_extra, &ifcdesc_extra_len);
+                               &ifcdesc_extra, &ifcdesc_extra_len,
+                               &ifc_no, &ep_bulk_out, &ep_bulk_in, &ep_intr);
   if (!idev)
     {
       if (readerno == -1)
@@ -856,6 +984,10 @@ ccid_open_reader (ccid_driver_t *handle, const char *readerid)
   (*handle)->id_vendor = dev->descriptor.idVendor;
   (*handle)->id_product = dev->descriptor.idProduct;
   (*handle)->bcd_device = dev->descriptor.bcdDevice;
+  (*handle)->ifc_no = ifc_no;
+  (*handle)->ep_bulk_out = ep_bulk_out;
+  (*handle)->ep_bulk_in = ep_bulk_in;
+  (*handle)->ep_intr = ep_intr;
 
   DEBUGOUT_2 ("using CCID reader %d (ID=%s)\n",  readerno, rid );
 
@@ -867,9 +999,7 @@ ccid_open_reader (ccid_driver_t *handle, const char *readerid)
       goto leave;
     }
   
-  /* fixme: Do we need to claim and set the interface as
-     determined above? */
-  rc = usb_claim_interface (idev, 0);
+  rc = usb_claim_interface (idev, ifc_no);
   if (rc)
     {
       DEBUGOUT_1 ("usb_claim_interface failed: %d\n", rc);
@@ -877,9 +1007,6 @@ ccid_open_reader (ccid_driver_t *handle, const char *readerid)
       goto leave;
     }
   
-  /* FIXME: Do we need to get the endpoint addresses from the
-     structure and store them with the handle? */
-              
  leave:
   free (ifcdesc_extra);
   if (rc)
@@ -916,12 +1043,13 @@ do_close_reader (ccid_driver_t handle)
       
       rc = bulk_out (handle, msg, msglen);
       if (!rc)
-        bulk_in (handle, msg, sizeof msg, &msglen, RDR_to_PC_SlotStatus,seqno);
+        bulk_in (handle, msg, sizeof msg, &msglen, RDR_to_PC_SlotStatus,
+                 seqno, 2000, 0);
       handle->powered_off = 1;
     }
   if (handle->idev)
     {
-      usb_release_interface (handle->idev, 0);
+      usb_release_interface (handle->idev, handle->ifc_no);
       usb_close (handle->idev);
       handle->idev = NULL;
     }
@@ -944,6 +1072,7 @@ ccid_shutdown_reader (ccid_driver_t handle)
   usb_dev_handle *idev = NULL;
   unsigned char *ifcdesc_extra = NULL;
   size_t ifcdesc_extra_len;
+  int ifc_no, ep_bulk_out, ep_bulk_in, ep_intr;
 
   if (!handle || !handle->rid)
     return CCID_DRIVER_ERR_INV_VALUE;
@@ -951,7 +1080,8 @@ ccid_shutdown_reader (ccid_driver_t handle)
   do_close_reader (handle);
 
   idev = scan_or_find_devices (-1, handle->rid, NULL, &dev,
-                               &ifcdesc_extra, &ifcdesc_extra_len);
+                               &ifcdesc_extra, &ifcdesc_extra_len,
+                               &ifc_no, &ep_bulk_out, &ep_bulk_in, &ep_intr);
   if (!idev)
     {
       DEBUGOUT_1 ("no CCID reader with ID %s\n", handle->rid);
@@ -960,6 +1090,10 @@ ccid_shutdown_reader (ccid_driver_t handle)
 
 
   handle->idev = idev;
+  handle->ifc_no = ifc_no;
+  handle->ep_bulk_out = ep_bulk_out;
+  handle->ep_bulk_in = ep_bulk_in;
+  handle->ep_intr = ep_intr;
 
   if (parse_ccid_descriptor (handle, ifcdesc_extra, ifcdesc_extra_len))
     {
@@ -968,9 +1102,7 @@ ccid_shutdown_reader (ccid_driver_t handle)
       goto leave;
     }
   
-  /* fixme: Do we need to claim and set the interface as
-     determined above? */
-  rc = usb_claim_interface (idev, 0);
+  rc = usb_claim_interface (idev, ifc_no);
   if (rc)
     {
       DEBUGOUT_1 ("usb_claim_interface failed: %d\n", rc);
@@ -1022,8 +1154,8 @@ bulk_out (ccid_driver_t handle, unsigned char *msg, size_t msglen)
   int rc;
 
   rc = usb_bulk_write (handle->idev, 
-                       1, /*endpoint */
-                       msg, msglen,
+                       handle->ep_bulk_out,
+                       (char*)msg, msglen,
                        1000 /* ms timeout */);
   if (rc == msglen)
     return 0;
@@ -1040,10 +1172,12 @@ bulk_out (ccid_driver_t handle, unsigned char *msg, size_t msglen)
    BUFFER and return the actual read number if bytes in NREAD. SEQNO
    is the sequence number used to send the request and EXPECTED_TYPE
    the type of message we expect. Does checks on the ccid
-   header. Returns 0 on success. */
+   header. TIMEOUT is the timeout value in ms. NO_DEBUG may be set to
+   avoid debug messages in case of no error. Returns 0 on success. */
 static int
 bulk_in (ccid_driver_t handle, unsigned char *buffer, size_t length,
-         size_t *nread, int expected_type, int seqno)
+         size_t *nread, int expected_type, int seqno, int timeout,
+         int no_debug)
 {
   int i, rc;
   size_t msglen;
@@ -1053,11 +1187,9 @@ bulk_in (ccid_driver_t handle, unsigned char *buffer, size_t length,
   memset (buffer, 0, length);
  retry:
   rc = usb_bulk_read (handle->idev, 
-                      0x82,
-                      buffer, length,
-                      10000 /* ms timeout */ );
-  /* Fixme: instead of using a 10 second timeout we should better
-     handle the timeout here and retry if appropriate.  */
+                      handle->ep_bulk_in,
+                      (char*)buffer, length,
+                      timeout);
   if (rc < 0)
     {
       DEBUGOUT_1 ("usb_bulk_read error: %s\n", strerror (errno));
@@ -1095,13 +1227,19 @@ bulk_in (ccid_driver_t handle, unsigned char *buffer, size_t length,
                   buffer[7], buffer[8]);
       goto retry;
     }
-  
-  DEBUGOUT_3 ("status: %02X  error: %02X  octet[9]: %02X\n"
-              "               data:",  buffer[7], buffer[8], buffer[9] );
-  for (i=10; i < msglen; i++)
-    DEBUGOUT_CONT_1 (" %02X", buffer[i]);
-  DEBUGOUT_LF ();
 
+  if (!no_debug)
+    {
+      DEBUGOUT_3 ("status: %02X  error: %02X  octet[9]: %02X\n"
+                  "               data:",  buffer[7], buffer[8], buffer[9] );
+      for (i=10; i < msglen; i++)
+        DEBUGOUT_CONT_1 (" %02X", buffer[i]);
+      DEBUGOUT_LF ();
+    }
+  if (CCID_COMMAND_FAILED (buffer))
+    print_command_failed (buffer);
+
+  /* Check whether a card is at all available. */
   switch ((buffer[7] & 0x03))
     {
     case 0: /* no error */ break;
@@ -1113,7 +1251,7 @@ bulk_in (ccid_driver_t handle, unsigned char *buffer, size_t length,
 }
 
 
-/* Note that this fucntion won't return the error codes NO_CARD or
+/* Note that this function won't return the error codes NO_CARD or
    CARD_INACTIVE */
 static int 
 send_escape_cmd (ccid_driver_t handle,
@@ -1144,7 +1282,8 @@ send_escape_cmd (ccid_driver_t handle,
   rc = bulk_out (handle, msg, msglen);
   if (rc)
     return rc;
-  rc = bulk_in (handle, msg, sizeof msg, &msglen, RDR_to_PC_Escape, seqno);
+  rc = bulk_in (handle, msg, sizeof msg, &msglen, RDR_to_PC_Escape,
+                seqno, 5000, 0);
 
   return rc;
 }
@@ -1160,8 +1299,8 @@ ccid_poll (ccid_driver_t handle)
   int i, j;
 
   rc = usb_bulk_read (handle->idev, 
-                      0x83,
-                      msg, sizeof msg,
+                      handle->ep_intr,
+                      (char*)msg, sizeof msg,
                       0 /* ms timeout */ );
   if (rc < 0 && errno == ETIMEDOUT)
     return 0;
@@ -1214,7 +1353,9 @@ ccid_slot_status (ccid_driver_t handle, int *statusbits)
   unsigned char msg[100];
   size_t msglen;
   unsigned char seqno;
+  int retries = 0;
 
+ retry:
   msg[0] = PC_to_RDR_GetSlotStatus;
   msg[5] = 0; /* slot */
   msg[6] = seqno = handle->seqno++;
@@ -1226,7 +1367,24 @@ ccid_slot_status (ccid_driver_t handle, int *statusbits)
   rc = bulk_out (handle, msg, 10);
   if (rc)
     return rc;
-  rc = bulk_in (handle, msg, sizeof msg, &msglen, RDR_to_PC_SlotStatus, seqno);
+  /* Note that we set the NO_DEBUG flag here, so that the logs won't
+     get cluttered up by a ticker function checking for the slot
+     status and debugging enabled. */
+  rc = bulk_in (handle, msg, sizeof msg, &msglen, RDR_to_PC_SlotStatus,
+                seqno, retries? 1000 : 200, 1);
+  if (rc == CCID_DRIVER_ERR_CARD_IO_ERROR && retries < 3)
+    {
+      if (!retries)
+        {
+          DEBUGOUT ("USB: CALLING USB_CLEAR_HALT\n");
+          usb_clear_halt (handle->idev, handle->ep_bulk_in);
+          usb_clear_halt (handle->idev, handle->ep_bulk_out);
+        }
+      else
+          DEBUGOUT ("USB: RETRYING bulk_in AGAIN\n");
+      retries++;
+      goto retry;
+    }
   if (rc && rc != CCID_DRIVER_ERR_NO_CARD
       && rc != CCID_DRIVER_ERR_CARD_INACTIVE)
     return rc;
@@ -1241,6 +1399,7 @@ ccid_get_atr (ccid_driver_t handle,
               unsigned char *atr, size_t maxatrlen, size_t *atrlen)
 {
   int rc;
+  int statusbits;
   unsigned char msg[100];
   unsigned char *tpdu;
   size_t msglen, tpdulen;
@@ -1248,7 +1407,18 @@ ccid_get_atr (ccid_driver_t handle,
   int use_crc = 0;
   unsigned int edc;
   int i;
+  int tried_iso = 0;
 
+  /* First check whether a card is available.  */
+  rc = ccid_slot_status (handle, &statusbits);
+  if (rc)
+    return rc;
+  if (statusbits == 2)
+    return CCID_DRIVER_ERR_NO_CARD;
+
+  /* For an inactive and also for an active card, issue the PowerOn
+     command to get the ATR.  */
+ again:
   msg[0] = PC_to_RDR_IccPowerOn;
   msg[5] = 0; /* slot */
   msg[6] = seqno = handle->seqno++;
@@ -1261,9 +1431,25 @@ ccid_get_atr (ccid_driver_t handle,
   rc = bulk_out (handle, msg, msglen);
   if (rc)
     return rc;
-  rc = bulk_in (handle, msg, sizeof msg, &msglen, RDR_to_PC_DataBlock, seqno);
+  rc = bulk_in (handle, msg, sizeof msg, &msglen, RDR_to_PC_DataBlock,
+                seqno, 5000, 0);
   if (rc)
     return rc;
+  if (!tried_iso && CCID_COMMAND_FAILED (msg) && CCID_ERROR_CODE (msg) == 0xbb
+      && ((handle->id_vendor == VENDOR_CHERRY
+           && handle->id_product == 0x0005)
+          || (handle->id_vendor == VENDOR_GEMPC
+              && handle->id_product == 0x4433)
+          ))
+    {
+      tried_iso = 1;
+      /* Try switching to ISO mode. */
+      if (!send_escape_cmd (handle, (const unsigned char*)"\xF1\x01", 2))
+        goto again;
+    }
+  else if (CCID_COMMAND_FAILED (msg))
+    return CCID_DRIVER_ERR_CARD_IO_ERROR;
+
 
   handle->powered_off = 0;
   
@@ -1305,7 +1491,8 @@ ccid_get_atr (ccid_driver_t handle,
   if (rc)
     return rc;
   /* Note that we ignore the error code on purpose. */
-  bulk_in (handle, msg, sizeof msg, &msglen, RDR_to_PC_Parameters, seqno);
+  bulk_in (handle, msg, sizeof msg, &msglen, RDR_to_PC_Parameters,
+           seqno, 5000, 0);
 
   handle->t1_ns = 0;
   handle->t1_nr = 0;
@@ -1339,12 +1526,13 @@ ccid_get_atr (ccid_driver_t handle,
         DEBUGOUT_CONT_1 (" %02X", msg[i]);
       DEBUGOUT_LF ();
 
-#ifdef DEBUG_T1      
-      fprintf (stderr, "T1: put %c-block seq=%d\n",
-               ((msg[11] & 0xc0) == 0x80)? 'R' :
-               (msg[11] & 0x80)? 'S' : 'I',
-               ((msg[11] & 0x80)? !!(msg[11]& 0x10) : !!(msg[11] & 0x40)));
-#endif  
+      if (debug_level > 1)
+        DEBUGOUT_3 ("T=1: put %c-block seq=%d%s\n",
+                      ((msg[11] & 0xc0) == 0x80)? 'R' :
+                                (msg[11] & 0x80)? 'S' : 'I',
+                      ((msg[11] & 0x80)? !!(msg[11]& 0x10)
+                                       : !!(msg[11] & 0x40)),
+                    (!(msg[11] & 0x80) && (msg[11] & 0x20)? " [more]":""));
 
       rc = bulk_out (handle, msg, msglen);
       if (rc)
@@ -1352,7 +1540,7 @@ ccid_get_atr (ccid_driver_t handle,
 
 
       rc = bulk_in (handle, msg, sizeof msg, &msglen,
-                    RDR_to_PC_DataBlock, seqno);
+                    RDR_to_PC_DataBlock, seqno, 5000, 0);
       if (rc)
         return rc;
       
@@ -1362,14 +1550,15 @@ ccid_get_atr (ccid_driver_t handle,
       if (tpdulen < 4) 
         return CCID_DRIVER_ERR_ABORTED; 
 
-#ifdef DEBUG_T1
-      fprintf (stderr, "T1: got %c-block seq=%d err=%d\n",
-               ((msg[11] & 0xc0) == 0x80)? 'R' :
-               (msg[11] & 0x80)? 'S' : 'I',
-               ((msg[11] & 0x80)? !!(msg[11]& 0x10) : !!(msg[11] & 0x40)),
-               ((msg[11] & 0xc0) == 0x80)? (msg[11] & 0x0f) : 0
-               );
-#endif
+      if (debug_level > 1)
+        DEBUGOUT_4 ("T=1: got %c-block seq=%d err=%d%s\n",
+                    ((msg[11] & 0xc0) == 0x80)? 'R' :
+                              (msg[11] & 0x80)? 'S' : 'I',
+                    ((msg[11] & 0x80)? !!(msg[11]& 0x10)
+                                     : !!(msg[11] & 0x40)),
+                    ((msg[11] & 0xc0) == 0x80)? (msg[11] & 0x0f) : 0,
+                    (!(msg[11] & 0x80) && (msg[11] & 0x20)? " [more]":""));
+
       if ((tpdu[1] & 0xe0) != 0xe0 || tpdu[2] != 1)
         {
           DEBUGOUT ("invalid response for S-block (Change-IFSD)\n");
@@ -1400,6 +1589,78 @@ compute_edc (const unsigned char *data, size_t datalen, int use_crc)
       return crc;
     }
 }
+
+
+/* Helper for ccid_transceive used for APDU level exchanges.  */
+static int
+ccid_transceive_apdu_level (ccid_driver_t handle,
+                            const unsigned char *apdu_buf, size_t apdu_buflen,
+                            unsigned char *resp, size_t maxresplen,
+                            size_t *nresp)
+{
+  int rc;
+  unsigned char send_buffer[10+259], recv_buffer[10+259];
+  const unsigned char *apdu;
+  size_t apdulen;
+  unsigned char *msg;
+  size_t msglen;
+  unsigned char seqno;
+  int i;
+
+  msg = send_buffer;
+
+  apdu = apdu_buf;
+  apdulen = apdu_buflen;
+  assert (apdulen);
+
+  if (apdulen > 254)
+    return CCID_DRIVER_ERR_INV_VALUE; /* Invalid length. */
+
+  msg[0] = PC_to_RDR_XfrBlock;
+  msg[5] = 0; /* slot */
+  msg[6] = seqno = handle->seqno++;
+  msg[7] = 4; /* bBWI */
+  msg[8] = 0; /* RFU */
+  msg[9] = 0; /* RFU */
+  memcpy (msg+10, apdu, apdulen);
+  set_msg_len (msg, apdulen);
+  msglen = 10 + apdulen;
+
+  DEBUGOUT ("sending");
+  for (i=0; i < msglen; i++)
+    DEBUGOUT_CONT_1 (" %02X", msg[i]);
+  DEBUGOUT_LF ();
+  
+  rc = bulk_out (handle, msg, msglen);
+  if (rc)
+    return rc;
+
+  msg = recv_buffer;
+  rc = bulk_in (handle, msg, sizeof recv_buffer, &msglen,
+                RDR_to_PC_DataBlock, seqno, 5000, 0);
+  if (rc)
+    return rc;
+      
+  apdu = msg + 10;
+  apdulen = msglen - 10;
+      
+  if (resp)
+    {
+      if (apdulen > maxresplen)
+        {
+          DEBUGOUT_2 ("provided buffer too short for received data "
+                      "(%u/%u)\n",
+                      (unsigned int)apdulen, (unsigned int)maxresplen);
+          return CCID_DRIVER_ERR_INV_VALUE;
+        }
+      
+      memcpy (resp, apdu, apdulen); 
+      *nresp = apdulen;
+    }
+          
+  return 0;
+}
+
 
 
 /*
@@ -1478,6 +1739,13 @@ ccid_transceive (ccid_driver_t handle,
     nresp = &dummy_nresp;
   *nresp = 0;
 
+  /* Smarter readers allow to send APDUs directly; divert here. */
+  if (handle->apdu_level)
+    return ccid_transceive_apdu_level (handle, apdu_buf, apdu_buflen,
+                                       resp, maxresplen, nresp);
+
+  /* The other readers we support require sending TPDUs.  */
+
   tpdulen = 0; /* Avoid compiler warning about no initialization. */
   msg = send_buffer;
   for (;;)
@@ -1529,12 +1797,13 @@ ccid_transceive (ccid_driver_t handle,
         DEBUGOUT_CONT_1 (" %02X", msg[i]);
       DEBUGOUT_LF ();
 
-#ifdef DEBUG_T1      
-      fprintf (stderr, "T1: put %c-block seq=%d\n",
-               ((msg[11] & 0xc0) == 0x80)? 'R' :
-               (msg[11] & 0x80)? 'S' : 'I',
-        ((msg[11] & 0x80)? !!(msg[11]& 0x10) : !!(msg[11] & 0x40)));
-#endif  
+      if (debug_level > 1)
+          DEBUGOUT_3 ("T=1: put %c-block seq=%d%s\n",
+                      ((msg[11] & 0xc0) == 0x80)? 'R' :
+                                (msg[11] & 0x80)? 'S' : 'I',
+                      ((msg[11] & 0x80)? !!(msg[11]& 0x10)
+                                       : !!(msg[11] & 0x40)),
+                      (!(msg[11] & 0x80) && (msg[11] & 0x20)? " [more]":""));
 
       rc = bulk_out (handle, msg, msglen);
       if (rc)
@@ -1542,7 +1811,7 @@ ccid_transceive (ccid_driver_t handle,
 
       msg = recv_buffer;
       rc = bulk_in (handle, msg, sizeof recv_buffer, &msglen,
-                    RDR_to_PC_DataBlock, seqno);
+                    RDR_to_PC_DataBlock, seqno, 5000, 0);
       if (rc)
         return rc;
       
@@ -1551,17 +1820,17 @@ ccid_transceive (ccid_driver_t handle,
       
       if (tpdulen < 4) 
         {
-          usb_clear_halt (handle->idev, 0x82);
+          usb_clear_halt (handle->idev, handle->ep_bulk_in);
           return CCID_DRIVER_ERR_ABORTED; 
         }
-#ifdef DEBUG_T1
-      fprintf (stderr, "T1: got %c-block seq=%d err=%d\n",
-               ((msg[11] & 0xc0) == 0x80)? 'R' :
-               (msg[11] & 0x80)? 'S' : 'I',
-        ((msg[11] & 0x80)? !!(msg[11]& 0x10) : !!(msg[11] & 0x40)),
-               ((msg[11] & 0xc0) == 0x80)? (msg[11] & 0x0f) : 0
-               );
-#endif
+
+      if (debug_level > 1)
+        DEBUGOUT_4 ("T=1: got %c-block seq=%d err=%d%s\n",
+                    ((msg[11] & 0xc0) == 0x80)? 'R' :
+                              (msg[11] & 0x80)? 'S' : 'I',
+                    ((msg[11] & 0x80)? !!(msg[11]& 0x10) : !!(msg[11] & 0x40)),
+                    ((msg[11] & 0xc0) == 0x80)? (msg[11] & 0x0f) : 0,
+                    (!(msg[11] & 0x80) && (msg[11] & 0x20)? " [more]":""));
 
       if (!(tpdu[1] & 0x80))
         { /* This is an I-block. */
@@ -1637,8 +1906,8 @@ ccid_transceive (ccid_driver_t handle,
               msg = send_buffer;
               tpdulen = last_tpdulen;
             }
-          else if (sending && !!(tpdu[1] & 0x40) == handle->t1_ns)
-            { /* Reponse does not match our sequence number. */
+          else if (sending && !!(tpdu[1] & 0x10) == handle->t1_ns)
+            { /* Response does not match our sequence number. */
               DEBUGOUT ("R-block with wrong seqno received on more bit\n");
               return CCID_DRIVER_ERR_CARD_IO_ERROR;
             }
@@ -1658,7 +1927,7 @@ ccid_transceive (ccid_driver_t handle,
       else 
         { /* This is a S-block. */
           retries = 0;
-          DEBUGOUT_2 ("T1 S-block %s received cmd=%d\n",
+          DEBUGOUT_2 ("T=1 S-block %s received cmd=%d\n",
                       (tpdu[1] & 0x20)? "response": "request",
                       (tpdu[1] & 0x1f));
           if ( !(tpdu[1] & 0x20) && (tpdu[1] & 0x1f) == 3 && tpdu[2])
@@ -1676,7 +1945,7 @@ ccid_transceive (ccid_driver_t handle,
               if (use_crc)
                 tpdu[tpdulen++] = (edc >> 8);
               tpdu[tpdulen++] = edc;
-              DEBUGOUT_1 ("T1 waittime extension of bwi=%d\n", bwi);
+              DEBUGOUT_1 ("T=1 waittime extension of bwi=%d\n", bwi);
             }
           else
             return CCID_DRIVER_ERR_CARD_IO_ERROR;
@@ -1757,7 +2026,7 @@ ccid_transceive_secure (ccid_driver_t handle,
   if (handle->id_vendor == VENDOR_SCM)
     {
       DEBUGOUT ("sending escape sequence to switch to a case 1 APDU\n");
-      rc = send_escape_cmd (handle, "\x80\x02\x00", 3);
+      rc = send_escape_cmd (handle, (const unsigned char*)"\x80\x02\x00", 3);
       if (rc)
         return rc;
     }
@@ -1819,7 +2088,7 @@ ccid_transceive_secure (ccid_driver_t handle,
   
   msg = recv_buffer;
   rc = bulk_in (handle, msg, sizeof recv_buffer, &msglen,
-                RDR_to_PC_DataBlock, seqno);
+                RDR_to_PC_DataBlock, seqno, 5000, 0);
   if (rc)
     return rc;
   
@@ -1828,17 +2097,16 @@ ccid_transceive_secure (ccid_driver_t handle,
   
   if (tpdulen < 4) 
     {
-      usb_clear_halt (handle->idev, 0x82);
+      usb_clear_halt (handle->idev, handle->ep_bulk_in);
       return CCID_DRIVER_ERR_ABORTED; 
     }
-#ifdef DEBUG_T1
-  fprintf (stderr, "T1: got %c-block seq=%d err=%d\n",
-           ((msg[11] & 0xc0) == 0x80)? 'R' :
-           (msg[11] & 0x80)? 'S' : 'I',
-           ((msg[11] & 0x80)? !!(msg[11]& 0x10) : !!(msg[11] & 0x40)),
-           ((msg[11] & 0xc0) == 0x80)? (msg[11] & 0x0f) : 0
-           );
-#endif
+  if (debug_level > 1)
+    DEBUGOUT_4 ("T=1: got %c-block seq=%d err=%d%s\n",
+                ((msg[11] & 0xc0) == 0x80)? 'R' :
+                          (msg[11] & 0x80)? 'S' : 'I',
+                ((msg[11] & 0x80)? !!(msg[11]& 0x10) : !!(msg[11] & 0x40)),
+                ((msg[11] & 0xc0) == 0x80)? (msg[11] & 0x0f) : 0,
+                (!(msg[11] & 0x80) && (msg[11] & 0x20)? " [more]":""));
 
   if (!(tpdu[1] & 0x80))
     { /* This is an I-block. */
@@ -1885,7 +2153,7 @@ ccid_transceive_secure (ccid_driver_t handle,
           DEBUGOUT ("No retries supported for Secure operation\n");
           return CCID_DRIVER_ERR_CARD_IO_ERROR;
         }
-      else if (!!(tpdu[1] & 0x40) == handle->t1_ns)
+      else if (!!(tpdu[1] & 0x10) == handle->t1_ns)
         { /* Reponse does not match our sequence number. */
           DEBUGOUT ("R-block with wrong seqno received on more bit\n");
           return CCID_DRIVER_ERR_CARD_IO_ERROR;
@@ -1898,7 +2166,7 @@ ccid_transceive_secure (ccid_driver_t handle,
     }
   else 
     { /* This is a S-block. */
-      DEBUGOUT_2 ("T1 S-block %s received cmd=%d for Secure operation\n",
+      DEBUGOUT_2 ("T=1 S-block %s received cmd=%d for Secure operation\n",
                   (tpdu[1] & 0x20)? "response": "request",
                   (tpdu[1] & 0x1f));
       return CCID_DRIVER_ERR_CARD_IO_ERROR;
@@ -1977,6 +2245,7 @@ main (int argc, char **argv)
   int no_pinpad = 0;
   int verify_123456 = 0;
   int did_verify = 0;
+  int no_poll = 0;
 
   if (argc)
     {
@@ -2001,6 +2270,11 @@ main (int argc, char **argv)
           ccid_set_debug_level (1);
           argc--; argv++;
         }
+      else if ( !strcmp (*argv, "--no-poll"))
+        {
+          no_poll = 1;
+          argc--; argv++;
+        }
       else if ( !strcmp (*argv, "--no-pinpad"))
         {
           no_pinpad = 1;
@@ -2019,7 +2293,8 @@ main (int argc, char **argv)
   if (rc)
     return 1;
 
-  ccid_poll (ccid);
+  if (!no_poll)
+    ccid_poll (ccid);
   fputs ("getting ATR ...\n", stderr);
   rc = ccid_get_atr (ccid, NULL, 0, NULL);
   if (rc)
@@ -2028,7 +2303,8 @@ main (int argc, char **argv)
       return 1;
     }
 
-  ccid_poll (ccid);
+  if (!no_poll)
+    ccid_poll (ccid);
   fputs ("getting slot status ...\n", stderr);
   rc = ccid_slot_status (ccid, &slotstat);
   if (rc)
@@ -2037,7 +2313,8 @@ main (int argc, char **argv)
       return 1;
     }
 
-  ccid_poll (ccid);
+  if (!no_poll)
+    ccid_poll (ccid);
 
   fputs ("selecting application OpenPGP ....\n", stderr);
   {
@@ -2050,7 +2327,8 @@ main (int argc, char **argv)
   }
   
 
-  ccid_poll (ccid);
+  if (!no_poll)
+    ccid_poll (ccid);
 
   fputs ("getting OpenPGP DO 0x65 ....\n", stderr);
   {

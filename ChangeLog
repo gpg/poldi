@@ -1,3 +1,7 @@
+2005-07-13  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Bump version number up to 0.3-cvs.
+
 2004-11-29  Moritz Schulte  <moritz@g10code.com>
 
 	* THANKS: New file.

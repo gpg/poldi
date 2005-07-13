@@ -1,3 +1,17 @@
+2005-07-13  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c: Adjust to new card_info() API, use version
+	information in order to figure out if CHV3 is necessary for public
+	key retrival.
+
+2005-07-12  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c (cmd_show_key): Only print KEY_STRING, if non-NULL.
+
+2005-01-30  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c (sexp_to_string): New function.
+
 2004-11-29  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi-ctrl.c: Fix contact address.

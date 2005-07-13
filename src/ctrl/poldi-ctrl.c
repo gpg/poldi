@@ -1,5 +1,5 @@
 /* poldi-ctrl.c - Poldi maintaince tool
-   Copyright (C) 2004 g10 Code GmbH.
+   Copyright (C) 2004, 2005 g10 Code GmbH.
  
    This file is part of Poldi.
   
@@ -57,6 +57,7 @@ struct poldi_ctrl_opt
   int require_card_switch;
   int cmd_test;
   int cmd_dump;
+  int cmd_dump_shadowed_key;
   int cmd_set_key;
   int cmd_show_key;
   int cmd_add_user;
@@ -94,6 +95,7 @@ enum arg_opt_ids
   {
     arg_test = 't',
     arg_dump = 'd',
+    arg_dump_shadowed_key = 'D',
     arg_set_key = 's',
     arg_show_key = 'k',
     arg_add_user  = 'a',
@@ -118,6 +120,8 @@ static ARGPARSE_OPTS arg_opts[] =
       "test",        256, "Test authentication"                },
     { arg_dump,
       "dump",        256, "Dump certain card information"      },
+    { arg_dump_shadowed_key,
+      "dump-shadowed-key", 256, "Dump shadowed key from card"  },
     { arg_add_user,
       "add-user",    256, "Add account to users db"            },
     { arg_remove_user,
@@ -222,6 +226,11 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 	poldi_ctrl_opt.cmd_dump = 1;
       break;
 
+    case arg_dump_shadowed_key:
+      if (parsing_stage)
+	poldi_ctrl_opt.cmd_dump_shadowed_key = 1;
+      break;
+
     case arg_add_user:
       if (parsing_stage)
 	poldi_ctrl_opt.cmd_add_user = 1;
@@ -311,6 +320,7 @@ cmd_test (void)
   char *key_path;
   gcry_sexp_t key_sexp;
   char *key_string;
+  unsigned int version;
 
   slot = -1;
   pin = NULL;
@@ -321,6 +331,7 @@ cmd_test (void)
   challenge = NULL;
   signature = NULL;
   serialno = NULL;
+  version = 0;
 
   err = challenge_generate (&challenge, &challenge_n);
   if (err)
@@ -343,11 +354,12 @@ cmd_test (void)
   if (err)
     goto out;
 
-  err = card_info (slot, &serialno, NULL);
+  err = card_info (slot, &serialno, &version, NULL);
   if (err)
     goto out;
 
   printf ("Serial No: %s\n", serialno);
+  printf ("Card version: %u\n", version);
 
   err = serialno_to_username (serialno, &account);
   if (err)
@@ -417,14 +429,93 @@ static gpg_error_t
 cmd_dump (void)
 {
   gcry_sexp_t key;
+  char *key_s;
   const char *serialno;
   gpg_error_t err;
   int slot;
   char *pin;
+  unsigned int version;
 
   slot = -1;
   serialno = NULL;
   key = NULL;
+  key_s = NULL;
+  pin = NULL;
+
+  err = card_open (NULL, &slot);
+  if (err)
+    goto out;
+
+  err = card_init (slot, 0, 0);
+  if (err)
+    goto out;
+
+  err = card_info (slot, &serialno, &version, NULL);
+  if (err)
+    goto out;
+
+  if (version <= 0x0100)
+    {
+      /* These cards contain a bug, which makes it necessary to pass
+	 CHV3 to the card before reading out the public key.  */
+
+      printf (POLDI_OLD_CARD_KEY_RETRIVAL_EXPLANATION, version);
+
+      pin = getpass (POLDI_PIN3_QUERY_MSG);
+
+      err = card_pin_provide (slot, 3, pin);
+      if (err)
+	goto out;
+    }
+
+  err = card_read_key (slot, &key);
+  if (err)
+    goto out;
+
+  err = sexp_to_string (key, &key_s);
+  if (err)
+    goto out;
+
+  printf ("Slot: %i\n", slot);
+  printf ("Serial number: %s\n", serialno);
+  printf ("Version: 0x%X\n", version);
+  printf ("Key:\n%s\n", key_s);
+
+ out:
+
+  if (slot != -1)
+    card_close (slot);
+  gcry_sexp_release (key);
+  gcry_free (key_s);
+  free ((void *) serialno);
+  free (pin);
+
+  return err;
+}
+
+static gpg_error_t
+cmd_dump_shadowed_key (void)
+{
+  gcry_sexp_t key_public;
+  gcry_sexp_t key_shadowed;
+  gcry_sexp_t value_pair;
+  char *key_s;
+  gcry_mpi_t mpi_n;
+  gcry_mpi_t mpi_e;
+  gpg_error_t err;
+  int slot;
+  char *pin;
+  char key_grip[41];
+  unsigned char key_grip_raw[20];
+  unsigned int i;
+
+  slot = -1;
+  key_public = NULL;
+  key_shadowed = NULL;
+  value_pair = NULL;
+  mpi_n = NULL;
+  mpi_e = NULL;
+  key_s = NULL;
 
   pin = getpass (POLDI_PIN3_QUERY_MSG);
 
@@ -440,25 +531,68 @@ cmd_dump (void)
   if (err)
     goto out;
 
-  err = card_info (slot, &serialno, NULL);
+  err = card_read_key (slot, &key_public);
   if (err)
     goto out;
 
-  err = card_read_key (slot, &key);
+  value_pair = gcry_sexp_find_token (key_public, "n", 0);
+  if (! value_pair)
+    {
+      err = gpg_error (GPG_ERR_INV_SEXP);
+      goto out;
+    }
+  mpi_n = gcry_sexp_nth_mpi (value_pair, 1, GCRYMPI_FMT_USG);
+  if (! mpi_n)
+    {
+      err = gpg_error (GPG_ERR_INTERNAL); /* FIXME? */
+      goto out;
+    }
+
+  gcry_sexp_release (value_pair);
+  value_pair = gcry_sexp_find_token (key_public, "e", 0);
+  if (! value_pair)
+    {
+      err = gpg_error (GPG_ERR_INV_SEXP);
+      goto out;
+    }
+  mpi_e = gcry_sexp_nth_mpi (value_pair, 1, GCRYMPI_FMT_USG);
+  if (! mpi_e)
+    {
+      err = gpg_error (GPG_ERR_INTERNAL); /* FIXME? */
+      goto out;
+    }
+
+  err = gcry_sexp_build (&key_shadowed, NULL,
+			 "(shadowed-private-key"
+			 " (rsa"
+			 "  (n %m)"
+			 "  (e %m)))",
+			 mpi_n, mpi_e);
   if (err)
     goto out;
-  
-  printf ("Slot: %i\n", slot);
-  printf ("Serial number: %s\n", serialno);
-  printf ("Key:\n");
-  gcry_sexp_dump (key);
+
+  err = sexp_to_string (key_shadowed, &key_s);
+  if (err)
+    goto out;
+
+  gcry_pk_get_keygrip (key_public, key_grip_raw);
+  for (i = 0; i < 20; i++)
+    sprintf (key_grip + 2 * i, "%02X", key_grip_raw[i]);
+
+  printf ("Key grip:\n%s\n", key_grip);
+  printf ("Key:\n%s\n", key_s);
 
  out:
 
+  gcry_mpi_release (mpi_n);
+  gcry_mpi_release (mpi_e);
+  gcry_sexp_release (value_pair);
+
   if (slot != -1)
     card_close (slot);
-  gcry_sexp_release (key);
-  free ((void *) serialno);
+  gcry_sexp_release (key_public);
+  gcry_sexp_release (key_shadowed);
+  gcry_free (key_s);
   free (pin);
 
   return err;
@@ -685,6 +819,7 @@ cmd_set_key (void)
   const char *serialno;
   char *pin;
   gcry_sexp_t key_sexp;
+  unsigned int version;
   int ret;
 
   slot = -1;
@@ -694,6 +829,7 @@ cmd_set_key (void)
   serialno = NULL;
   key_sexp = NULL;
   key_string = NULL;
+  version = 0;
 
   err = card_open (NULL, &slot);
   if (err)
@@ -703,22 +839,25 @@ cmd_set_key (void)
   if (err)
     goto out;
 
-  err = card_info (slot, &serialno, NULL);
-  if (err)
-    goto out;
-
-  pin = getpass (POLDI_PIN3_QUERY_MSG);
-  if (! pin)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-
-  err = card_pin_provide (slot, 3, pin);
+  err = card_info (slot, &serialno, &version, NULL);
   if (err)
     goto out;
 
   path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
+
+  if (version <= 0x0100)
+    {
+      /* These cards contain a bug, which makes it necessary to pass
+	 CHV3 to the card before reading out the public key.  */
+
+      printf (POLDI_OLD_CARD_KEY_RETRIVAL_EXPLANATION, version);
+
+      pin = getpass (POLDI_PIN3_QUERY_MSG);
+
+      err = card_pin_provide (slot, 3, pin);
+      if (err)
+	goto out;
+    }
 
   err = card_read_key (slot, &key_sexp);
   if (err)
@@ -794,7 +933,8 @@ cmd_show_key (void)
   if (err)
     goto out;
 
-  printf ("%s", key_string);
+  if (key_string)
+    printf ("%s", key_string);
 
  out:
 
@@ -849,7 +989,8 @@ main (int argc, char **argv)
        + (poldi_ctrl_opt.cmd_add_user)
        + (poldi_ctrl_opt.cmd_remove_user)
        + (poldi_ctrl_opt.cmd_list_users)
-       + (poldi_ctrl_opt.cmd_dump)) != 1)
+       + (poldi_ctrl_opt.cmd_dump)
+       + (poldi_ctrl_opt.cmd_dump_shadowed_key)) != 1)
     {
       fprintf (stderr, "Error: no command given (try --help).\n");
       exit (EXIT_FAILURE);
@@ -859,6 +1000,8 @@ main (int argc, char **argv)
     err = cmd_test ();
   else if (poldi_ctrl_opt.cmd_dump)
     err = cmd_dump ();
+  else if (poldi_ctrl_opt.cmd_dump_shadowed_key)
+    err = cmd_dump_shadowed_key ();
   else if (poldi_ctrl_opt.cmd_set_key)
     err = cmd_set_key ();
   else if (poldi_ctrl_opt.cmd_show_key)

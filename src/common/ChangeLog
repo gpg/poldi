@@ -1,3 +1,13 @@
+2005-07-13  Moritz Schulte  <moritz@g10code.com>
+
+	* defs.h.in (POLDI_OLD_CARD_KEY_RETRIVAL_EXPLANATION): New symbol.
+	(POLDI_PIN2_QUERY_MSG, POLDI_PIN3_QUERY_MSG): Change strings.
+
+	* card.c: Include <assert.h>
+	(card_info): New API, return card version information, if
+	requested.
+	* card.h: Update card_info() API.
+
 2004-11-27  Moritz Schulte  <moritz@g10code.com>
 
 	* options.c (options_parse_conf): Do not fail if file does not

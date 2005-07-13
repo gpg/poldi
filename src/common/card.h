@@ -1,5 +1,5 @@
 /* card.h - High-Level access to OpenPGP smartcards.
-   Copyright (C) 2004 g10 Code GmbH.
+   Copyright (C) 2004, 2005 g10 Code GmbH.
  
    This file is part of Poldi.
   
@@ -27,8 +27,8 @@ gcry_error_t card_open (const char *port, int *slot);
 gcry_error_t card_init (int slot, int wait, int require_card_switch);
 void card_close (int slot);
 
-gcry_error_t card_info (int slot,
-			const char **serial_no, const char **fingerprint);
+gcry_error_t card_info (int slot, const char **serial_no,
+			unsigned int *card_version, const char **fingerprint);
 gcry_error_t card_read_key (int slot, gcry_sexp_t *key);
 
 gcry_error_t card_pin_provide (int slot, int which, const unsigned char *pin);

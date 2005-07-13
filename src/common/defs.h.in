@@ -1,5 +1,5 @@
 /* poldi.c - PAM authentication via OpenPGP smartcards.
-   Copyright (C) 2004 g10 Code GmbH
+   Copyright (C) 2004, 2005 g10 Code GmbH
  
    This file is part of Poldi.
   
@@ -28,7 +28,11 @@
 #define POLDI_USERS_DB_FILE  POLDI_CONF_DIRECTORY "/users"
 #define POLDI_KEY_DIRECTORY  POLDI_CONF_DIRECTORY "/keys"
 
-#define POLDI_PIN2_QUERY_MSG "Give me your PIN (CHV2): "
-#define POLDI_PIN3_QUERY_MSG "Give me your PIN (CHV3): "
+#define POLDI_PIN2_QUERY_MSG "PIN (CHV2): "
+#define POLDI_PIN3_QUERY_MSG "Admin PIN (CHV3): "
+
+#define POLDI_OLD_CARD_KEY_RETRIVAL_EXPLANATION \
+ "Card of version 0x%X detected, Admin PIN (CHV3) " \
+ "is necessary for retrieving the public key from the card\n"
 
 #endif

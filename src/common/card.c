@@ -1,5 +1,5 @@
 /* card.c - High-Level access to OpenPGP smartcards.
-   Copyright (C) 2004 g10 Code GmbH.
+   Copyright (C) 2004, 2005 g10 Code GmbH.
  
    This file is part of Poldi.
   
@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include <gcrypt.h>
 
@@ -128,12 +129,14 @@ card_close (int slot)
 }
 
 gpg_error_t
-card_info (int slot, const char **serial_no, const char **fingerprint)
+card_info (int slot, const char **serial_no,
+	   unsigned int *card_version, const char **fingerprint)
 {
   size_t fingerprint_new_n;
   char *fingerprint_new;
   char *serial_no_new;
   const unsigned char *value;
+  unsigned int version;
   unsigned char *data;
   size_t value_n;
   size_t data_n;
@@ -143,23 +146,34 @@ card_info (int slot, const char **serial_no, const char **fingerprint)
   fingerprint_new = NULL;
   serial_no_new = NULL;
   data = NULL;
+  version = 0;
   err = 0;
 
-  if (serial_no)
+  if (serial_no || card_version)
     {
       err = iso7816_get_data (slot, 0x004F, &data, &data_n);
       if (err)
 	goto out;
 
-      serial_no_new = malloc ((data_n * 2) + 1);
-      if (! serial_no_new)
-	{
-	  err = gpg_error_from_errno (errno);
-	  goto out;
-	}
+      /* FIXME: assert correct?  */
+      assert (data_n == 16);
 
-      for (i = 0; i < data_n; i++)
-	sprintf (serial_no_new + (i * 2), "%02X", data[i]);
+      if (serial_no)
+	{
+	  serial_no_new = malloc ((data_n * 2) + 1);
+	  if (! serial_no_new)
+	    {
+	      err = gpg_error_from_errno (errno);
+	      goto out;
+	    }
+	  for (i = 0; i < data_n; i++)
+	    sprintf (serial_no_new + (i * 2), "%02X", data[i]);
+	}
+      if (card_version)
+	{
+	  version = data[6] << 8;
+	  version |= data[7];
+	}
     }
 
   if (fingerprint)
@@ -202,6 +216,8 @@ card_info (int slot, const char **serial_no, const char **fingerprint)
     {
       if (serial_no)
 	*serial_no = (const char *) serial_no_new;
+      if (card_version)
+	*card_version = version;
       if (fingerprint)
 	*fingerprint = (const char *) fingerprint_new;
     }

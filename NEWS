@@ -1,1 +1,4 @@
-Version 0.2 is a quasi-rewrite.
+Changes since version 0.2:
+
+* Better support for Version 0x0101 cards (no Admin PIN necessary for
+  public key retrival).

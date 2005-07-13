@@ -62,13 +62,20 @@ enum tlv_tag_type {
 };
 
 
+/* Locate a TLV encoded data object in BUFFER of LENGTH and return a
+   pointer to value as well as its length in NBYTES.  Return NULL if
+   it was not found or if the object does not fit into the buffer. */
+const unsigned char *find_tlv (const unsigned char *buffer, size_t length,
+                               int tag, size_t *nbytes);
+
 
 /* Locate a TLV encoded data object in BUFFER of LENGTH and return a
    pointer to value as well as its length in NBYTES.  Return NULL if
    it was not found.  Note, that the function does not check whether
    the value fits into the provided buffer.*/
-const unsigned char *find_tlv (const unsigned char *buffer, size_t length,
-                               int tag, size_t *nbytes);
+const unsigned char *find_tlv_unchecked (const unsigned char *buffer,
+                                         size_t length,
+                                         int tag, size_t *nbytes);
 
 
 /* ASN.1 BER parser: Parse BUFFER of length SIZE and return the tag
@@ -78,6 +85,23 @@ gpg_error_t parse_ber_header (unsigned char const **buffer, size_t *size,
                               int *r_class, int *r_tag, 
                               int *r_constructed,
                               int *r_ndef, size_t *r_length, size_t *r_nhdr);
+
+
+
+/* Return the next token of an canconical encoded S-expression.  BUF
+   is the pointer to the S-expression and BUFLEN is a pointer to the
+   length of this S-expression (used to validate the syntax).  Both
+   are updated to reflect the new position.  The token itself is
+   returned as a pointer into the orginal buffer at TOK and TOKLEN.
+   If a parentheses is the next token, TOK will be set to NULL.
+   TOKLEN is checked to be within the bounds.  On error a error code
+   is returned and all pointers should are not guaranteed to point to
+   a meanigful value. DEPTH should be initialized to 0 and will
+   reflect on return the actual depth of the tree. To detect the end
+   of the S-expression it is advisable to check DEPTH after a
+   successful return. */
+gpg_error_t parse_sexp (unsigned char const **buf, size_t *buflen,
+                        int *depth, unsigned char const **tok, size_t *toklen);
 
 
 

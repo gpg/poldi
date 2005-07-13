@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: iso7816.c,v 1.3.2.11 2004/10/20 08:54:45 wk Exp $
+ * $Id: iso7816.c,v 1.3.2.13 2005/06/16 08:11:59 wk Exp $
  */
 
 #include <config.h>
@@ -153,7 +153,7 @@ iso7816_select_file (int slot, int tag, int is_dir,
       p0 = (tag == 0x3F00)? 0: is_dir? 1:2;
       p1 = 0x0c; /* No FC return. */
       sw = apdu_send_simple (slot, 0x00, CMD_SELECT_FILE,
-                             p0, p1, 2, tagbuf );
+                             p0, p1, 2, (char*)tagbuf );
       return map_sw (sw);
     }
 
@@ -285,7 +285,7 @@ iso7816_put_data (int slot, int tag,
 
   sw = apdu_send_simple (slot, 0x00, CMD_PUT_DATA,
                          ((tag >> 8) & 0xff), (tag & 0xff),
-                         datalen, data);
+                         datalen, (const char*)data);
   return map_sw (sw);
 }
 
@@ -299,10 +299,11 @@ iso7816_manage_security_env (int slot, int p1, int p2,
 {
   int sw;
 
-  if (p1 < 0 || p1 > 255 || p2 < 0 || p2 > 255 || !data || !datalen)
+  if (p1 < 0 || p1 > 255 || p2 < 0 || p2 > 255 )
     return gpg_error (GPG_ERR_INV_VALUE);
 
-  sw = apdu_send_simple (slot, 0x00, CMD_MSE, p1, p2, datalen, data);
+  sw = apdu_send_simple (slot, 0x00, CMD_MSE, p1, p2, 
+                         data? datalen : -1, (const char*)data);
   return map_sw (sw);
 }
 
@@ -322,7 +323,7 @@ iso7816_compute_ds (int slot, const unsigned char *data, size_t datalen,
   *result = NULL;
   *resultlen = 0;
 
-  sw = apdu_send (slot, 0x00, CMD_PSO, 0x9E, 0x9A, datalen, data,
+  sw = apdu_send (slot, 0x00, CMD_PSO, 0x9E, 0x9A, datalen, (const char*)data,
                   result, resultlen);
   if (sw != SW_SUCCESS)
     {
@@ -363,13 +364,15 @@ iso7816_decipher (int slot, const unsigned char *data, size_t datalen,
 
       *buf = padind; /* Padding indicator. */
       memcpy (buf+1, data, datalen);
-      sw = apdu_send (slot, 0x00, CMD_PSO, 0x80, 0x86, datalen+1, buf,
+      sw = apdu_send (slot, 0x00, CMD_PSO, 0x80, 0x86,
+                      datalen+1, (char*)buf,
                       result, resultlen);
       xfree (buf);
     }
   else
     {
-      sw = apdu_send (slot, 0x00, CMD_PSO, 0x80, 0x86, datalen, data,
+      sw = apdu_send (slot, 0x00, CMD_PSO, 0x80, 0x86,
+                      datalen, (const char *)data,
                       result, resultlen);
     }
   if (sw != SW_SUCCESS)
@@ -398,7 +401,7 @@ iso7816_internal_authenticate (int slot,
   *resultlen = 0;
 
   sw = apdu_send (slot, 0x00, CMD_INTERNAL_AUTHENTICATE, 0, 0,
-                  datalen, data,  result, resultlen);
+                  datalen, (const char*)data,  result, resultlen);
   if (sw != SW_SUCCESS)
     {
       /* Make sure that pending buffers are released. */
@@ -425,7 +428,7 @@ do_generate_keypair (int slot, int readonly,
   *resultlen = 0;
 
   sw = apdu_send (slot, 0x00, CMD_GENERATE_KEYPAIR, readonly? 0x81:0x80, 0,
-                  datalen, data,  result, resultlen);
+                  datalen, (const char*)data,  result, resultlen);
   if (sw != SW_SUCCESS)
     {
       /* Make sure that pending buffers are released. */
@@ -605,7 +608,7 @@ iso7816_read_record (int slot, int recno, int reccount, int short_ef,
 
   buffer = NULL;
   bufferlen = 0;
-  /* Fixme: Either the ccid driver of the TCOS cards have problems
+  /* Fixme: Either the ccid driver or the TCOS cards have problems
      with an Le of 0. */
   sw = apdu_send_le (slot, 0x00, CMD_READ_RECORD,
                      recno, 
