@@ -1,3 +1,18 @@
+2005-07-26  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c (cmd_test): Remove unnecessary const attributes and
+	cast.
+	(cmd_dump): Likewise.
+	(cmd_remove_user): Likewise.
+	(cmd_set_key): Likewise.
+	Updated to use new support.h API.
+	(cmd_add_user): Fail, if specified serial number does already
+	exist in database.
+	(cmd_add_user): Fail, if specified user does not exist on system.
+	(poldi_ctrl_options_cb): Better interaction with jnlib in respect
+	to error propagation.
+	(key_file_remove): Do not return error in case of ENOENT.
+
 2005-07-13  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi-ctrl.c: Adjust to new card_info() API, use version

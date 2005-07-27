@@ -1,3 +1,19 @@
+2005-07-26  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (username_to_serialno): Renamed function to ...
+	(usersdb_lookup_by_username): ... this; changed callers.
+	(serialno_to_username): Renamed function to ...
+	(usersdb_lookup_by_serialno): ... this; changed callers.
+	(usersdb_translate): Remove const attribute for FOUND argument;
+	only fill FOUND if non-NULL.
+	(usersdb_lookup_by_serialno): Remove const attreibute for USERNAME
+	argument.
+	(usersdb_lookup_by_username): Remove const attreibute for SERIALNO
+	argument.
+	* support.h: Updated API.
+
+	* card.c: Some cosmetic changes.
+
 2005-07-13  Moritz Schulte  <moritz@g10code.com>
 
 	* defs.h.in (POLDI_OLD_CARD_KEY_RETRIVAL_EXPLANATION): New symbol.

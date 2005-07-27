@@ -1,5 +1,5 @@
 /* support.h - PAM authentication via OpenPGP smartcards.
-   Copyright (C) 2004 g10 Code GmbH
+   Copyright (C) 2004, 2005 g10 Code GmbH
  
    This file is part of Poldi.
   
@@ -27,8 +27,8 @@ gpg_error_t challenge_generate (unsigned char **challenge, size_t *challenge_n);
 gpg_error_t challenge_verify (gcry_sexp_t key,
 			      unsigned char *challenge, size_t challenge_n,
 			      unsigned char *respone, size_t response_n);
-gpg_error_t serialno_to_username (const char *serialno, const char **username);
-gpg_error_t username_to_serialno (const char *username, const char **serialno);
+gpg_error_t usersdb_lookup_by_serialno (const char *serialno, char **username);
+gpg_error_t usersdb_lookup_by_username (const char *username, char **serialno);
 gpg_error_t usersdb_remove_entry (const char *username, const char *serialno);
 gpg_error_t usersdb_add_entry (const char *username, const char *serialno);
 gpg_error_t sexp_to_string (gcry_sexp_t sexp, char **sexp_string);

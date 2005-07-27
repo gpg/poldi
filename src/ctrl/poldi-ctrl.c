@@ -297,7 +297,7 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
       break;
 
     default:
-      err = GPG_ERR_INTERNAL;	/* FIXME?  */
+      parg->err = 2;
       break;
     }
 
@@ -313,8 +313,8 @@ cmd_test (void)
   size_t signature_n;
   gpg_error_t err;
   int slot;
-  const char *serialno;
-  const char *account;
+  char *serialno;
+  char *account;
   char *pin;
   struct passwd *pwent;
   char *key_path;
@@ -361,7 +361,7 @@ cmd_test (void)
   printf ("Serial No: %s\n", serialno);
   printf ("Card version: %u\n", version);
 
-  err = serialno_to_username (serialno, &account);
+  err = usersdb_lookup_by_serialno (serialno, &account);
   if (err)
     goto out;
 
@@ -415,9 +415,9 @@ cmd_test (void)
 
   if (slot != -1)
     card_close (slot);
-  free ((void *) account);
+  free (account);
   free (pin);
-  free ((void *) serialno);
+  free (serialno);
   free (key_string);
   free (key_path);
   gcry_sexp_release (key_sexp);
@@ -430,7 +430,7 @@ cmd_dump (void)
 {
   gcry_sexp_t key;
   char *key_s;
-  const char *serialno;
+  char *serialno;
   gpg_error_t err;
   int slot;
   char *pin;
@@ -487,7 +487,7 @@ cmd_dump (void)
     card_close (slot);
   gcry_sexp_release (key);
   gcry_free (key_s);
-  free ((void *) serialno);
+  free (serialno);
   free (pin);
 
   return err;
@@ -725,7 +725,7 @@ key_file_remove (const char *serialno)
   path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
 
   ret = unlink (path);
-  if (ret == -1)
+  if ((ret == -1) && (errno != ENOENT))
     {
       err = gpg_error_from_errno (errno);
       goto out;
@@ -743,6 +743,7 @@ key_file_remove (const char *serialno)
 static gpg_error_t
 cmd_add_user (void)
 {
+  struct passwd *pwent;
   const char *serialno;
   const char *account;
   gpg_error_t err;
@@ -753,6 +754,20 @@ cmd_add_user (void)
   if (! (serialno && account))
     {
       fprintf (stderr, "Error: Serial number and accounts needs to be given.\n");
+      exit (EXIT_FAILURE);
+    }
+
+  pwent = getpwnam (account);
+  if (! pwent)
+    {
+      fprintf (stderr, "Error: Unknown user `%s'.\n", account);
+      exit (EXIT_FAILURE);
+    }
+
+  err = usersdb_lookup_by_serialno (serialno, NULL);
+  if (! err)
+    {
+      fprintf (stderr, "Error: Serial number does already exist in database.\n");
       exit (EXIT_FAILURE);
     }
 
@@ -772,15 +787,15 @@ cmd_add_user (void)
 static gpg_error_t
 cmd_remove_user (void)
 {
-  const char *serialno;
   gpg_error_t err;
+  char *serialno;
 
   if (poldi_ctrl_opt.serialno)
     serialno = poldi_ctrl_opt.serialno;
   else if (poldi_ctrl_opt.account)
     {
       serialno = NULL;
-      err = username_to_serialno (poldi_ctrl_opt.account, &serialno);
+      err = usersdb_lookup_by_username (poldi_ctrl_opt.account, &serialno);
       if (err)
 	goto out;
     }
@@ -801,7 +816,7 @@ cmd_remove_user (void)
  out:
 
   if (serialno != poldi_ctrl_opt.serialno)
-    free ((void *) serialno);
+    free (serialno);
 
   return err;
 }
@@ -816,7 +831,7 @@ cmd_set_key (void)
   FILE *path_fp;
   int slot;
   char *key_string;
-  const char *serialno;
+  char *serialno;
   char *pin;
   gcry_sexp_t key_sexp;
   unsigned int version;
@@ -891,7 +906,7 @@ cmd_set_key (void)
 
   free (pin);
   free (path);
-  free ((void *) serialno);
+  free (serialno);
   if (path_fp)
     fclose (path_fp);
   free (key_string);
@@ -910,7 +925,7 @@ cmd_show_key (void)
   char *key_string;
   uid_t uid;
   struct passwd *pwent;
-  const char *serialno;
+  char *serialno;
 
   path = NULL;
   serialno = NULL;
@@ -924,7 +939,7 @@ cmd_show_key (void)
       goto out;
     }
 
-  err = username_to_serialno (pwent->pw_name, &serialno);
+  err = usersdb_lookup_by_username (pwent->pw_name, &serialno);
   if (err)
     goto out;
 
@@ -940,7 +955,7 @@ cmd_show_key (void)
 
   free (path);
   free (key_string);
-  free ((void *) serialno);
+  free (serialno);
 
   return err;
 }
@@ -1014,7 +1029,7 @@ main (int argc, char **argv)
     err = cmd_list_users ();
 
  out:
-
+  
   if (err)
     {
       fprintf (stderr, "Error: %s\n", gpg_strerror (err));

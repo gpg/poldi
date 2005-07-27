@@ -114,7 +114,7 @@ challenge_verify (gcry_sexp_t key,
 }
 
 static gpg_error_t
-usersdb_translate (const char *serialno, const char *username, const char **found)
+usersdb_translate (const char *serialno, const char *username, char **found)
 {
   const char *delimiters = "\t\n ";
   gpg_error_t err;
@@ -172,9 +172,12 @@ usersdb_translate (const char *serialno, const char *username, const char **foun
 	{
 	  if (! strcmp (serialno, line_serialno))
 	    {
-	      token_found = strdup (line_username);
-	      if (! token_found)
-		err = gpg_error_from_errno (errno);
+	      if (found)
+		{
+		  token_found = strdup (line_username);
+		  if (! token_found)
+		    err = gpg_error_from_errno (errno);
+		}
 	      break;
 	    }
 	}
@@ -182,9 +185,12 @@ usersdb_translate (const char *serialno, const char *username, const char **foun
 	{
 	  if (! strcmp (username, line_username))
 	    {
-	      token_found = strdup (line_serialno);
-	      if (! token_found)
-		err = gpg_error_from_errno (errno);
+	      if (found)
+		{
+		  token_found = strdup (line_serialno);
+		  if (! token_found)
+		    err = gpg_error_from_errno (errno);
+		}
 	      break;
 	    }
 	}
@@ -194,7 +200,8 @@ usersdb_translate (const char *serialno, const char *username, const char **foun
   if (err)
     goto out;
 
-  *found = (const char *) token_found;
+  if (found)
+    *found = token_found;
 
  out:
 
@@ -206,13 +213,13 @@ usersdb_translate (const char *serialno, const char *username, const char **foun
 }
 
 gpg_error_t
-serialno_to_username (const char *serialno, const char **username)
+usersdb_lookup_by_serialno (const char *serialno, char **username)
 {
   return usersdb_translate (serialno, NULL, username);
 }
 
 gpg_error_t
-username_to_serialno (const char *username, const char **serialno)
+usersdb_lookup_by_username (const char *username, char **serialno)
 {
   return usersdb_translate (NULL, username, serialno);
 }

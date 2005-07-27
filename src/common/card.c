@@ -117,8 +117,6 @@ card_init (int slot, int wait, int require_card_switch)
   /* Select OpenPGP Application.  */
   err = iso7816_select_application (slot, aid, sizeof (aid));
 
- out:
-
   return err;
 }
 
@@ -129,8 +127,8 @@ card_close (int slot)
 }
 
 gpg_error_t
-card_info (int slot, const char **serial_no,
-	   unsigned int *card_version, const char **fingerprint)
+card_info (int slot, char **serial_no,
+	   unsigned int *card_version, char **fingerprint)
 {
   size_t fingerprint_new_n;
   char *fingerprint_new;
@@ -145,12 +143,13 @@ card_info (int slot, const char **serial_no,
 
   fingerprint_new = NULL;
   serial_no_new = NULL;
-  data = NULL;
   version = 0;
   err = 0;
 
   if (serial_no || card_version)
     {
+      /* Retrieve serial number and/or card_version.  */
+
       err = iso7816_get_data (slot, 0x004F, &data, &data_n);
       if (err)
 	goto out;
@@ -161,25 +160,29 @@ card_info (int slot, const char **serial_no,
       if (serial_no)
 	{
 	  serial_no_new = malloc ((data_n * 2) + 1);
-	  if (! serial_no_new)
-	    {
-	      err = gpg_error_from_errno (errno);
-	      goto out;
-	    }
-	  for (i = 0; i < data_n; i++)
-	    sprintf (serial_no_new + (i * 2), "%02X", data[i]);
+	  if (serial_no_new)
+	    for (i = 0; i < data_n; i++)
+	      sprintf (serial_no_new + (i * 2), "%02X", data[i]);
+	  else
+	    err = gpg_error_from_errno (errno);
 	}
+      else
+	serial_no_new = NULL;
+
       if (card_version)
 	{
 	  version = data[6] << 8;
 	  version |= data[7];
 	}
+
+      free (data);
+      if (err)
+	goto out;
     }
 
   if (fingerprint)
     {
-      free (data);
-      data = NULL;
+      fingerprint_new = NULL;
 
       err = iso7816_get_data (slot, 0x6E, &data, &data_n);
       if (err)
@@ -190,38 +193,38 @@ card_info (int slot, const char **serial_no,
 	     && (! (value_n > (data_n - (value - data))))
 	     && (value_n >= 60))) /* FIXME: Shouldn't this be "==
 				     60"?  */
+	err = gpg_error (GPG_ERR_INTERNAL);
+
+      if (! err)
 	{
-	  err = gpg_error (GPG_ERR_INTERNAL);
-	  goto out;
+	  fingerprint_new_n = 41;
+	  fingerprint_new = malloc (fingerprint_new_n);
+	  if (! fingerprint_new)
+	    err = gpg_error_from_errno (errno);
 	}
 
-      fingerprint_new_n = 41;
-      fingerprint_new = malloc (fingerprint_new_n);
-      if (! fingerprint_new)
-	{
-	  err = gpg_error_from_errno (errno);
-	  goto out;
-	}
-      
-      /* Copy out third key FPR.  */
-      for (i = 0; i < 20; i++)
-	sprintf (fingerprint_new + (i * 2), "%02X", (value + (2 * 20))[i]);
+      if (! err)
+	/* Copy out third key FPR.  */
+	for (i = 0; i < 20; i++)
+	  sprintf (fingerprint_new + (i * 2), "%02X", (value + (2 * 20))[i]);
+
+      free (data);
+      if (err)
+	goto out;
     }
+  else
+    fingerprint_new = NULL;
+
+  if (serial_no)
+    *serial_no = serial_no_new;
+  if (card_version)
+    *card_version = version;
+  if (fingerprint)
+    *fingerprint = fingerprint_new;
 
  out:
 
-  free (data);
-  
-  if (! err)
-    {
-      if (serial_no)
-	*serial_no = (const char *) serial_no_new;
-      if (card_version)
-	*card_version = version;
-      if (fingerprint)
-	*fingerprint = (const char *) fingerprint_new;
-    }
-  else
+  if (err)
     {
       free (serial_no_new);
       free (fingerprint_new);
