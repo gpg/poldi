@@ -200,5 +200,6 @@ AC_CONFIG_FILES([Makefile
 		 src/libscd/Makefile
 		 src/common/Makefile
 		 src/pam/Makefile
-		 src/ctrl/Makefile])
+		 src/ctrl/Makefile
+		 conf/Makefile])
 AC_OUTPUT

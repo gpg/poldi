@@ -1,3 +1,10 @@
+2005-09-25  Moritz Schulte  <moritz@g10code.com>
+
+	* conf: New directory.
+	* configure.ac (AC_CONFIG_FILES): Added: conf/Makefile.am.
+	* Makefile.am (SUBDIRS): Added: conf.
+	* THANKS: updated.
+
 2005-07-13  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac: Bump version number up to 0.3-cvs.

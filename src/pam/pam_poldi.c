@@ -66,6 +66,7 @@ struct pam_poldi_opt
   int fake_wait_for_card;
   int require_card_switch;
   const char *logfile;
+  unsigned int wait_timeout;
 } pam_poldi_opt;
 
 /* Set defaults.  */
@@ -82,7 +83,8 @@ struct pam_poldi_opt pam_poldi_opt =
     0,
     0,
     0,
-    NULL
+    NULL,
+    0
   };
 
 
@@ -100,7 +102,8 @@ enum arg_opt_ids
     arg_debug_ccid_driver,
     arg_fake_wait_for_card,
     arg_require_card_switch,
-    arg_logfile
+    arg_logfile,
+    arg_wait_timeout
   };
 
 /* Option specifications. */
@@ -132,6 +135,8 @@ static ARGPARSE_OPTS arg_opts[] =
       "require-card-switch", 0, "Require re-insertion of card" },
     { arg_logfile,
       "log-file", 2, "Specify file to use for logging" },
+    { arg_wait_timeout,
+      "wait-timeout", 1, "|SEC|Specify timeout for waiting" },
     { 0 }
   };
 
@@ -184,6 +189,10 @@ pam_poldi_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 
     case arg_logfile:
       pam_poldi_opt.logfile = xstrdup (parg->r.ret_str);
+      break;
+
+    case arg_wait_timeout:
+      pam_poldi_opt.wait_timeout = parg->r.ret_int;
       break;
 
     default:
@@ -322,14 +331,14 @@ lookup_key (const char *username, gcry_sexp_t *key)
   gcry_sexp_t key_sexp;
   char *key_string;
   char *key_path;
-  const char *serialno;
+  char *serialno;
   gpg_error_t err;
 
   serialno = NULL;
   key_path = NULL;
   key_string = NULL;
 
-  err = username_to_serialno (username, &serialno);
+  err = usersdb_lookup_by_username (username, &serialno);
   if (err)
     goto out;
 
@@ -350,28 +359,42 @@ lookup_key (const char *username, gcry_sexp_t *key)
 
   free (key_path);
   free (key_string);
-  free ((void *) serialno);
+  free (serialno);
 
   return err;
 }
 
 static gpg_error_t
 wait_for_card (int slot, int fake, int require_card_switch,
-	       const struct pam_conv *conv, const char **serialno)
+	       const struct pam_conv *conv, char **serialno)
 {
-  const char *serialno_new;
+  char *serialno_new;
+  unsigned int timeout;
   gpg_error_t err;
+  int wait;
 
   if (fake)
-    err = ask_user (conv, "Press ENTER when card is available ...", NULL);
+    {
+      timeout = 0;
+      wait = 0;
+      err = ask_user (conv, "Press ENTER when card is available ...", NULL);
+    }
   else
-    err = tell_user (conv, "Insert card ...");
+    {
+      timeout = pam_poldi_opt.wait_timeout;
+      wait = 1; 
+      err = tell_user (conv, "Insert card ...");
+    }
   if (err)
     goto out;
 
-  err = card_init (slot, ! fake, require_card_switch);
+  err = card_init (slot, wait, timeout, require_card_switch);
   if (err)
-    goto out;
+    {
+      if (gpg_err_code (err) == GPG_ERR_CARD_NOT_PRESENT)
+	tell_user (conv, "Timeout inserting card");
+      goto out;
+    }
 
   err = card_info (slot, &serialno_new, NULL, NULL);
   if (err)
@@ -392,18 +415,25 @@ parse_argv (int argc, const char **argv)
 
   err = 0;
   for (i = 0; i < argc; i++)
-    if (! strcmp (argv[i], "debug"))
-      {
-	pam_poldi_opt.debug = ~0;
-	pam_poldi_opt.debug_sc = 1;
-	pam_poldi_opt.verbose = 1;
-	pam_poldi_opt.debug_ccid_driver = 1;
-      }
-    else
-      {
-	err = gpg_error (GPG_ERR_INTERNAL);
-	break;
-      }
+    {
+      if (! strcmp (argv[i], "debug"))
+	{
+	  pam_poldi_opt.debug = ~0;
+	  pam_poldi_opt.debug_sc = 1;
+	  pam_poldi_opt.verbose = 1;
+	  pam_poldi_opt.debug_ccid_driver = 1;
+	}
+      else if (! strncmp (argv[i], "timeout=", 4))
+	{
+	  /* FIXME: 4.  */
+	  pam_poldi_opt.wait_timeout = atoi (argv[i] + 8);
+	}
+      else
+	{
+	  err = gpg_error (GPG_ERR_INTERNAL);
+	  break;
+	}
+    }
 
   return err;
 }
@@ -416,8 +446,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
   gcry_sexp_t key;
   gpg_error_t err;
   char *username;
-  const char *serialno;
-  const char *account;
+  char *serialno;
+  char *account;
   int slot;
   int ret;
 
@@ -487,7 +517,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
       if (err)
 	goto out;
 
-      err = serialno_to_username (serialno, &account);
+      err = usersdb_lookup_by_serialno (serialno, &account);
 
       if (err || strcmp (account, username))
 	{
@@ -516,7 +546,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
       if (err)
 	goto out;
 
-      err = serialno_to_username (serialno, &account);
+      err = usersdb_lookup_by_serialno (serialno, &account);
       if (err)
 	goto out;
 
@@ -546,8 +576,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
  out:
   
   gcry_sexp_release (key);
-  free ((void *) serialno);
-  free ((void *) account);
+  free (serialno);
+  free (account);
   if (slot != -1)
     card_close (slot);
 

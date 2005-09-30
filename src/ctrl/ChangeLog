@@ -1,3 +1,13 @@
+2005-09-30  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c (struct poldi_ctrl_opt): Remove unnecessary, rather
+	annoying const attributes.
+	(cmd_add_user): Likewise.
+
+2005-09-27  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c: Adjust to new card_init API; pass zero timeout.
+
 2005-07-26  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi-ctrl.c (cmd_test): Remove unnecessary const attributes and

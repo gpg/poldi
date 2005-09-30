@@ -1,8 +1,25 @@
+2005-09-27  Moritz Schulte  <moritz@g10code.com>
+
+	* pam_poldi.c (struct pam_poldi_opt): New member: TIMEOUT.
+	(pam_poldi_opt): Extend struct initialization.
+	(enum arg_opt_ids): New entry: ARG_WAIT_TIMEOUT.
+	(pam_poldi_options_cb): Handle ARG_WAIT_TIMEOUT.
+	(wait_for_card): New variables; TIMEOUT, WAIT; initialize them
+	depending on FAKE and PAM_POLDI_OPT.TIMEOUT; pass TIMEOUT and WAIT
+	to card_init.
+	(lookup_key): Use usersdb_lookup_by_username() instead of
+	username_to_serialno(); remove const attribute from SERIALNO.
+	(wait_for_card): Remove const attribute from SERIALNO.
+	(pam_sm_authenticate): Likewise.
+	(pam_sm_authenticate): Use usersdb_lookup_by_serialno() instead of
+	serialno_to_username(); remove const attribute from account.
+
+
 2005-07-13  Moritz Schulte  <moritz@g10code.com>
 
 	* pam_poldi.c (wait_for_card): Adjust to new card_info() API.
 
 2004-11-27  Moritz Schulte  <moritz@g10code.com>
 
-	* pam_poldi.c (wait_for_card): Adjust card_init caller.
-	Implement require_card_switch option.
+	* pam_poldi.c (wait_for_card): Adjust card_init caller.  Implement
+	require_card_switch option.

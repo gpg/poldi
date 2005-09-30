@@ -1,3 +1,15 @@
+2005-09-26  Moritz Schulte  <moritz@g10code.com>
+
+	Thanks to Alessandro Rubini:
+
+	* card.c: Include <time.h>.
+	(wait_for_card): New parameter: TIMEOUT; new variables T0, T;
+	return 1 in case the specified timeout elapsed without any card
+	being inserted.
+	(card_init): New parameter: TIMEOUT; new variable: RET; pass
+	TIMEOUT to wait_for_card();
+	* card.h (card_sign): Updated card_init API.
+
 2005-07-26  Moritz Schulte  <moritz@g10code.com>
 
 	* support.c (username_to_serialno): Renamed function to ...

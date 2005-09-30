@@ -44,15 +44,15 @@ struct poldi_ctrl_opt
   unsigned int debug; /* debug flags (DBG_foo_VALUE) */
   int debug_sc;     /* OpenSC debug level */
   int verbose;      /* verbosity level */
-  const char *ctapi_driver; /* Library to access the ctAPI. */
-  const char *pcsc_driver;  /* Library to access the PC/SC system. */
-  const char *reader_port;  /* NULL or reder port to use. */
+  char *ctapi_driver; /* Library to access the ctAPI. */
+  char *pcsc_driver;  /* Library to access the PC/SC system. */
+  char *reader_port;  /* NULL or reder port to use. */
   int disable_opensc;  /* Disable the use of the OpenSC framework. */
   int disable_ccid;    /* Disable the use of the internal CCID driver. */
   int debug_ccid_driver;	/* Debug the internal CCID driver.  */
-  const char *config_file;
-  const char *account;
-  const char *serialno;
+  char *config_file;
+  char *account;
+  char *serialno;
   int fake_wait_for_card;
   int require_card_switch;
   int cmd_test;
@@ -109,6 +109,7 @@ enum arg_opt_ids
     arg_reader_port,
     arg_disable_ccid,
     arg_disable_opensc,
+    arg_debug,
     arg_debug_ccid_driver,
     arg_fake_wait_for_card,
     arg_require_card_switch
@@ -116,6 +117,8 @@ enum arg_opt_ids
 
 static ARGPARSE_OPTS arg_opts[] =
   {
+    { arg_debug,
+      "debug", 256, "Enable debugging mode" },
     { arg_test,
       "test",        256, "Test authentication"                },
     { arg_dump,
@@ -281,6 +284,16 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 	poldi_ctrl_opt.disable_opensc = 1;
       break;
 
+    case arg_debug:
+      if (parsing_stage)
+	{
+	  poldi_ctrl_opt.debug = ~0;
+	  poldi_ctrl_opt.debug_sc = 1;
+	  poldi_ctrl_opt.verbose = 1;
+	  poldi_ctrl_opt.debug_ccid_driver = 1;
+	}
+      break;
+
     case arg_debug_ccid_driver:
       if (parsing_stage)
 	poldi_ctrl_opt.debug_ccid_driver = 1;
@@ -350,6 +363,7 @@ cmd_test (void)
     printf ("Waiting for card...\n");
   err = card_init (slot,
 		   !poldi_ctrl_opt.fake_wait_for_card,
+		   0,
 		   poldi_ctrl_opt.require_card_switch);
   if (err)
     goto out;
@@ -446,7 +460,7 @@ cmd_dump (void)
   if (err)
     goto out;
 
-  err = card_init (slot, 0, 0);
+  err = card_init (slot, 0, 0, 0);
   if (err)
     goto out;
 
@@ -523,7 +537,7 @@ cmd_dump_shadowed_key (void)
   if (err)
     goto out;
 
-  err = card_init (slot, 0, 0);
+  err = card_init (slot, 0, 0, 0);
   if (err)
     goto out;
 
@@ -744,9 +758,9 @@ static gpg_error_t
 cmd_add_user (void)
 {
   struct passwd *pwent;
-  const char *serialno;
-  const char *account;
   gpg_error_t err;
+  char *serialno;
+  char *account;
 
   serialno = poldi_ctrl_opt.serialno;
   account = poldi_ctrl_opt.account;
@@ -850,7 +864,7 @@ cmd_set_key (void)
   if (err)
     goto out;
 
-  err = card_init (slot, 0, 0);
+  err = card_init (slot, 0, 0, 0);
   if (err)
     goto out;
 

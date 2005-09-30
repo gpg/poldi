@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <assert.h>
+#include <time.h>
 
 #include <gcrypt.h>
 
@@ -67,14 +68,26 @@ card_open (const char *port, int *slot)
   return err;
 }
 
-/* Wait until a new card has been inserted into the reader.  Return 0
-   on success.  */
-static int
-wait_for_card (int slot, int require_card_switch)
-{
-  unsigned int status, changed;
+/* Wait until a new card has been inserted into the reader. If TIMEOUT
+   is non-zero, do not wait longer than TIMEOUT seconds.
 
-  for (;;)
+   Returns 0 in case a card has been inserted; returns 1 in case the
+   timeout has been reached without a card being inserted.  */
+static int
+wait_for_card (int slot, int require_card_switch, unsigned int timeout)
+{
+  unsigned int changed;
+  unsigned int status;
+  time_t t0;
+  time_t t;
+
+  if (timeout)
+    time (&t0);
+  //  else
+  /* FIXME: silence compiler?  */
+    
+
+  while (1)
     {
       status = changed = 0;
       apdu_get_status (slot, 0, &status, &changed);
@@ -97,25 +110,49 @@ wait_for_card (int slot, int require_card_switch)
 #else
       sleep (1);
 #endif
+
+      if (timeout)
+	{
+	  time (&t);
+	  if ((t - t0) > timeout)
+	    return 1;
+	}
     }
 }
 
 gpg_error_t
-card_init (int slot, int wait, int require_card_switch)
+card_init (int slot, int wait, unsigned int timeout, int require_card_switch)
 {
   /* This is the AID (Application IDentifier) for OpenPGP.  */
   char const aid[] = { 0xD2, 0x76, 0x00, 0x01, 0x24, 0x01 };
   gpg_error_t err;
-  
+
+  /* A specified timeout makes no sense in case waiting is not
+     desired.  */
+  assert (! ((! wait) && timeout));
+
   apdu_get_status (slot, 0, &last_status, &change_counter);
   if (wait)
     {
+      int ret;
+
       apdu_activate (slot);
-      wait_for_card (slot, require_card_switch);
+      ret = wait_for_card (slot, require_card_switch, timeout);
+      if (ret)
+	{
+	  err = gpg_error (GPG_ERR_CARD_NOT_PRESENT);
+	  goto out;
+	}
+      else
+	err = 0;
     }
-  
+  else
+    err = 0;
+
   /* Select OpenPGP Application.  */
   err = iso7816_select_application (slot, aid, sizeof (aid));
+
+ out:
 
   return err;
 }
