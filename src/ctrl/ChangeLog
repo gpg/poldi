@@ -1,3 +1,12 @@
+2005-10-01  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c (struct poldi_ctrl_opt): New member: WAIT_TIMEOUT.
+	(poldi_ctrl_opt): Exten struct initialization.
+	(arg_opt_ids): New entry: ARG_WAIT_TIMEOUT.
+	(arg_opts): New entry for ARG_WAIT_TIMEOUT.
+	(poldi_ctrl_options_cb): Handle ARG_WAIT_TIMEOUT.
+	(cmd_test): Pass WAIT_TIMEOUT to card_init.
+
 2005-09-30  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi-ctrl.c (struct poldi_ctrl_opt): Remove unnecessary, rather

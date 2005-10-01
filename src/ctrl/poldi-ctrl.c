@@ -63,6 +63,7 @@ struct poldi_ctrl_opt
   int cmd_add_user;
   int cmd_remove_user;
   int cmd_list_users;
+  unsigned int wait_timeout;
 } poldi_ctrl_opt;
 
 /* Set defaults.  */
@@ -80,6 +81,7 @@ struct poldi_ctrl_opt poldi_ctrl_opt =
     POLDI_CONF_FILE,
     NULL,
     NULL,
+    0,
     0,
     0,
     0,
@@ -112,7 +114,8 @@ enum arg_opt_ids
     arg_debug,
     arg_debug_ccid_driver,
     arg_fake_wait_for_card,
-    arg_require_card_switch
+    arg_require_card_switch,
+    arg_wait_timeout
   };
 
 static ARGPARSE_OPTS arg_opts[] =
@@ -161,6 +164,8 @@ static ARGPARSE_OPTS arg_opts[] =
       "fake-wait-for-card", 0, "Fake wait-for-card feature"    },
     { arg_require_card_switch,
       "require-card-switch", 0, "Require re-insertion of card" },
+    { arg_wait_timeout,
+      "wait-timeout", 1, "|SEC|Specify timeout for waiting" },
     { 0,
       NULL,            0, NULL                                 }
   };
@@ -309,6 +314,11 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 	poldi_ctrl_opt.require_card_switch = 1;
       break;
 
+    case arg_wait_timeout:
+      if (parsing_stage)
+	poldi_ctrl_opt.wait_timeout = parg->r.ret_int;
+      break;
+
     default:
       parg->err = 2;
       break;
@@ -363,7 +373,7 @@ cmd_test (void)
     printf ("Waiting for card...\n");
   err = card_init (slot,
 		   !poldi_ctrl_opt.fake_wait_for_card,
-		   0,
+		   poldi_ctrl_opt.wait_timeout,
 		   poldi_ctrl_opt.require_card_switch);
   if (err)
     goto out;
