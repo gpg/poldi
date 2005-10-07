@@ -470,6 +470,13 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
 
   log_set_file (pam_poldi_opt.logfile);
 
+  /* We need to disable bufferring on stderr, since it might have been
+     enabled by log_set_file().  Buffering on stderr will complicate
+     PAM interaction, since e.g. libpam-misc's misc_conv() function
+     does expect stderr to be unbuffered.  */
+  if ((! pam_poldi_opt.logfile) || (! strcmp (pam_poldi_opt.logfile, "-")))
+    setvbuf (stderr, NULL, _IONBF, 0);
+
   scd_init (pam_poldi_opt.debug,
 	    pam_poldi_opt.debug_sc,
 	    pam_poldi_opt.verbose,
@@ -528,6 +535,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
 	}
       else
 	err = tell_user (conv, "Serial no: %s", serialno);
+      
       if (err)
 	goto out;
 

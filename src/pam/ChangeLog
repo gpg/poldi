@@ -1,3 +1,11 @@
+2005-10-08  Moritz Schulte  <moritz@g10code.com>
+
+	* pam_poldi.c (pam_sm_authenticate): Disable buffering on stderr.
+	We need to disable bufferring on stderr, since it might have been
+	enabled by log_set_file().  Buffering on stderr will complicate
+	PAM interaction, since e.g. libpam-misc's misc_conv() function
+	does expect stderr to be unbuffered.
+
 2005-09-27  Moritz Schulte  <moritz@g10code.com>
 
 	* pam_poldi.c (struct pam_poldi_opt): New member: TIMEOUT.
