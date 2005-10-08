@@ -17,7 +17,4 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
-SUBDIRS = jnlib libscd common pam ctrl
-
-install-pam-module:
-	$(MAKE) -C pam install-pam-module
+SUBDIRS = jnlib libscd common ctrl pam

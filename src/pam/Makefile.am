@@ -1,4 +1,4 @@
-# Copyright (C) 2004 g10 Code GmbH
+# Copyright (C) 2004, 2005 g10 Code GmbH
 #
 # This file is part of Poldi.
 #
@@ -17,7 +17,7 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
-PAM_MODULE_DIRECTORY = "@PAM_MODULE_DIRECTORY@"
+PAM_MODULE_DIRECTORY = @PAM_MODULE_DIRECTORY@
 
 AM_CFLAGS = \
 	-Wall -fPIC \
@@ -36,8 +36,12 @@ pam_poldi.so: pam_poldi.o ../common/libpoldi-common.a ../jnlib/libjnlib.a \
 
 all-local: pam_poldi.so
 
-install-pam-module:
-	$(INSTALL) pam_poldi.so $(PAM_MODULE_DIRECTORY)
+install-exec-local:
+	$(INSTALL) -d $(DESTDIR)$(PAM_MODULE_DIRECTORY)
+	$(INSTALL) pam_poldi.so $(DESTDIR)$(PAM_MODULE_DIRECTORY)
+
+uninstall-local:
+	rm -f $(DESTDIR)$(PAM_MODULE_DIRECTORY)/pam_poldi.so
 
 EXTRA_DIST = pam_poldi.c
 

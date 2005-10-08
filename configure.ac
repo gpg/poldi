@@ -1,4 +1,4 @@
-# configure.ac - for the GSCUTILSGnuPG 1.9
+# configure.ac - Configure script for Poldi
 # Copyright (C) 2004, 2005 g10 Code GmbH
 # 
 # This file is part of Poldi.
@@ -40,7 +40,9 @@ AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 POLDI_CONF_DIRECTORY="${sysconfdir}/poldi"
 AC_SUBST(POLDI_CONF_DIRECTORY)
 
-PAM_MODULE_DIRECTORY="/lib/security"
+if test "x$PAM_MODULE_DIRECTORY" = "x"; then
+  PAM_MODULE_DIRECTORY="${libdir}/security"
+fi
 AC_SUBST(PAM_MODULE_DIRECTORY)
 
 AC_GNU_SOURCE

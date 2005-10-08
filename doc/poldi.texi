@@ -175,13 +175,16 @@ The user ``bender'', who got a OpenPGP card with the serial number
 himself through Poldi.  First, the system administrator of the system
 in question has to introduce ``bender'' to Poldi:
 
+@example
 $ poldi-ctrl --add-user --account bender --serialno D2760001240101000001000000CF0000.
+@end example
 
 That's it.  Now, bender has to write the public key of his OpenPGP
 card into the appropriate key file:
 
+@example
 $ poldi-ctrl --set-key
-
+@end example
 
 
 @node Testing
@@ -193,12 +196,16 @@ prior to integrating the PAM module into the system.
 In order to test basic card access, poldi-ctrl can be used as follows
 to dump information read from the card:
 
+@example
 $ poldi-ctrl --dump
+@end example
 
 After verifying the correct interaction with the card, poldi-ctrl
 should be used to simulate an authentication mechanism:
 
+@example
 $ poldi-ctrl --test
+@end example
 
 If this works as well, Poldi should be ready for integration into the
 PAM system.

@@ -1,5 +1,8 @@
 2005-10-08  Moritz Schulte  <moritz@g10code.com>
 
+	* Makefile.am: Drop ugly install-pam-module mechanism, implement
+	install-exec-local and uninstall-local target.
+
 	* pam_poldi.c (pam_sm_authenticate): Disable buffering on stderr.
 	We need to disable bufferring on stderr, since it might have been
 	enabled by log_set_file().  Buffering on stderr will complicate

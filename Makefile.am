@@ -18,6 +18,3 @@
 # 02111-1307, USA
 
 SUBDIRS = src doc conf
-
-install-pam-module:
-	$(MAKE) -C src install-pam-module
