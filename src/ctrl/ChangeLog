@@ -1,3 +1,7 @@
+2005-10-08  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c: Remove `fake-wait-for-card'-feature.
+
 2005-10-01  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi-ctrl.c (struct poldi_ctrl_opt): New member: WAIT_TIMEOUT.

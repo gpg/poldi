@@ -1,5 +1,7 @@
 2005-10-08  Moritz Schulte  <moritz@g10code.com>
 
+	* pam_poldi.c: Remove `fake-wait-for-card'-feature.
+
 	* Makefile.am: Drop ugly install-pam-module mechanism, implement
 	install-exec-local and uninstall-local target.
 

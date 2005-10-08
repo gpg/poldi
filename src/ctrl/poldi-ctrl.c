@@ -53,7 +53,6 @@ struct poldi_ctrl_opt
   char *config_file;
   char *account;
   char *serialno;
-  int fake_wait_for_card;
   int require_card_switch;
   int cmd_test;
   int cmd_dump;
@@ -89,7 +88,6 @@ struct poldi_ctrl_opt poldi_ctrl_opt =
     0,
     0,
     0,
-    0,
     0
   };
 
@@ -113,7 +111,6 @@ enum arg_opt_ids
     arg_disable_opensc,
     arg_debug,
     arg_debug_ccid_driver,
-    arg_fake_wait_for_card,
     arg_require_card_switch,
     arg_wait_timeout
   };
@@ -160,8 +157,6 @@ static ARGPARSE_OPTS arg_opts[] =
     { arg_disable_opensc,
       "disable-opensc", 0, "do not use the OpenSC layer"       },
 #endif
-    { arg_fake_wait_for_card,
-      "fake-wait-for-card", 0, "Fake wait-for-card feature"    },
     { arg_require_card_switch,
       "require-card-switch", 0, "Require re-insertion of card" },
     { arg_wait_timeout,
@@ -304,11 +299,6 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 	poldi_ctrl_opt.debug_ccid_driver = 1;
       break;
 
-    case arg_fake_wait_for_card:
-      if (parsing_stage)
-	poldi_ctrl_opt.fake_wait_for_card = 1;
-      break;
-
     case arg_require_card_switch:
       if (parsing_stage)
 	poldi_ctrl_opt.require_card_switch = 1;
@@ -364,16 +354,8 @@ cmd_test (void)
   if (err)
     goto out;
 
-  if (poldi_ctrl_opt.fake_wait_for_card)
-    {
-      printf ("Press ENTER when card is available...\n");
-      getchar ();
-    }
-  else
-    printf ("Waiting for card...\n");
-  err = card_init (slot,
-		   !poldi_ctrl_opt.fake_wait_for_card,
-		   poldi_ctrl_opt.wait_timeout,
+  printf ("Waiting for card...\n");
+  err = card_init (slot, 1, poldi_ctrl_opt.wait_timeout,
 		   poldi_ctrl_opt.require_card_switch);
   if (err)
     goto out;

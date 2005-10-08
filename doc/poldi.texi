@@ -106,7 +106,7 @@ Introduction
 
 Poldi is package consisting of a PAM module (pam_poldi) and a CLI
 program (poldi-ctrl) , which implement authentication via OpenPGP
-smartcards (http://www.g10code.de/p-card.html). FIXME footnote.
+smartcards (http://www.g10code.de/p-card.html).
 
 Poldi expects a 1:1 mapping between Unix accounts and smartcards; this
 mapping can be established with the help of poldi-ctrl.
@@ -124,8 +124,8 @@ Details on the build procedure can be found in the file ``INSTALL''.
 
 FIXME (installing).
 
-Poldi requires some directories beneath `${sysconfdir}/poldi', which is
-usually equal to `${prefix}/etc/poldi'.
+Poldi requires some directories beneath `SYSCONFDIR/poldi', which is
+usually equal to `PREFIX/etc/poldi'.
 
 The directories can be created manually or through the
 `install-conf-skeleton' make target.
@@ -162,7 +162,6 @@ Poldi supports the following options:
 @item disable-ccid
 @item disable-opensc
 @item debug-ccid-driver
-@item fake-wait-for-card
 @item logfile
 @end table
 

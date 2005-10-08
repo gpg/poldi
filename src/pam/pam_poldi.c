@@ -63,7 +63,6 @@ struct pam_poldi_opt
   int disable_opensc;  /* Disable the use of the OpenSC framework. */
   int disable_ccid;    /* Disable the use of the internal CCID driver. */
   int debug_ccid_driver;	/* Debug the internal CCID driver.  */
-  int fake_wait_for_card;
   int require_card_switch;
   const char *logfile;
   unsigned int wait_timeout;
@@ -78,7 +77,6 @@ struct pam_poldi_opt pam_poldi_opt =
     NULL,
     NULL,
     NULL,
-    0,
     0,
     0,
     0,
@@ -100,7 +98,6 @@ enum arg_opt_ids
     arg_disable_opensc,
     arg_disable_ccid,
     arg_debug_ccid_driver,
-    arg_fake_wait_for_card,
     arg_require_card_switch,
     arg_logfile,
     arg_wait_timeout
@@ -129,8 +126,6 @@ static ARGPARSE_OPTS arg_opts[] =
     { arg_disable_opensc,
       "disable-opensc", 0, "do not use the OpenSC layer" },
 #endif
-    { arg_fake_wait_for_card,
-      "fake-wait-for-card", 0, "fake wait-for-card-feature" },
     { arg_require_card_switch,
       "require-card-switch", 0, "Require re-insertion of card" },
     { arg_logfile,
@@ -177,10 +172,6 @@ pam_poldi_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 
     case arg_debug_ccid_driver:
       pam_poldi_opt.debug_ccid_driver = 1;
-      break;
-
-    case arg_fake_wait_for_card:
-      pam_poldi_opt.fake_wait_for_card = 1;
       break;
 
     case arg_require_card_switch:
@@ -365,30 +356,17 @@ lookup_key (const char *username, gcry_sexp_t *key)
 }
 
 static gpg_error_t
-wait_for_card (int slot, int fake, int require_card_switch,
+wait_for_card (int slot, int require_card_switch,
 	       const struct pam_conv *conv, char **serialno)
 {
   char *serialno_new;
-  unsigned int timeout;
   gpg_error_t err;
-  int wait;
 
-  if (fake)
-    {
-      timeout = 0;
-      wait = 0;
-      err = ask_user (conv, "Press ENTER when card is available ...", NULL);
-    }
-  else
-    {
-      timeout = pam_poldi_opt.wait_timeout;
-      wait = 1; 
-      err = tell_user (conv, "Insert card ...");
-    }
+  err = tell_user (conv, "Insert card ...");
   if (err)
     goto out;
 
-  err = card_init (slot, wait, timeout, require_card_switch);
+  err = card_init (slot, 1, pam_poldi_opt.wait_timeout, require_card_switch);
   if (err)
     {
       if (gpg_err_code (err) == GPG_ERR_CARD_NOT_PRESENT)
@@ -519,8 +497,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
 
       /* Got key.  */
 
-      err = wait_for_card (slot, pam_poldi_opt.fake_wait_for_card,
-			   pam_poldi_opt.require_card_switch, conv, &serialno);
+      err = wait_for_card (slot, pam_poldi_opt.require_card_switch,
+			   conv, &serialno);
       if (err)
 	goto out;
 
@@ -545,8 +523,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
     }
   else
     {
-      err = wait_for_card (slot, pam_poldi_opt.fake_wait_for_card,
-			   pam_poldi_opt.require_card_switch, conv, &serialno);
+      err = wait_for_card (slot, pam_poldi_opt.require_card_switch,
+			   conv, &serialno);
       if (err)
 	goto out;
 
