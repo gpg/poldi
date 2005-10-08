@@ -78,6 +78,7 @@ section entitled ``Copying''.
 @menu
 * Introduction::                 What is Poldi
 * Using Poldi::                  Using Poldi
+* Applications::                 Notes on applications
 
 Appendices
 * Copying::                     The GNU General Public License
@@ -86,23 +87,26 @@ Appendices
  --- The Detailed Node Listing ---
 Introduction
 * Overview::                    Overview
+* Building::                    Building Poldi
 @end detailmenu
 
 @end menu
 
 @node Introduction
 @chapter Introduction
+
 @menu
 * Overview::                    Overview
 * Building::                    Building Poldi
+* Installing::                  Installing Poldi
 @end menu
 
 @node Overview
 @section Overview
 
-Poldi is package consisting of a PAM module, which implements
-authentication via OpenPGP smartcards, and a maintaince tool named
-poldi-ctrl.
+Poldi is package consisting of a PAM module (pam_poldi) and a CLI
+program (poldi-ctrl) , which implement authentication via OpenPGP
+smartcards (http://www.g10code.de/p-card.html). FIXME footnote.
 
 Poldi expects a 1:1 mapping between Unix accounts and smartcards; this
 mapping can be established with the help of poldi-ctrl.
@@ -114,6 +118,17 @@ Building Poldi should be pretty straightforward; Poldi depends on the
 following packages: Libgcrypt, Libgpg-error.
 
 Details on the build procedure can be found in the file ``INSTALL''.
+
+@node Installing
+@section Installing
+
+FIXME (installing).
+
+Poldi requires some directories beneath `${sysconfdir}/poldi', which is
+usually equal to `${prefix}/etc/poldi'.
+
+The directories can be created manually or through the
+`install-conf-skeleton' make target.
 
 @node Using Poldi
 @chapter Using Poldi
@@ -209,6 +224,65 @@ $ poldi-ctrl --test
 
 If this works as well, Poldi should be ready for integration into the
 PAM system.
+
+@node Applications
+@chapter Applications
+
+Generally speaking, all applications containing a decent PAM integration
+should work flawlessly in combination with Poldi.  Sadly, there are
+applications out there, which do not use PAM as they should.  Therefore,
+they might work not too well in case they are configured to use Poldi.
+
+This chapter attempts to list the most common problems or useful hints
+in respect to popular applications.
+
+When applications still ask for e.g. a username although Poldi is
+activated for that application, it might be the case that other
+authentication modules, which trigger this kind of user interaction, are
+run prior to Poldi.
+
+@menu
+* login::
+* su::
+* gdm::
+* xdm::
+@end menu
+
+@node login
+@section login
+
+The `login'-program contained in the `shadow'-package (>= v4.0.3) works
+fine together with Poldi.
+
+Usually login is launched by `getty', which might trigger user
+interaction, which is not appropriate for use with Poldi (e.g., asking
+for a username).  In this case, getty needs to be told to skip the task
+of username querying.
+
+The getty-program from the `util-linux'-package can be started with the
+`-n' argument in order to not ask for a username.
+
+@node su
+@section su
+
+The `su'-program contained in the `shadow'-package (>= v4.0.3) works
+fine together with Poldi.
+
+@node gdm
+@section gdm
+
+GDM contains two frontends, the `graphical greeter' and the `standard
+greeter'.
+
+At least the standard greeter can be used with Poldi just fine; the
+graphical greeter obviously asks for usernames prior to triggering PAM
+authentication.
+
+@node xdm
+@section xdm
+
+XDM does ask for usernames prior to triggering PAM authentication, as
+such it is not too suitable for use with Poldi.
 
 @include gpl.texi
 
