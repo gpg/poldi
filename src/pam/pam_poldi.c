@@ -401,11 +401,8 @@ parse_argv (int argc, const char **argv)
 	  pam_poldi_opt.verbose = 1;
 	  pam_poldi_opt.debug_ccid_driver = 1;
 	}
-      else if (! strncmp (argv[i], "timeout=", 4))
-	{
-	  /* FIXME: 4.  */
-	  pam_poldi_opt.wait_timeout = atoi (argv[i] + 8);
-	}
+      else if (! strncmp (argv[i], "timeout=", 8))
+	pam_poldi_opt.wait_timeout = atoi (argv[i] + 8);
       else
 	{
 	  err = gpg_error (GPG_ERR_INTERNAL);

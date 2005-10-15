@@ -1,4 +1,3 @@
 2005-10-08  Moritz Schulte  <moritz@g10code.com>
 
 	* Makefile.am: Remove install-pam-module target.
-
