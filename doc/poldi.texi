@@ -117,12 +117,16 @@ mapping can be established with the help of poldi-ctrl.
 Building Poldi should be pretty straightforward; Poldi depends on the
 following packages: Libgcrypt, Libgpg-error.
 
-Details on the build procedure can be found in the file ``INSTALL''.
+Details on the build procedure can be found in the file ``INSTALL''.  At
+least one configure switch should be set:
+@code{--with-pam-module-directory}, which specifies the installation
+directory for PAM modules.
 
 @node Installing
 @section Installing
 
-FIXME (installing).
+Installing Poldi should not require more than an invocation of the
+``install'' make target.
 
 Poldi requires some directories beneath `SYSCONFDIR/poldi', which is
 usually equal to `PREFIX/etc/poldi'.
@@ -171,7 +175,7 @@ those of scdaemon.
 
 The public keys are stored in files beneath the directory
 ``keys''. which are named after the card serial numbers.  These files
-have to contain the public key as a single S-Expression.
+must contain the public key as a single S-Expression.
 
 The mapping between keys and Unix accounts is to be established by
 adding appropriate entries to the user database file named ``users''.
