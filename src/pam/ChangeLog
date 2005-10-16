@@ -1,6 +1,6 @@
 2005-10-15  Moritz Schulte  <moritz@g10code.com>
 
-	* pam_poldi.c (parse_argv): Fixed type related to timeout argument
+	* pam_poldi.c (parse_argv): Fixed typo related to timeout argument
 	parsing.
 
 2005-10-08  Moritz Schulte  <moritz@g10code.com>
