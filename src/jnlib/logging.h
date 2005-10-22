@@ -1,5 +1,5 @@
 /* logging.h
- *	Copyright (C) 1999, 2000, 2001, 2004 Free Software Foundation, Inc.
+ *	Copyright (C) 1999, 2000, 2001, 2004, 2005 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
  *
@@ -34,6 +34,8 @@ int  log_get_errorcount (int clear);
 void log_inc_errorcount (void);
 void log_set_file( const char *name );
 void log_set_fd (int fd);
+void log_set_syslog (const char *ident, int facility);
+void log_close (void);
 void log_set_prefix (const char *text, unsigned int flags);
 const char *log_get_prefix (unsigned int *flags);
 int log_test_fd (int fd);

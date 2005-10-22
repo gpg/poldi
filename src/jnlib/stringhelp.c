@@ -1,5 +1,6 @@
 /* stringhelp.c -  standard string helper functions
- * Copyright (C) 1998, 1999, 2000, 2001, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2001, 2003,
+ *               2004, 2005  Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
  *
@@ -23,60 +24,76 @@
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
+#ifdef HAVE_W32_SYSTEM
+#include <windows.h>
+#endif
 
 #include "libjnlib-config.h"
 #include "utf8conv.h"
 #include "stringhelp.h"
 
 
-/****************
- * look for the substring SUB in buffer and return a pointer to that
- * substring in BUF or NULL if not found.
+/*
+ * Look for the substring SUB in buffer and return a pointer to that
+ * substring in BUFFER or NULL if not found.
  * Comparison is case-insensitive.
  */
 const char *
-memistr( const char *buf, size_t buflen, const char *sub )
+memistr (const void *buffer, size_t buflen, const char *sub)
 {
-    const byte *t, *s ;
-    size_t n;
+  const unsigned char *buf = buffer;
+  const unsigned char *t = (const unsigned char *)buffer;
+  const unsigned char *s = (const unsigned char *)sub;
+  size_t n = buflen;
 
-    for( t=buf, n=buflen, s=sub ; n ; t++, n-- )
-	if( toupper(*t) == toupper(*s) ) {
-	    for( buf=t++, buflen = n--, s++;
-		 n && toupper(*t) == toupper(*s); t++, s++, n-- )
-		;
-	    if( !*s )
-		return buf;
-	    t = buf; n = buflen; s = sub ;
+  for ( ; n ; t++, n-- )
+    {
+      if ( toupper (*t) == toupper (*s) )
+        {
+          for ( buf=t++, buflen = n--, s++;
+                n && toupper (*t) == toupper (*s); t++, s++, n-- )
+            ;
+          if (!*s)
+            return (const char*)buf;
+          t = buf;
+          s = (const unsigned char *)sub ;
+          n = buflen;
 	}
-
-    return NULL ;
+    }
+  return NULL;
 }
 
 const char *
-ascii_memistr( const char *buf, size_t buflen, const char *sub )
+ascii_memistr ( const void *buffer, size_t buflen, const char *sub )
 {
-    const byte *t, *s ;
-    size_t n;
+  const unsigned char *buf = buffer;
+  const unsigned char *t = (const unsigned char *)buf;
+  const unsigned char *s = (const unsigned char *)sub;
+  size_t n = buflen;
 
-    for( t=buf, n=buflen, s=sub ; n ; t++, n-- )
-	if( ascii_toupper(*t) == ascii_toupper(*s) ) {
-	    for( buf=t++, buflen = n--, s++;
-		 n && ascii_toupper(*t) == ascii_toupper(*s); t++, s++, n-- )
-		;
-	    if( !*s )
-		return buf;
-	    t = buf; n = buflen; s = sub ;
+  for ( ; n ; t++, n-- )
+    {
+      if (ascii_toupper (*t) == ascii_toupper (*s) )
+        {
+          for ( buf=t++, buflen = n--, s++;
+                n && ascii_toupper (*t) == ascii_toupper (*s); t++, s++, n-- )
+            ;
+          if (!*s)
+            return (const char*)buf;
+          t = (const unsigned char *)buf;
+          s = (const unsigned char *)sub ;
+          n = buflen;
 	}
-
-    return NULL ;
+    }
+  return NULL;
 }
 
-/****************
- * Wie strncpy(), aber es werden maximal n-1 zeichen kopiert und ein
- * '\0' angehängt. Ist n = 0, so geschieht nichts, ist Destination
- * gleich NULL, so wird via jnlib_xmalloc Speicher besorgt, ist dann nicht
- * genügend Speicher vorhanden, so bricht die funktion ab.
+/* This function is similar to strncpy().  However it won't copy more
+   than N - 1 characters and makes sure that a '\0' is appended. With
+   N given as 0, nothing will happen.  With DEST given as NULL, memory
+   will be allocated using jnlib_xmalloc (i.e. if it runs out of core
+   the function terminates).  Returns DES or a pointer to the
+   allocated memory.
  */
 char *
 mem2str( char *dest , const void *src , size_t n )
@@ -392,17 +409,19 @@ print_sanitized_string (FILE *fp, const char *string, int delim)
 size_t 
 print_sanitized_utf8_string (FILE *fp, const char *string, int delim)
 {
-  /* FIXME: convert to local characterset */
-  return print_sanitized_string (fp, string, delim);
+  return string? print_sanitized_utf8_buffer (fp,
+                                              string, strlen (string),
+                                              delim) : 0;
 }
 
-/* Create a string from the buffer P of length N which is suitable for
+/* Create a string from the buffer P_ARG of length N which is suitable for
    printing.  Caller must release the created string using xfree. */
 char *
-sanitize_buffer (const unsigned char *p, size_t n, int delim)
+sanitize_buffer (const void *p_arg, size_t n, int delim)
 {
+  const unsigned char *p = p_arg;
   size_t save_n, buflen;
-  const byte *save_p;
+  const unsigned char *save_p;
   char *buffer, *d;
 
   /* first count length */
@@ -451,8 +470,29 @@ sanitize_buffer (const unsigned char *p, size_t n, int delim)
   return buffer;
 }
 
+
 /****************************************************
- ******** locale insensitive ctype functions ********
+ **********  W32 specific functions  ****************
+ ****************************************************/
+
+#ifdef HAVE_W32_SYSTEM
+const char *
+w32_strerror (int ec)
+{
+  static char strerr[256];
+  
+  if (ec == -1)
+    ec = (int)GetLastError ();
+  FormatMessage (FORMAT_MESSAGE_FROM_SYSTEM, NULL, ec,
+                 MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
+                 strerr, DIM (strerr)-1, NULL);
+  return strerr;    
+}
+#endif /*HAVE_W32_SYSTEM*/
+
+
+/****************************************************
+ ******** Locale insensitive ctype functions ********
  ****************************************************/
 /* FIXME: replace them by a table lookup and macros */
 int
@@ -525,15 +565,19 @@ ascii_strncasecmp (const char *a, const char *b, size_t n)
 
 
 int
-ascii_memcasecmp( const char *a, const char *b, size_t n )
+ascii_memcasecmp (const void *a_arg, const void *b_arg, size_t n )
 {
-    if (a == b)
-        return 0;
-    for ( ; n; n--, a++, b++ ) {
-	if( *a != *b  && ascii_toupper (*a) != ascii_toupper (*b) )
-            return *a == *b? 0 : (ascii_toupper (*a) - ascii_toupper (*b));
-    }
+  const char *a = a_arg;
+  const char *b = b_arg;
+
+  if (a == b)
     return 0;
+  for ( ; n; n--, a++, b++ )
+    {
+      if( *a != *b  && ascii_toupper (*a) != ascii_toupper (*b) )
+        return *a == *b? 0 : (ascii_toupper (*a) - ascii_toupper (*b));
+    }
+  return 0;
 }
 
 int
@@ -559,8 +603,8 @@ ascii_memcasemem (const void *haystack, size_t nhaystack,
     return (void*)haystack; /* finding an empty needle is really easy */
   if (nneedle <= nhaystack)
     {
-      const unsigned char *a = haystack;
-      const unsigned char *b = a + nhaystack - nneedle;
+      const char *a = haystack;
+      const char *b = a + nhaystack - nneedle;
       
       for (; a <= b; a++)
         {
@@ -625,3 +669,5 @@ memicmp( const char *a, const char *b, size_t n )
     return 0;
 }
 #endif
+
+

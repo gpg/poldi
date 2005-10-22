@@ -852,7 +852,7 @@ show_version()
     /* additional program info */
     for(i=30; i < 40; i++ )
 	if( (s=strusage(i)) )
-	    fputs( (const byte*)s, stdout);
+	    fputs (s, stdout);
     fflush(stdout);
 }
 
@@ -904,7 +904,7 @@ strusage( int level )
     switch( level ) {
       case 11: p = "foo"; break;
       case 13: p = "0.0"; break;
-      case 14: p = "Copyright (C) 2004 Free Software Foundation, Inc."; break;
+      case 14: p = "Copyright (C) 2005 Free Software Foundation, Inc."; break;
       case 15: p =
 "This program comes with ABSOLUTELY NO WARRANTY.\n"
 "This is free software, and you are welcome to redistribute it\n"
