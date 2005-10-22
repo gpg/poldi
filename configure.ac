@@ -40,9 +40,13 @@ AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 POLDI_CONF_DIRECTORY="${sysconfdir}/poldi"
 AC_SUBST(POLDI_CONF_DIRECTORY)
 
-if test "x$PAM_MODULE_DIRECTORY" = "x"; then
-  PAM_MODULE_DIRECTORY="${libdir}/security"
-fi
+# Implementation of the --with-pam-module-directory switch.
+DEFAULT_PAM_MODULE_DIRECTORY="${libdir}/security"
+AC_ARG_WITH(pam-module-directory,
+	    [  --with-pam-module-directory=NAME
+                          Use NAME as installation directory for PAM modules ],
+	    PAM_MODULE_DIRECTORY="$withval",
+	    PAM_MODULE_DIRECTORY="$DEFAULT_PAM_MODULE_DIRECTORY")
 AC_SUBST(PAM_MODULE_DIRECTORY)
 
 AC_GNU_SOURCE
@@ -107,6 +111,7 @@ AC_CHECK_LIB(usb, usb_bulk_write,
              ])
 AC_SUBST(LIBUSB_LIBS)
 AC_CHECK_FUNCS(usb_get_busses memicmp stpcpy strlwr strtoul memmove stricmp)
+AC_CHECK_FUNCS(fopencookie funopen)
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -205,3 +210,13 @@ AC_CONFIG_FILES([Makefile
 		 src/ctrl/Makefile
 		 conf/Makefile])
 AC_OUTPUT
+
+if test "$PAM_MODULE_DIRECTORY" = "$DEFAULT_PAM_MODULE_DIRECTORY"; then
+   AC_MSG_WARN([
+**
+** Warning: using default value ($DEFAULT_PAM_MODULE_DIRECTORY) as
+**          installation directory for PAM module.
+**])
+else
+  AC_MSG_NOTICE([PAM module installation directory: $PAM_MODULE_DIRECTORY])
+fi

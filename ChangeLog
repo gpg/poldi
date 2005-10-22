@@ -1,3 +1,15 @@
+2005-10-22  Moritz Schulte  <moritz@g10code.com>
+
+	* NEWS: Updated.
+
+2005-10-19  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Check for functions: fopencookie, funopen.
+
+2005-10-15  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Implement --with-pam-module-directory switch.
+
 2005-10-08  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac (POLDI_CONF_DIRECTORY): Only set

@@ -2,3 +2,17 @@ Changes since version 0.2:
 
 * Better support for Version 0x0101 cards (no Admin PIN necessary for
   public key retrival).
+
+* Work around a problem in libpam_misc, which causes the PIN prompt to
+  appear to late.
+
+* Improved documentation.
+
+* Support for creating a skeleton configuration hierarchy.
+
+* Support for a timeout while waiting for smartcard insertion.
+
+* Removed `fake-wait-for-card'-feature.
+
+* Dropped ugly `install-pam-module' mechanism; now the PAM module gets
+  installed automatically during `make install'.
