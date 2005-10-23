@@ -55,7 +55,6 @@ struct poldi_ctrl_opt
   int require_card_switch;
   int cmd_test;
   int cmd_dump;
-  int cmd_dump_shadowed_key;
   int cmd_set_key;
   int cmd_show_key;
   int cmd_add_user;
@@ -86,7 +85,6 @@ struct poldi_ctrl_opt poldi_ctrl_opt =
     0,
     0,
     0,
-    0,
     0
   };
 
@@ -94,7 +92,6 @@ enum arg_opt_ids
   {
     arg_test = 't',
     arg_dump = 'd',
-    arg_dump_shadowed_key = 'D',
     arg_set_key = 's',
     arg_show_key = 'k',
     arg_add_user  = 'a',
@@ -122,8 +119,6 @@ static ARGPARSE_OPTS arg_opts[] =
       "test",        256, "Test authentication"                },
     { arg_dump,
       "dump",        256, "Dump certain card information"      },
-    { arg_dump_shadowed_key,
-      "dump-shadowed-key", 256, "Dump shadowed key from card"  },
     { arg_add_user,
       "add-user",    256, "Add account to users db"            },
     { arg_remove_user,
@@ -226,11 +221,6 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
     case arg_dump:
       if (parsing_stage)
 	poldi_ctrl_opt.cmd_dump = 1;
-      break;
-
-    case arg_dump_shadowed_key:
-      if (parsing_stage)
-	poldi_ctrl_opt.cmd_dump_shadowed_key = 1;
       break;
 
     case arg_add_user:
@@ -446,68 +436,116 @@ cmd_test (void)
 
   err = challenge_generate (&challenge, &challenge_n);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to generate challenge: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   err = card_open (NULL, &slot);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to open card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   printf ("Waiting for card...\n");
   err = card_init (slot, 1, poldi_ctrl_opt.wait_timeout,
 		   poldi_ctrl_opt.require_card_switch);
   if (err)
-    goto out;
+    {
+      /* FIXME: wording.  */
+      log_error ("Error: failed to initialize card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   err = card_info (slot, &serialno, &version, NULL);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to retreive basic information"
+		 "from card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   printf ("Serial No: %s\n", serialno);
   printf ("Card version: %u\n", version);
 
   err = usersdb_lookup_by_serialno (serialno, &account);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to lookup username for serial number "
+		 "`%s': %s\n",
+		 serialno, gpg_strerror (err));
+      goto out;
+    }
 
   printf ("Account: %s\n", account);
 
   pwent = getpwnam (account);
   if (! pwent)
     {
-      err = gpg_error (GPG_ERR_INTERNAL);	/* FIXME */
+      err = gpg_error_from_errno (errno);
+      log_error ("Error: failed to lookup user `%s' in "
+		 "password database: %s\n",
+		 account, gpg_strerror (errno));
       goto out;
     }
 
   err = key_filename_construct (&key_path, serialno);
   if (err)
-    /* FIXME: correct?  */
-    goto out;
+    {
+      log_error ("Error: failed to construct key filename: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   err = file_to_string (key_path, &key_string);
+  /* Use error code "NO_PUBKEY" in case the file is empty.  */
   if ((! err) && (! key_string))
     err = gpg_error (GPG_ERR_NO_PUBKEY);
   if (err)
-    goto out;
+    {
+      log_error ("Error: key could not be read from key file `%s': %s\n",
+		 key_path, gpg_strerror (err));
+      goto out;
+    }
 
   err = string_to_sexp (&key_sexp, key_string);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to convert key into S-Expression: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
-  /* FIXME?  */
   pin = getpass (POLDI_PIN2_QUERY_MSG);
   if (! pin)
     {
       err = gpg_error_from_errno (errno);
+      log_error ("Error: failed to retrieve PIN from user: %s\n",
+		 gpg_strerror (err));
       goto out;
     }
 
   err = card_pin_provide (slot, 2, pin);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to send PIN to card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   err = card_sign (slot, challenge, challenge_n, &signature, &signature_n);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to retrieve challenge signature "
+		 "from card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   card_close (slot);
   slot = -1;
@@ -598,114 +636,6 @@ cmd_dump (void)
   gcry_sexp_release (key);
   gcry_free (key_s);
   free (serialno);
-  free (pin);
-
-  return err;
-}
-
-
-
-/* FIXME: what is this and why is it?  */
-static gpg_error_t
-cmd_dump_shadowed_key (void)
-{
-  gcry_sexp_t key_public;
-  gcry_sexp_t key_shadowed;
-  gcry_sexp_t value_pair;
-  char *key_s;
-  gcry_mpi_t mpi_n;
-  gcry_mpi_t mpi_e;
-  gpg_error_t err;
-  int slot;
-  char *pin;
-  char key_grip[41];
-  unsigned char key_grip_raw[20];
-  unsigned int i;
-
-  slot = -1;
-  key_public = NULL;
-  key_shadowed = NULL;
-  value_pair = NULL;
-  mpi_n = NULL;
-  mpi_e = NULL;
-  key_s = NULL;
-
-  pin = getpass (POLDI_PIN3_QUERY_MSG);
-
-  err = card_open (NULL, &slot);
-  if (err)
-    goto out;
-
-  err = card_init (slot, 0, 0, 0);
-  if (err)
-    goto out;
-
-  err = card_pin_provide (slot, 3, pin);
-  if (err)
-    goto out;
-
-  err = card_read_key (slot, &key_public);
-  if (err)
-    goto out;
-
-  value_pair = gcry_sexp_find_token (key_public, "n", 0);
-  if (! value_pair)
-    {
-      err = gpg_error (GPG_ERR_INV_SEXP);
-      goto out;
-    }
-  mpi_n = gcry_sexp_nth_mpi (value_pair, 1, GCRYMPI_FMT_USG);
-  if (! mpi_n)
-    {
-      err = gpg_error (GPG_ERR_INTERNAL); /* FIXME? */
-      goto out;
-    }
-
-  gcry_sexp_release (value_pair);
-  value_pair = gcry_sexp_find_token (key_public, "e", 0);
-  if (! value_pair)
-    {
-      err = gpg_error (GPG_ERR_INV_SEXP);
-      goto out;
-    }
-  mpi_e = gcry_sexp_nth_mpi (value_pair, 1, GCRYMPI_FMT_USG);
-  if (! mpi_e)
-    {
-      err = gpg_error (GPG_ERR_INTERNAL); /* FIXME? */
-      goto out;
-    }
-
-  err = gcry_sexp_build (&key_shadowed, NULL,
-			 "(shadowed-private-key"
-			 " (rsa"
-			 "  (n %m)"
-			 "  (e %m)))",
-			 mpi_n, mpi_e);
-  if (err)
-    goto out;
-
-  err = sexp_to_string (key_shadowed, &key_s);
-  if (err)
-    goto out;
-
-  gcry_pk_get_keygrip (key_public, key_grip_raw);
-  for (i = 0; i < 20; i++)
-    sprintf (key_grip + 2 * i, "%02X", key_grip_raw[i]);
-
-  printf ("Key grip:\n%s\n", key_grip);
-  printf ("Key:\n%s\n", key_s);
-
- out:
-
-  gcry_mpi_release (mpi_n);
-  gcry_mpi_release (mpi_e);
-  gcry_sexp_release (value_pair);
-
-  if (slot != -1)
-    card_close (slot);
-  gcry_sexp_release (key_public);
-  gcry_sexp_release (key_shadowed);
-  gcry_free (key_s);
   free (pin);
 
   return err;
@@ -830,7 +760,11 @@ cmd_remove_user (void)
       serialno = NULL;
       err = usersdb_lookup_by_username (poldi_ctrl_opt.account, &serialno);
       if (err)
-	goto out;
+	{
+	  log_error ("Error: failed to lookup username `%s': %s\n",
+		     poldi_ctrl_opt.account, gpg_strerror (err));
+	  goto out;
+	}
     }
   else
     {
@@ -1042,8 +976,7 @@ main (int argc, char **argv)
        + (poldi_ctrl_opt.cmd_add_user)
        + (poldi_ctrl_opt.cmd_remove_user)
        + (poldi_ctrl_opt.cmd_list_users)
-       + (poldi_ctrl_opt.cmd_dump)
-       + (poldi_ctrl_opt.cmd_dump_shadowed_key)) != 1)
+       + (poldi_ctrl_opt.cmd_dump)) != 1)
     {
       fprintf (stderr, "Error: no command given (try --help).\n");
       exit (EXIT_FAILURE);
@@ -1053,8 +986,6 @@ main (int argc, char **argv)
     err = cmd_test ();
   else if (poldi_ctrl_opt.cmd_dump)
     err = cmd_dump ();
-  else if (poldi_ctrl_opt.cmd_dump_shadowed_key)
-    err = cmd_dump_shadowed_key ();
   else if (poldi_ctrl_opt.cmd_set_key)
     err = cmd_set_key ();
   else if (poldi_ctrl_opt.cmd_show_key)
@@ -1069,10 +1000,7 @@ main (int argc, char **argv)
  out:
   
   if (err)
-    {
-      fprintf (stderr, "Error: %s\n", gpg_strerror (err));
-      exit (1);
-    }
+    exit (EXIT_FAILURE);
 
   return 0;
 }
