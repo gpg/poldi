@@ -33,7 +33,6 @@
 #include <gcrypt.h>
 
 #include <jnlib/xmalloc.h>
-#include <jnlib/stringhelp.h>
 #include <jnlib/logging.h>
 #include <common/support.h>
 #include <common/options.h>
@@ -41,17 +40,13 @@
 #include <common/defs.h>
 #include <libscd/scd.h>
 
-#define POLDI_LOG_FACILITY AUTH
+
 
-#define STR_CONCAT(a, b) a ## b
+/* Macros.  */
 
-#define POLDI_LOG_DO(facility, priority, format, args ...) \
-  syslog (LOG_MAKEPRI (STR_CONCAT (LOG_, facility), LOG_ ## priority), \
-          format, ## args)
-#define POLDI_LOG(priority, format, args ...) \
-  POLDI_LOG_DO (POLDI_LOG_FACILITY, priority, format, ## args)
+
 
-/* Global flags.  */
+/* Option structure layout.  */
 struct pam_poldi_opt
 {
   unsigned int debug; /* Enable debugging.  */
@@ -66,9 +61,9 @@ struct pam_poldi_opt
   int require_card_switch;
   const char *logfile;
   unsigned int wait_timeout;
-} pam_poldi_opt;
+};
 
-/* Set defaults.  */
+/* Option structure definition.  */
 struct pam_poldi_opt pam_poldi_opt =
   {
     0,
@@ -84,7 +79,6 @@ struct pam_poldi_opt pam_poldi_opt =
     NULL,
     0
   };
-
 
 /* Option IDs.  */
 enum arg_opt_ids
@@ -135,6 +129,7 @@ static ARGPARSE_OPTS arg_opts[] =
     { 0 }
   };
 
+/* Option parser callback.  */
 static gpg_error_t
 pam_poldi_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 {
@@ -194,6 +189,16 @@ pam_poldi_options_cb (ARGPARSE_ARGS *parg, void *opaque)
   return gpg_error (err);
 }
 
+
+
+/*
+ * PAM user interaction through PAM conversation functions.
+ */
+
+/* This function queries the PAM user for input through the
+   conversation function CONV; TEXT will be displayed as prompt, the
+   user's response will be stored in *RESPONSE.  Returns proper error
+   code.  */
 static gpg_error_t
 ask_user (const struct pam_conv *conv, const char *text, char **response)
 {
@@ -233,6 +238,10 @@ ask_user (const struct pam_conv *conv, const char *text, char **response)
   return err;
 }
 
+/* This function queries the PAM user for input through the
+   conversation function CONV; TEXT will be displayed as prompt, the
+   user's response will be stored in *RESPONSE.  Returns proper error
+   code.  */
 static gpg_error_t
 tell_user (const struct pam_conv *conv, char *fmt, ...)
 {
@@ -274,48 +283,14 @@ tell_user (const struct pam_conv *conv, char *fmt, ...)
   return err;
 }
 
-static gpg_error_t
-do_auth (int slot, const struct pam_conv *conv, gcry_sexp_t key)
-{
-  unsigned char *challenge;
-  unsigned char *response;
-  size_t challenge_n;
-  size_t response_n;
-  gpg_error_t err;
-  char *pin;
+
 
-  challenge = NULL;
-  response = NULL;
-  pin = NULL;
+/*
+ * Helper functions.
+ */
 
-  err = ask_user (conv, POLDI_PIN2_QUERY_MSG, &pin);
-  if (err)
-    goto out;
-
-  err = card_pin_provide (slot, 2, pin);
-  if (err)
-    goto out;
-
-  err = challenge_generate (&challenge, &challenge_n);
-  if (err)
-    goto out;
-
-  err = card_sign (slot, challenge, challenge_n, &response, &response_n);
-  if (err)
-    goto out;
-
-  /* Verify response.  */
-  err = challenge_verify (key, challenge, challenge_n, response, response_n);
-
- out:
-
-  free (challenge);
-  free (response);
-  free (pin);
-
-  return err;
-}
-
+/* Lookup the key belonging to the user specified by USERNAME.
+   Returns a proper error code.  */
 static gpg_error_t
 lookup_key (const char *username, gcry_sexp_t *key)
 {
@@ -333,7 +308,10 @@ lookup_key (const char *username, gcry_sexp_t *key)
   if (err)
     goto out;
 
-  key_path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
+  err = key_filename_construct (&key_path, serialno);
+  if (err)
+    goto out;
+
   err = file_to_string (key_path, &key_string);
   if ((! err) && (! key_string))
     err = gpg_error (GPG_ERR_NO_PUBKEY);
@@ -355,6 +333,11 @@ lookup_key (const char *username, gcry_sexp_t *key)
   return err;
 }
 
+/* Wait for insertion of a card in slot specified by SLOT,
+   communication with the user through the PAM conversation function
+   CONV.  If REQUIRE_CARD_SWITCH is TRUE, require a card switch.  The
+   serial number of the inserted card will be stored in a newly
+   allocated string in **SERIALNO.  Returns proper error code.  */
 static gpg_error_t
 wait_for_card (int slot, int require_card_switch,
 	       const struct pam_conv *conv, char **serialno)
@@ -385,6 +368,7 @@ wait_for_card (int slot, int require_card_switch,
   return err;
 }
 
+/* This function parses the PAM argument vector ARGV of size ARGV */
 static gpg_error_t
 parse_argv (int argc, const char **argv)
 {
@@ -396,31 +380,94 @@ parse_argv (int argc, const char **argv)
     {
       if (! strcmp (argv[i], "debug"))
 	{
+	  /* Handle "debug" option.  */
 	  pam_poldi_opt.debug = ~0;
 	  pam_poldi_opt.debug_sc = 1;
 	  pam_poldi_opt.verbose = 1;
 	  pam_poldi_opt.debug_ccid_driver = 1;
 	}
       else if (! strncmp (argv[i], "timeout=", 8))
+	/* Handle "timeout=" option.  */
 	pam_poldi_opt.wait_timeout = atoi (argv[i] + 8);
       else
 	{
-	  err = gpg_error (GPG_ERR_INTERNAL);
-	  break;
+	  log_error ("Unknown PAM argument: %s", argv[i]);
+	  err = gpg_error (GPG_ERR_UNKNOWN_NAME);
 	}
+
+      if (err)
+	break;
     }
 
   return err;
 }
 
+
+
+/* Core authentication function.  Tries to authenticate the card
+   specified by SLOT against the public key KEY, using CONV as PAM
+   conversation function.  Returns proper error code.  */
+static gpg_error_t
+do_auth (int slot, const struct pam_conv *conv, gcry_sexp_t key)
+{
+  unsigned char *challenge;
+  unsigned char *response;
+  size_t challenge_n;
+  size_t response_n;
+  gpg_error_t err;
+  char *pin;
+
+  challenge = NULL;
+  response = NULL;
+  pin = NULL;
+
+  /* Query user for PIN.  */
+  err = ask_user (conv, POLDI_PIN2_QUERY_MSG, &pin);
+  if (err)
+    goto out;
+
+  /* Send PIN to card.  */
+  err = card_pin_provide (slot, 2, pin);
+  if (err)
+    goto out;
+
+  /* Generate challenge.  */
+  err = challenge_generate (&challenge, &challenge_n);
+  if (err)
+    goto out;
+
+  /* Let card sign the challenge.  */
+  err = card_sign (slot, challenge, challenge_n, &response, &response_n);
+  if (err)
+    goto out;
+
+  /* Verify response.  */
+  err = challenge_verify (key, challenge, challenge_n, response, response_n);
+
+ out:
+
+  /* Release resources.  */
+
+  free (challenge);
+  free (response);
+  free (pin);
+
+  return err;
+}
+
+
+
 /* Uaaahahahh, ich will dir einloggen!  */
 PAM_EXTERN int
-pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char **argv)
+pam_sm_authenticate (pam_handle_t *pam_handle,
+		     int flags, int argc, const char **argv)
 {
+  const void *conv_void;
   const struct pam_conv *conv;
   gcry_sexp_t key;
   gpg_error_t err;
-  char *username;
+  const void *username_void;
+  const char *username;
   char *serialno;
   char *account;
   int slot;
@@ -430,8 +477,6 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
   account = NULL;
   slot = -1;
   key = NULL;
-  
-  openlog ("poldi", LOG_PID, LOG_USER);
 
   /* Parse options.  */
   err = options_parse_conf  (pam_poldi_options_cb, NULL,
@@ -439,18 +484,24 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
   if (err)
     goto out;
 
+  /* Parse argument vector provided by PAM.  */
   err = parse_argv (argc, argv);
   if (err)
     goto out;
 
-  log_set_file (pam_poldi_opt.logfile);
-
-  /* We need to disable bufferring on stderr, since it might have been
-     enabled by log_set_file().  Buffering on stderr will complicate
-     PAM interaction, since e.g. libpam-misc's misc_conv() function
-     does expect stderr to be unbuffered.  */
-  if ((! pam_poldi_opt.logfile) || (! strcmp (pam_poldi_opt.logfile, "-")))
-    setvbuf (stderr, NULL, _IONBF, 0);
+  if (pam_poldi_opt.logfile)
+    {
+      log_set_file (pam_poldi_opt.logfile);
+      if (! strcmp (pam_poldi_opt.logfile, "-"))
+	/* We need to disable bufferring on stderr, since it might
+	   have been enabled by log_set_file().  Buffering on stderr
+	   will complicate PAM interaction, since e.g. libpam-misc's
+	   misc_conv() function does expect stderr to be
+	   unbuffered.  */
+	setvbuf (stderr, NULL, _IONBF, 0);
+    }
+  else
+    log_set_syslog ("poldi", LOG_AUTH);
 
   scd_init (pam_poldi_opt.debug,
 	    pam_poldi_opt.debug_sc,
@@ -463,21 +514,23 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
 	    pam_poldi_opt.debug_ccid_driver);
 
   /* Ask PAM for username.  */
-  ret = pam_get_item (pam_handle, PAM_USER, (const void **) &username);
+  ret = pam_get_item (pam_handle, PAM_USER, &username_void);
   if (ret != PAM_SUCCESS)
     {
       err = gpg_error (GPG_ERR_INTERNAL);
       goto out;
     }
+  username = username_void;
 
   /* Ask PAM for conv structure.  */
-  ret = pam_get_item (pam_handle, PAM_CONV, (const void **) &conv);
+  ret = pam_get_item (pam_handle, PAM_CONV, &conv_void);
   if (ret != PAM_SUCCESS)
     {
-      POLDI_LOG (ERR, "Failed to retrieve conversation structure");
+      log_error ("Failed to retrieve conversation structure");
       err = GPG_ERR_INTERNAL;
       goto out;
     }
+  conv = conv_void;
 
   /* Open card slot.  */
   err = card_open (NULL, &slot);
@@ -486,65 +539,81 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
 
   if (username)
     {
-      /* Got a username from PAM.  */
-      
+      /* We got a username from PAM, thus we are waiting for a
+	 specific card.  */
+
+      /* We do not need the key right now already, but it seems to be
+	 a good idea to make the login fail before waiting for card in
+	 case no key has been installed for that card.  */
       err = lookup_key (username, &key);
       if (err)
 	goto out;
 
-      /* Got key.  */
-
+      /* Wait for card.  */
       err = wait_for_card (slot, pam_poldi_opt.require_card_switch,
 			   conv, &serialno);
       if (err)
 	goto out;
 
+      /* Lookup account for given card.  */
       err = usersdb_lookup_by_serialno (serialno, &account);
-
       if (err || strcmp (account, username))
 	{
+	  /* Either the account could not be found or it is not the
+	     expected one -> fail.  */
 	  tell_user (conv, "Serial no %s is not associated with %s",
 		     serialno, username);
 	  if (! err)
-	    err = gpg_error (GPG_ERR_INTERNAL); /* FIXME */
+	    err = gpg_error (GPG_ERR_INV_NAME);
 	}
       else
+	/* Inform user about inserted card.  */
 	err = tell_user (conv, "Serial no: %s", serialno);
-      
       if (err)
 	goto out;
 
+      /* It is the correct card, try authentication with given
+	 key.  */
       err = do_auth (slot, conv, key);
       if (err)
 	goto out;
     }
   else
     {
+      /* No username has been provided by PAM, thus we accept any
+	 card.  */
+
+      /* Wait for card.  */
       err = wait_for_card (slot, pam_poldi_opt.require_card_switch,
 			   conv, &serialno);
       if (err)
 	goto out;
 
+      /* Inform user about inserted card.  */
       err = tell_user (conv, "Serial no: %s", serialno);
       if (err)
 	goto out;
 
+      /* Lookup account for inserted card.  */
       err = usersdb_lookup_by_serialno (serialno, &account);
       if (err)
 	goto out;
 
+      /* Inform user about looked up account.  */
       err = tell_user (conv, "Account: %s", account);
       if (err)
 	goto out;
 
+      /* Lookup key for looked up account.  */
       err = lookup_key (account, &key);
       if (err)
 	goto out;
 
+      /* Try authentication with looked up key.  */
       err = do_auth (slot, conv, key);
       if (err)
 	goto out;
-  
+
       /* Make username available to application.  */
       ret = pam_set_item (pam_handle, PAM_USER, account);
       if (ret != PAM_SUCCESS)
@@ -557,26 +626,34 @@ pam_sm_authenticate (pam_handle_t *pam_handle, int flags, int argc, const char *
   /* Done.  */
 
  out:
-  
+
+  /* Release resources.  */
   gcry_sexp_release (key);
   free (serialno);
   free (account);
   if (slot != -1)
     card_close (slot);
 
+  /* Log result.  */
   if (err)
-    POLDI_LOG (ERR, "Failure: %s\n", gpg_strerror (err));
+    log_error ("Failure: %s\n", gpg_strerror (err));
   else
-    POLDI_LOG (INFO, "Success\n");
+    log_info ("Success\n");
 
+  /* FIXME, should be done by logging.c somehow.  */
   closelog ();
+
+  /* Return to PAM.  */
 
   return err ? PAM_AUTH_ERR : PAM_SUCCESS;
 }
 
 PAM_EXTERN int
-pam_sm_setcred (pam_handle_t *pam_handle, int flags, int argc, const char **argv)
+pam_sm_setcred (pam_handle_t *pam_handle,
+		int flags, int argc, const char **argv)
 {
   /* FIXME?  */
   return PAM_SUCCESS;
 }
+
+/* END. */

@@ -1,3 +1,19 @@
+2005-10-23  Moritz Schulte  <moritz@g10code.com>
+
+	* pam_poldi.c: Remove Syslog logging macros, use jnlib logging
+	only (which does support logging to Syslog now).
+	(pam_sm_authenticate): Call log_set_syslog or log_set_file,
+	depending on the value of pam_poldi_opt.logfile.
+	(username_void, conv_void): New local variables, use them when
+	retrieving items from the PAM environment in order to follow
+	strict-aliasing rules.
+
+2005-10-16  Moritz Schulte  <moritz@g10code.com>
+
+	* pam_poldi.c (lookup_key): Use key_filename_construct() instead
+	of make_filename() directly.
+	Re-ordered functions, clean-up, added comments.
+
 2005-10-15  Moritz Schulte  <moritz@g10code.com>
 
 	* pam_poldi.c (parse_argv): Fixed typo related to timeout argument
