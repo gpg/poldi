@@ -34,5 +34,6 @@ gpg_error_t usersdb_add_entry (const char *username, const char *serialno);
 gpg_error_t sexp_to_string (gcry_sexp_t sexp, char **sexp_string);
 gpg_error_t file_to_string (const char *filename, char **string);
 gpg_error_t string_to_sexp (gcry_sexp_t *sexp, char *string);
+gpg_error_t key_filename_construct (char **filename, const char *serialno);
 
 #endif

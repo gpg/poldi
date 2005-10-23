@@ -1,5 +1,5 @@
 /* support.c - PAM authentication via OpenPGP smartcards.
-   Copyright (C) 2004 g10 Code GmbH
+   Copyright (C) 2004, 2005 g10 Code GmbH
  
    This file is part of Poldi.
   
@@ -35,7 +35,8 @@
 #include "support.h"
 #include "defs.h"
 
-#include <../jnlib/xmalloc.h>
+#include <jnlib/xmalloc.h>
+#include <jnlib/stringhelp.h>
 
 #define CHALLENGE_MD_ALGORITHM GCRY_MD_SHA1
 
@@ -469,4 +470,17 @@ file_to_string (const char *filename, char **string)
     free (string_new);
 
   return err;
+}
+
+
+
+gpg_error_t
+key_filename_construct (char **filename, const char *serialno)
+{
+  char *path;
+
+  path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
+  *filename = path;
+
+  return 0;
 }
