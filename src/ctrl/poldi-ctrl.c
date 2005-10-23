@@ -30,7 +30,6 @@
 
 #include <jnlib/argparse.h>
 #include <jnlib/xmalloc.h>
-#include <jnlib/stringhelp.h>
 #include <jnlib/logging.h>
 #include <common/options.h>
 #include <common/card.h>
@@ -317,6 +316,105 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
   return gpg_error (err);
 }
 
+
+
+/*
+ * Key file management.
+ */
+
+/* Create a key file for user ACCOUNT and card serial number SERIALNO.
+   Return proper error code.  */
+static gpg_error_t
+key_file_create (const char *account, const char *serialno)
+{
+  struct passwd *pwent;
+  struct stat statbuf;
+  gpg_error_t err;
+  char *path;
+  int ret;
+  int fd;
+
+  path = NULL;
+  
+  pwent = getpwnam (account);
+  if (! pwent)
+    {
+      err = gpg_error (GPG_ERR_NOT_FOUND);
+      goto out;
+    }
+
+  err = key_filename_construct (&path, serialno);
+  if (err)
+    goto out;
+
+  fd = open (path, O_WRONLY | O_CREAT, 0644);
+  if (fd == -1)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  ret = close (fd);
+  if (ret == -1)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  ret = stat (path, &statbuf);
+  if (ret == -1)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  ret = chown (path, pwent->pw_uid, statbuf.st_gid);
+  if (ret == -1)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  err = 0;
+
+ out:
+
+  free (path);
+
+  return err;
+}
+
+/* Remove the key file for card serial number SERIALNO.  Return proper
+   error code.  */
+static gpg_error_t
+key_file_remove (const char *serialno)
+{
+  gpg_error_t err;
+  char *path;
+  int ret;
+
+  err = key_filename_construct (&path, serialno);
+  if (err)
+    goto out;
+
+  ret = unlink (path);
+  if ((ret == -1) && (errno != ENOENT))
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  err = 0;
+
+ out:
+
+  free (path);
+
+  return err;
+}
+
+
+
 static gpg_error_t
 cmd_test (void)
 {
@@ -380,7 +478,11 @@ cmd_test (void)
       goto out;
     }
 
-  key_path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
+  err = key_filename_construct (&key_path, serialno);
+  if (err)
+    /* FIXME: correct?  */
+    goto out;
+
   err = file_to_string (key_path, &key_string);
   if ((! err) && (! key_string))
     err = gpg_error (GPG_ERR_NO_PUBKEY);
@@ -430,6 +532,8 @@ cmd_test (void)
 
   return err;
 }
+
+
 
 static gpg_error_t
 cmd_dump (void)
@@ -499,6 +603,9 @@ cmd_dump (void)
   return err;
 }
 
+
+
+/* FIXME: what is this and why is it?  */
 static gpg_error_t
 cmd_dump_shadowed_key (void)
 {
@@ -604,6 +711,8 @@ cmd_dump_shadowed_key (void)
   return err;
 }
 
+
+
 static gpg_error_t
 cmd_list_users (void)
 {
@@ -660,88 +769,6 @@ cmd_list_users (void)
   free (line);
   if (users_file_fp)
     fclose (users_file_fp);	/* FIXME?  */
-
-  return err;
-}
-
-static gpg_error_t
-key_file_create (const char *account, const char *serialno)
-{
-  struct passwd *pwent;
-  struct stat statbuf;
-  gpg_error_t err;
-  char *path;
-  int ret;
-  int fd;
-
-  path = NULL;
-  
-  pwent = getpwnam (account);
-  if (! pwent)
-    {
-      err = gpg_error (GPG_ERR_NOT_FOUND);
-      goto out;
-    }
-
-  path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
-  fd = open (path, O_WRONLY | O_CREAT, 0644);
-  if (fd == -1)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-
-  ret = close (fd);
-  if (ret == -1)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-
-  ret = stat (path, &statbuf);
-  if (ret == -1)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-
-  ret = chown (path, pwent->pw_uid, statbuf.st_gid);
-  if (ret == -1)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-
-  err = 0;
-
- out:
-
-  free (path);
-
-  return err;
-}
-
-static gpg_error_t
-key_file_remove (const char *serialno)
-{
-  gpg_error_t err;
-  char *path;
-  int ret;
-
-  path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
-
-  ret = unlink (path);
-  if ((ret == -1) && (errno != ENOENT))
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-
-  err = 0;
-
- out:
-
-  free (path);
 
   return err;
 }
@@ -864,7 +891,9 @@ cmd_set_key (void)
   if (err)
     goto out;
 
-  path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
+  err = key_filename_construct (&path, serialno);
+  if (err)
+    goto out;
 
   if (version <= 0x0100)
     {
@@ -949,7 +978,10 @@ cmd_show_key (void)
   if (err)
     goto out;
 
-  path = make_filename (POLDI_KEY_DIRECTORY, serialno, NULL);
+  err = key_filename_construct (&path, serialno);
+  if (err)
+    goto out;
+
   err = file_to_string (path, &key_string);
   if (err)
     goto out;

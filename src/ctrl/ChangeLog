@@ -1,3 +1,10 @@
+2005-10-16  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c (key_file_create, key_file_remove): Re-ordered functions.
+	(key_file_create, key_file_remove, cmd_test, cmd_set_key)
+	(cmd_show_key): Use key_filename_construct() instead of
+	make_filename() directly.
+
 2005-10-08  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi-ctrl.c: Remove `fake-wait-for-card'-feature.
