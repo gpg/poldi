@@ -29,6 +29,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <pwd.h>
 
 #include <gcrypt.h>
 
@@ -484,3 +485,25 @@ key_filename_construct (char **filename, const char *serialno)
 
   return 0;
 }
+
+gpg_error_t
+lookup_own_username (const char **username)
+{
+  struct passwd *pwent;
+  gpg_error_t err;
+  uid_t uid;
+
+  uid = getuid ();
+  pwent = getpwuid (uid);
+  if (! pwent)
+    err = gpg_error_from_errno (errno);
+  else
+    {
+      *username = pwent->pw_name;
+      err = 0;
+    }
+
+  return err;
+}
+
+/* END */
