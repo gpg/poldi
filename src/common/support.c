@@ -288,6 +288,8 @@ usersdb_remove_entry (const char *username, const char *serialno)
   users_file_old_fp = NULL;
   users_file_new_fp = NULL;
 
+  assert (username || serialno);
+
   users_file_old_fp = fopen (users_file_old, "r");
   if (! users_file_old_fp)
     {
