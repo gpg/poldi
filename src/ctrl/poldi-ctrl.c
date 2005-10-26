@@ -37,6 +37,8 @@
 #include <common/defs.h>
 #include <libscd/scd.h>
 
+
+
 /* Global flags.  */
 struct poldi_ctrl_opt
 {
@@ -113,8 +115,9 @@ enum arg_opt_ids
 
 static ARGPARSE_OPTS arg_opts[] =
   {
-    { arg_debug,
-      "debug", 256, "Enable debugging mode" },
+    /* Commands:  */
+
+    { 300, NULL, 0, "@Commands:\n " },
     { arg_test,
       "test",        256, "Test authentication"                },
     { arg_dump,
@@ -129,8 +132,13 @@ static ARGPARSE_OPTS arg_opts[] =
       "set-key",     256, "Set key for calling user"           },
     { arg_show_key,
       "show-key",     256, "Show key of calling user"          },
+
+    /* Options:  */
+    { 301, NULL, 0, "@\nOptions:\n " },
     { arg_config_file,
       "config-file",   2, "|FILE|Specify configuration file"   },
+    { arg_debug,
+      "debug", 256, "Enable debugging mode" },
     { arg_account,
       "account",       2, "|NAME|Specify Unix account"         },
     { arg_serialno,
@@ -159,6 +167,10 @@ static ARGPARSE_OPTS arg_opts[] =
       NULL,            0, NULL                                 }
   };
 
+
+
+/* Callback function printing program usage information used through
+   jnlib.  */
 static const char *
 my_strusage (int level)
 {
@@ -169,18 +181,22 @@ my_strusage (int level)
     case 11:
       p = "poldi-ctrl (Poldi)";
       break;
+
     case 13:
       p = VERSION;
       break;
+
     case 19:
       p = "Please report bugs to <" PACKAGE_BUGREPORT ">\n";
       break;
+
     case 1:
     case 40:
-      p = "Usage: poldi-ctrl [options] [command]";
+      p = "Usage: poldi-ctrl <command> [options]";
       break;
+
     case 41:
-      p = "Syntax: poldi-ctrl [options] [command]\n";
+      p = "Syntax: poldi-ctrl <command> [options]\n";
       break;
 
     default:
@@ -190,11 +206,13 @@ my_strusage (int level)
   return p;
 }
 
+/* Option parser callback by options_parse_argv() and
+   options_parse_conf(), which are jnlib wrappers.  */
 static gpg_error_t
 poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 {
   int parsing_stage = *((int *) opaque);
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gpg_error_t err = 0;
 
   switch (parg->r_opt)
     {
@@ -315,9 +333,8 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 /* Create a key file for user ACCOUNT and card serial number SERIALNO.
    Return proper error code.  */
 static gpg_error_t
-key_file_create (const char *account, const char *serialno)
+key_file_create (struct passwd *pwent, const char *serialno)
 {
-  struct passwd *pwent;
   struct stat statbuf;
   gpg_error_t err;
   char *path;
@@ -325,22 +342,22 @@ key_file_create (const char *account, const char *serialno)
   int fd;
 
   path = NULL;
-  
-  pwent = getpwnam (account);
-  if (! pwent)
-    {
-      err = gpg_error (GPG_ERR_NOT_FOUND);
-      goto out;
-    }
 
   err = key_filename_construct (&path, serialno);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to construct key file path "
+		 "for serial number `%s': %s\n",
+		 serialno, gpg_strerror (err));
+      goto out;
+    }
 
   fd = open (path, O_WRONLY | O_CREAT, 0644);
   if (fd == -1)
     {
       err = gpg_error_from_errno (errno);
+      log_error ("Error: failed to open key file `%s': %s\n",
+		 path, gpg_strerror (err));
       goto out;
     }
 
@@ -348,6 +365,8 @@ key_file_create (const char *account, const char *serialno)
   if (ret == -1)
     {
       err = gpg_error_from_errno (errno);
+      log_error ("Error: failed to close key file `%s': %s\n",
+		 path, gpg_strerror (err));
       goto out;
     }
 
@@ -355,6 +374,8 @@ key_file_create (const char *account, const char *serialno)
   if (ret == -1)
     {
       err = gpg_error_from_errno (errno);
+      log_error ("Error: failed to stat key file `%s': %s\n",
+		 path, gpg_strerror (err));
       goto out;
     }
 
@@ -362,6 +383,8 @@ key_file_create (const char *account, const char *serialno)
   if (ret == -1)
     {
       err = gpg_error_from_errno (errno);
+      log_error ("Error: failed to chown key file `%s' to (%i, %i): %s\n",
+		 path, pwent->pw_uid, statbuf.st_gid, gpg_strerror (err));
       goto out;
     }
 
@@ -385,12 +408,19 @@ key_file_remove (const char *serialno)
 
   err = key_filename_construct (&path, serialno);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to construct key file path "
+		 "for serial number `%s': %s\n",
+		 serialno, gpg_strerror (err));
+      goto out;
+    }
 
   ret = unlink (path);
   if ((ret == -1) && (errno != ENOENT))
     {
       err = gpg_error_from_errno (errno);
+      log_error ("Error: failed to unlink key file `%s': %s\n",
+		 path, gpg_strerror (err));
       goto out;
     }
 
@@ -405,6 +435,13 @@ key_file_remove (const char *serialno)
 
 
 
+/*
+ * Command functions.
+ */
+
+
+/* Implementation of `test' command; test authentication
+   mechanism.  */
 static gpg_error_t
 cmd_test (void)
 {
@@ -434,13 +471,7 @@ cmd_test (void)
   serialno = NULL;
   version = 0;
 
-  err = challenge_generate (&challenge, &challenge_n);
-  if (err)
-    {
-      log_error ("Error: failed to generate challenge: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
+  /* Open and initialize card.  */
 
   err = card_open (NULL, &slot);
   if (err)
@@ -461,6 +492,17 @@ cmd_test (void)
       goto out;
     }
 
+  /* Generate a challenge.  */
+  err = challenge_generate (&challenge, &challenge_n);
+  if (err)
+    {
+      log_error ("Error: failed to generate challenge: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* Retrieve more card information.  */
+
   err = card_info (slot, &serialno, &version, NULL);
   if (err)
     {
@@ -473,6 +515,9 @@ cmd_test (void)
   printf ("Serial No: %s\n", serialno);
   printf ("Card version: %u\n", version);
 
+  /* Converting card serial number into account, through user
+     database.  */
+
   err = usersdb_lookup_by_serialno (serialno, &account);
   if (err)
     {
@@ -484,6 +529,8 @@ cmd_test (void)
 
   printf ("Account: %s\n", account);
 
+  /* Lookup account information in system password database.  */
+
   pwent = getpwnam (account);
   if (! pwent)
     {
@@ -494,6 +541,8 @@ cmd_test (void)
       goto out;
     }
 
+  /* Retrieve key S-Expression belonging to given card.  */
+
   err = key_filename_construct (&key_path, serialno);
   if (err)
     {
@@ -503,7 +552,7 @@ cmd_test (void)
     }
 
   err = file_to_string (key_path, &key_string);
-  /* Use error code "NO_PUBKEY" in case the file is empty.  */
+  /* Note: use error code "NO_PUBKEY" in case the file is empty.  */
   if ((! err) && (! key_string))
     err = gpg_error (GPG_ERR_NO_PUBKEY);
   if (err)
@@ -521,14 +570,19 @@ cmd_test (void)
       goto out;
     }
 
+  /* Retrieve PIN from user.  */
+
   pin = getpass (POLDI_PIN2_QUERY_MSG);
   if (! pin)
     {
+      /* FIXME: correct error handling?  */
       err = gpg_error_from_errno (errno);
       log_error ("Error: failed to retrieve PIN from user: %s\n",
 		 gpg_strerror (err));
       goto out;
     }
+
+  /* Send PIN to card.  */
 
   err = card_pin_provide (slot, 2, pin);
   if (err)
@@ -537,6 +591,8 @@ cmd_test (void)
 		 gpg_strerror (err));
       goto out;
     }
+
+  /* Retrieve challenge signature from card.  */
 
   err = card_sign (slot, challenge, challenge_n, &signature, &signature_n);
   if (err)
@@ -547,8 +603,7 @@ cmd_test (void)
       goto out;
     }
 
-  card_close (slot);
-  slot = -1;
+  /* Verify challenge signature and print result.  */
 
   err = challenge_verify (key_sexp,
 			  challenge, challenge_n, signature, signature_n);
@@ -558,6 +613,8 @@ cmd_test (void)
     printf ("Authentication succeeded\n");
 
  out:
+
+  /* Deallocate resources.  */
 
   if (slot != -1)
     card_close (slot);
@@ -573,6 +630,7 @@ cmd_test (void)
 
 
 
+/* Implementation of `dump' command; dumps information from card.  */
 static gpg_error_t
 cmd_dump (void)
 {
@@ -590,17 +648,35 @@ cmd_dump (void)
   key_s = NULL;
   pin = NULL;
 
+  /* Open and initialize card.  */
+
   err = card_open (NULL, &slot);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to open card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   err = card_init (slot, 0, 0, 0);
   if (err)
-    goto out;
+    {
+      /* FIXME: wording.  */
+      log_error ("Error: failed to initialize card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* Retrieve more card information.  */
 
   err = card_info (slot, &serialno, &version, NULL);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to retreive basic information"
+		 "from card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   if (version <= 0x0100)
     {
@@ -610,19 +686,44 @@ cmd_dump (void)
       printf (POLDI_OLD_CARD_KEY_RETRIVAL_EXPLANATION, version);
 
       pin = getpass (POLDI_PIN3_QUERY_MSG);
-
+      if (! pin)
+	{
+	  /* FIXME: correct error handling?  */
+	  err = gpg_error_from_errno (errno);
+	  log_error ("Error: failed to retrieve PIN from user: %s\n",
+		     gpg_strerror (err));
+	  goto out;
+	}
+	
       err = card_pin_provide (slot, 3, pin);
       if (err)
-	goto out;
+	{
+	  log_error ("Error: failed to send PIN to card: %s\n",
+		     gpg_strerror (err));
+	  goto out;
+	}
     }
+
+  /* Retrieve key from card.  */
 
   err = card_read_key (slot, &key);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to retrieve key from card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* Convert key into a string.  */
 
   err = sexp_to_string (key, &key_s);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to convert key S-Expression "
+		 "into C-String: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   printf ("Slot: %i\n", slot);
   printf ("Serial number: %s\n", serialno);
@@ -643,66 +744,93 @@ cmd_dump (void)
 
 
 
+/* Implementation of `list-users' command; dump information from user
+   database.  */
 static gpg_error_t
 cmd_list_users (void)
 {
   char users_file[] = POLDI_USERS_DB_FILE;
   FILE *users_file_fp;
+  char delimiters[] = "\t\n ";
   gpg_error_t err;
   char *line;
   size_t line_n;
+  size_t line_number;
   char *serialno;
   char *account;
   int ret;
-  char delimiters[] = "\t\n ";
 
   line = NULL;
+
+  /* Open user database file.  */
 
   users_file_fp = fopen (users_file, "r");
   if (! users_file_fp)
     {
       err = gpg_error_from_errno (errno);
+      log_error ("Error: failed to open user database `%s': %s\n",
+		 users_file, gpg_strerror (err));
       goto out;
     }
+
+  line_number = 1;
+  err = 0;
+
+  /* Iterate over file.  */
 
   while (1)
     {
       free (line);
       line = NULL;
 
+      /* Read next line.  */
+
       ret = getline (&line, &line_n, users_file_fp);
       if (ret == -1)
 	{
-	  err = gpg_error_from_errno (errno);
+	  if (ferror (users_file_fp))
+	    {
+	      err = gpg_error_from_errno (errno);
+	      log_error ("Error: getline() failed: %s\n",
+			 gpg_strerror (err));
+	    }
+	  /* else must be EOF.  */
+
 	  break;
 	}
+
+      /* Parse line.  */
 
       serialno = strtok (line, delimiters);
       if (! serialno)
-	{
-	  err = gpg_error (GPG_ERR_INTERNAL); /* FIXME?  */
-	  break;
-	}
+	log_error ("Error: user database seems to be corrupt; "
+		   "serial number missing in line: %i\n",
+		   line_number);
       account = strtok (NULL, delimiters);
       if (! account)
-	{
-	  err = gpg_error (GPG_ERR_INTERNAL); /* FIXME?  */
-	  break;
-	}
-      
+	log_error ("Error: user database seems to be corrupt; "
+		   "account missing in line: %i\n",
+		   line_number);
 
-      printf ("Account: %s; Serial No: %s\n", account, serialno);
+      if (account && serialno)
+	printf ("Account: %s; Serial No: %s\n", account, serialno);
+
+      line_number++;
     }
 
  out:
 
   free (line);
   if (users_file_fp)
-    fclose (users_file_fp);	/* FIXME?  */
+    fclose (users_file_fp);
 
   return err;
 }
 
+
+
+/* Implementation of `add-user' command; add a user for Poldi
+   authentication.  */
 static gpg_error_t
 cmd_add_user (void)
 {
@@ -710,75 +838,195 @@ cmd_add_user (void)
   gpg_error_t err;
   char *serialno;
   char *account;
+  int skip_userdb;
 
   serialno = poldi_ctrl_opt.serialno;
   account = poldi_ctrl_opt.account;
 
   if (! (serialno && account))
     {
-      fprintf (stderr, "Error: Serial number and accounts needs to be given.\n");
+      log_error ("Error: serial number and accounts needs to be given\n");
       exit (EXIT_FAILURE);
     }
+
+  /* Lookup user in password database.  */
 
   pwent = getpwnam (account);
   if (! pwent)
     {
-      fprintf (stderr, "Error: Unknown user `%s'.\n", account);
+      log_error ("Error: unknown user `%s'\n", account);
       exit (EXIT_FAILURE);
     }
 
-  err = usersdb_lookup_by_serialno (serialno, NULL);
+  /* Make sure that given serial number is not already associated with
+     a different account and that the given account is not already
+     associated with a different serial number.  */
+
+  skip_userdb = 0;
+
+  err = usersdb_lookup_by_serialno (serialno, &account);
   if (! err)
     {
-      fprintf (stderr, "Error: Serial number does already exist in database.\n");
-      exit (EXIT_FAILURE);
+      /* Entry found; serial number IS already associated with an
+	 account.  */
+
+      if (strcmp (account, pwent->pw_name))
+	{
+	  /* It is associated with a DIFFERENT account.  */
+	  log_error ("Error: serial number `%s' "
+		     "already associated with user `%s'\n",
+		     serialno, account);
+	  exit (EXIT_FAILURE);
+	}
+      else
+	{
+	  /* It is already associated with the SPECIFIED account.  */
+	  log_info ("Note: serial number `%s' is already associated with "
+		    "user `%s'\n",
+		    serialno, account);
+	  skip_userdb = 1;
+	}
+    }
+  else if (gpg_err_code (err) == GPG_ERR_NOT_FOUND)
+    /* This is not an error in this context.  */
+    err = 0;
+  else
+    {
+      /* Unexpected error occured.  */
+      log_error ("Error: unexpected failure during user database lookup: %s\n",
+		 gpg_strerror (err));
+      goto out;
     }
 
-  err = usersdb_add_entry (account, serialno);
-  if (err)
-    goto out;
+  err = usersdb_lookup_by_username (pwent->pw_name, &serialno);
+  if (! err)
+    {
+      /* Entry found; username is already associated with a serial
+	 number.  */
 
-  err = key_file_create (account, serialno);
+      if (strcmp (serialno, poldi_ctrl_opt.serialno))
+	{
+	  /* It is associated with a DIFFERENT serial number.  */
+	  log_error ("Error: user `%s' is already "
+		     "associated with serial number `%s'\n",
+		     pwent->pw_name, serialno);
+	  exit (EXIT_FAILURE);
+	}
+      else
+	{
+	  /* It is already associated with the SPECIFIED account.  */
+	  log_info ("Note: user `%s' is aleady associated with "
+		    " serial number `%s'\n",
+		    pwent->pw_name, serialno);
+	  skip_userdb = 1;
+	}
+    }
+  else if (gpg_err_code (err) == GPG_ERR_NOT_FOUND)
+    /* This is not an error in this context.  */
+    err = 0;
+  else
+    {
+      /* Unexpected error occured.  */
+      log_error ("Error: unexpected failure during user database lookup: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  if (skip_userdb)
+    log_info ("Note: not modifying user database\n");
+  else
+    {
+      /* No such entry found in user database, add entry.  */
+  
+      err = usersdb_add_entry (account, serialno);
+      if (err)
+	{
+	  log_error ("Error: failed to add entry to user database: %s\n",
+		     gpg_strerror (err));
+	  goto out;
+	}
+    }
+
+  /* Create empty key file.  */
+
+  err = key_file_create (pwent, serialno);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to create key file for "
+		 "serial number: %s\n",
+		 serialno);
+      goto out;
+    }
 
  out:
 
   return err;
 }
 
+
+
+/* Implementation of `remove-user' command; removes a user.  */
 static gpg_error_t
 cmd_remove_user (void)
 {
+  unsigned int nentries_removed;
   gpg_error_t err;
   char *serialno;
 
+  /* Make sure that required information are given (serialno OR
+     account).  */
+
+  if (! (poldi_ctrl_opt.serialno || poldi_ctrl_opt.account))
+    {
+      fprintf (stderr, "Error: account or serial number needs to be given\n");
+      exit (EXIT_FAILURE);
+    }
+
+  /* Try to remove entry from user database.  */
+
+  err = usersdb_remove_entry (poldi_ctrl_opt.account, poldi_ctrl_opt.serialno,
+			      &nentries_removed);
+  if (err)
+    {
+      log_error ("Error: failed to remove entry for user `%s' "
+		 "or serial number `%s' from user database: %s\n",
+		 poldi_ctrl_opt.account, poldi_ctrl_opt.serialno,
+		 gpg_strerror (err));
+      goto out;
+    }
+  else if (! nentries_removed)
+    log_info ("Note: no entries removed from user database\n");
+
+  /* FIXME: skip step of key file removal in case key file does not
+     exist (for whatever reasons).  */
+
+  /* Make sure to have the serial number.  */
+
   if (poldi_ctrl_opt.serialno)
     serialno = poldi_ctrl_opt.serialno;
-  else if (poldi_ctrl_opt.account)
+  else
     {
       serialno = NULL;
       err = usersdb_lookup_by_username (poldi_ctrl_opt.account, &serialno);
       if (err)
 	{
-	  log_error ("Error: failed to lookup username `%s': %s\n",
+	  log_error ("Error: failed to lookup serial number "
+		     "for username `%s': %s; thus cannot remove key file\n",
 		     poldi_ctrl_opt.account, gpg_strerror (err));
 	  goto out;
 	}
     }
-  else
-    {
-      fprintf (stderr, "Error: Account or Serial number needs to be given.\n");
-      exit (EXIT_FAILURE);
-    }
 
-  err = usersdb_remove_entry (poldi_ctrl_opt.account, serialno);
-  if (err)
-    goto out;
+  /* Remove key file.  */
 
   err = key_file_remove (serialno);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to remove key file for "
+		 "serial number `%s': %s\n",
+		 serialno, gpg_strerror (err));
+      goto out;
+    }
 
  out:
 
@@ -788,7 +1036,10 @@ cmd_remove_user (void)
   return err;
 }
 
+
 
+/* Implementation of `set-key' command; install key of currently
+   inserted card for user requesting this action.  */
 
 static gpg_error_t
 cmd_set_key (void)
@@ -813,51 +1064,107 @@ cmd_set_key (void)
   key_string = NULL;
   version = 0;
 
+  /* Open and initialize card.  */
+
   err = card_open (NULL, &slot);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to open card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   err = card_init (slot, 0, 0, 0);
   if (err)
-    goto out;
+    {
+      /* FIXME: wording.  */
+      log_error ("Error: failed to initialize card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* Retrieve more information from card.  */
 
   err = card_info (slot, &serialno, &version, NULL);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to retreive basic information"
+		 "from card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* Construct key path.  */
 
   err = key_filename_construct (&path, serialno);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to construct key filename: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   if (version <= 0x0100)
     {
-      /* These cards contain a bug, which makes it necessary to pass
+      /* Special handling necessary.
+	 .
+	 These cards contain a bug, which makes it necessary to pass
 	 CHV3 to the card before reading out the public key.  */
 
-      printf (POLDI_OLD_CARD_KEY_RETRIVAL_EXPLANATION, version);
+      log_info (POLDI_OLD_CARD_KEY_RETRIVAL_EXPLANATION, version);
+
+      /* Retrieve PIN from user.  */
 
       pin = getpass (POLDI_PIN3_QUERY_MSG);
+      if (! pin)
+	{
+	  /* FIXME: correct error handling?  */
+	  err = gpg_error_from_errno (errno);
+	  log_error ("Error: failed to retrieve PIN from user: %s\n",
+		     gpg_strerror (err));
+	  goto out;
+	}
+
+      /* Send PIN to card.  */
 
       err = card_pin_provide (slot, 3, pin);
       if (err)
-	goto out;
+	{
+	  log_error ("Error: failed to send PIN to card: %s\n",
+		     gpg_strerror (err));
+	  goto out;
+	}
     }
+
+  /* Retrieve key from card.  */
 
   err = card_read_key (slot, &key_sexp);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to retrieve key from card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
-  card_close (slot);
-  slot = -1;
+  /* Convert key into a string.  */
 
   err = sexp_to_string (key_sexp, &key_string);
   if (err)
-    goto out;
-  
+    {
+      log_error ("Error: failed to convert key S-Expression "
+		 "into C-String: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* Write key to key file.  */
+
   path_fp = fopen (path, "w");
   if (! path_fp)
     {
       err = gpg_error_from_errno (errno);
+      log_error ("Error: failed to open key file `%s': %s\n",
+		 path, gpg_strerror (err));
       goto out;
     }
 
@@ -868,9 +1175,12 @@ cmd_set_key (void)
   if (ret)
     {
       err = gpg_error_from_errno (errno);
+      log_error ("Error: failed to successfully close key file `%s' "
+		 "buffered data might have not been flushed correctly: %s\n",
+		 path, gpg_strerror (err));
       goto out;
     }
-  
+
  out:
 
   free (pin);
@@ -886,39 +1196,91 @@ cmd_set_key (void)
   return err;
 }
 
+
+
+/* Implementation of `show-key' command; sends to content of key file
+   to standard output.  */
 static gpg_error_t
 cmd_show_key (void)
 {
   gpg_error_t err;
   char *path;
   char *key_string;
-  uid_t uid;
-  struct passwd *pwent;
   char *serialno;
+  const char *username;
+  gcry_sexp_t key_sexp;
 
   path = NULL;
   serialno = NULL;
+  key_sexp = NULL;
   key_string = NULL;
 
-  uid = getuid ();
-  pwent = getpwuid (uid);
-  if (! pwent)
+  /* Retrieve username of caller.  */
+
+  err = lookup_own_username (&username);
+  if (err)
     {
-      err = gpg_error (GPG_ERR_INTERNAL);
+      log_error ("Error: failed to lookup own username: %s\n",
+		 gpg_strerror (err));
       goto out;
     }
 
-  err = usersdb_lookup_by_username (pwent->pw_name, &serialno);
+  /* Lookup serial number for username.  */
+
+  err = usersdb_lookup_by_username (username, &serialno);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to lookup serial number "
+		 "for user `%s': %s\n",
+		 username, gpg_strerror (err));
+      goto out;
+    }
+
+  /* Construct key path.  */
 
   err = key_filename_construct (&path, serialno);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to construct key file path "
+		 "for serial number `%s': %s\n",
+		 serialno, gpg_strerror (err));
+      goto out;
+    }
+
+  /* Read key file content into string.  */
 
   err = file_to_string (path, &key_string);
   if (err)
-    goto out;
+    {
+      log_error ("Error: key could not be read from key file `%s': %s\n",
+		 path, gpg_strerror (err));
+      goto out;
+    }
+
+  /* Convert into S-Expression.  */
+
+  err = string_to_sexp (&key_sexp, key_string);
+  if (err)
+    {
+      log_error ("Error: failed to convert key into S-Expression: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* And back into C-string.  */
+
+  free (key_string);
+  key_string = NULL;
+  err = sexp_to_string (key_sexp, &key_string);
+  if (err)
+    {
+      log_error ("Error: failed to convert key S-Expression "
+		 "into C-String: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* And print key string.  */
 
   if (key_string)
     printf ("%s", key_string);
@@ -928,36 +1290,65 @@ cmd_show_key (void)
   free (path);
   free (key_string);
   free (serialno);
+  gcry_sexp_release (key_sexp);
 
   return err;
 }
 
+
 
+/* Main.  */
 int
 main (int argc, char **argv)
 {
-  int parsing_stage = 0;
+  unsigned int parsing_stage;
+  unsigned int ncommands;
   gpg_error_t err;
 
+  /* Initialize jnlib subsystems.  */
+
   set_strusage (my_strusage);
-  log_set_prefix ("poldi-ctrl", 1); /* ? */
+  log_set_prefix ("poldi-ctrl", 1);
+
+  /* Parse argument vector, looking for a file config-file
+     paramater.  */
+
+  parsing_stage = 0;
 
   err = options_parse_argv (poldi_ctrl_options_cb, &parsing_stage,
 			    arg_opts, argc, argv);
   if (err)
-    goto out;
+    {
+      log_error ("Error: parsing argument vector (stage: %u) failed: %s\n",
+		 parsing_stage, gpg_strerror (err));
+      goto out;
+    }
+
+  /* Parse config file.  */
 
   parsing_stage++;
   err = options_parse_conf (poldi_ctrl_options_cb, &parsing_stage,
 			    arg_opts, poldi_ctrl_opt.config_file);
   if (err)
-    goto out;
+    {
+      log_error ("Error: parsing config file failed: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
+  /* And finally the argument vector, overwriting values from config
+     file.  */
   parsing_stage++;
   err = options_parse_argv (poldi_ctrl_options_cb, &parsing_stage,
 			    arg_opts, argc, argv);
   if (err)
-    goto out;
+    {
+      log_error ("Error: parsing argument vector (stage: %u) failed: %s\n",
+		 parsing_stage, gpg_strerror (err));
+      goto out;
+    }
+
+  /* Initialize libscd.  */
 
   scd_init (poldi_ctrl_opt.debug,
 	    poldi_ctrl_opt.debug_sc,
@@ -969,16 +1360,22 @@ main (int argc, char **argv)
 	    poldi_ctrl_opt.disable_ccid,
 	    poldi_ctrl_opt.debug_ccid_driver);
 
-  if ((0
-       + (poldi_ctrl_opt.cmd_test)
-       + (poldi_ctrl_opt.cmd_set_key)
-       + (poldi_ctrl_opt.cmd_show_key)
-       + (poldi_ctrl_opt.cmd_add_user)
-       + (poldi_ctrl_opt.cmd_remove_user)
-       + (poldi_ctrl_opt.cmd_list_users)
-       + (poldi_ctrl_opt.cmd_dump)) != 1)
+  ncommands = (0
+	       + poldi_ctrl_opt.cmd_test
+	       + poldi_ctrl_opt.cmd_set_key
+	       + poldi_ctrl_opt.cmd_show_key
+	       + poldi_ctrl_opt.cmd_add_user
+	       + poldi_ctrl_opt.cmd_remove_user
+	       + poldi_ctrl_opt.cmd_list_users
+	       + poldi_ctrl_opt.cmd_dump);
+  if (ncommands > 1)
     {
-      fprintf (stderr, "Error: no command given (try --help).\n");
+      log_error ("Error: more than one command specified (try --help)\n");
+      exit (EXIT_FAILURE);
+    }
+  else if (! ncommands)
+    {
+      log_error ("Error: no command specified (try --help)\n");
       exit (EXIT_FAILURE);
     }
 
@@ -999,8 +1396,7 @@ main (int argc, char **argv)
 
  out:
   
-  if (err)
-    exit (EXIT_FAILURE);
-
-  return 0;
+  return err ? EXIT_FAILURE : EXIT_SUCCESS;
 }
+
+/* END. */

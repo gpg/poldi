@@ -1,8 +1,34 @@
+2005-10-26  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c (poldi_ctrl_options_cb): Use gpg_error_t instead of
+	gpg_err_code_t.
+	(cmd_test): Do not call card_close() before "out" label, only
+	after "out" label.
+	(cmd_add_user): Recognize situations of adding duplicates much
+	better; new local variable: skip_userdb.  Added plenty of log
+	messages and comments.
+	(cmd_set_key): Do not call card_close() before "out" label, only
+	after "out" label.
+	(cmd_show_key): New local variable: KEY_SEXP; convert key from
+	string into s-expression representation and back, so that the user
+	sees the key in a standard format.
+	(cmd_remove_user): New local variable; NENTRIES_REMOVED; adjust to
+	new usersdb_remove_entry() interface.
+	(main): New local variable: NCOMMANDS; differentiate case of no
+	command being given from that of too many commands being given; be
+	more verbose.
+	(arg_opts): Include special codes in order to seperate commands
+	from options.
+
 2005-10-23  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi-ctrl.c (cmd_remove_user): Be more verbose (through jnlib
 	logging).
 	Removed dump-shadowed-key command.
+	(key_file_create): Replaced parameter ACCOUNT with PWENT.
+	(cmd_add_user): Pass PWENT to key_file_create instead of ACCOUNT.
+	(cmd_list_users): New local variable LINE_NUMBERS, use it for
+	error reporting, do not bail out on corrupt lines.
 
 2005-10-16  Moritz Schulte  <moritz@g10code.com>
 
