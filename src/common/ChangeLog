@@ -2,6 +2,10 @@
 
 	* support.c (usersdb_remove_entry): Use assert to make verify to
 	enforce calling convention.
+	(usersdb_remove_entry): New argument: NENTRIES; new local variable
+	NENTRIES_REMOVED; count number of removed entries in
+	NENTRIES_REMOVED, store number in NENTRIES on success.
+	* support.h (usersdb_remove_entry): Adjust declaration.
 
 2005-10-23  Moritz Schulte  <moritz@g10code.com>
 

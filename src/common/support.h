@@ -29,7 +29,8 @@ gpg_error_t challenge_verify (gcry_sexp_t key,
 			      unsigned char *respone, size_t response_n);
 gpg_error_t usersdb_lookup_by_serialno (const char *serialno, char **username);
 gpg_error_t usersdb_lookup_by_username (const char *username, char **serialno);
-gpg_error_t usersdb_remove_entry (const char *username, const char *serialno);
+gpg_error_t usersdb_remove_entry (const char *username, const char *serialno,
+				  unsigned int *nentries);
 gpg_error_t usersdb_add_entry (const char *username, const char *serialno);
 gpg_error_t sexp_to_string (gcry_sexp_t sexp, char **sexp_string);
 gpg_error_t file_to_string (const char *filename, char **string);

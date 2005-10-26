@@ -269,10 +269,12 @@ usersdb_add_entry (const char *username, const char *serialno)
 }
 
 gpg_error_t
-usersdb_remove_entry (const char *username, const char *serialno)
+usersdb_remove_entry (const char *username, const char *serialno,
+		      unsigned int *nentries)
 {
   char users_file_old[] = POLDI_USERS_DB_FILE;
   char users_file_new[] = POLDI_USERS_DB_FILE ".new";
+  unsigned int nentries_removed;
   char delimiters[] = "\t\n ";
   FILE *users_file_old_fp;
   FILE *users_file_new_fp;
@@ -303,7 +305,9 @@ usersdb_remove_entry (const char *username, const char *serialno)
       goto out;
     }
 
+  nentries_removed = 0;
   err = 0;
+
   while (1)
     {
       ret = getline (&line, &line_n, users_file_old_fp);
@@ -331,6 +335,8 @@ usersdb_remove_entry (const char *username, const char *serialno)
       if ((username && strcmp (username, line_username))
 	  || (serialno && strcmp (serialno, line_serialno)))
 	fprintf (users_file_new_fp, "%s\t%s\n", line_serialno, line_username);
+      else
+	nentries_removed++;
 
       free (line);
       line = NULL;
@@ -351,7 +357,12 @@ usersdb_remove_entry (const char *username, const char *serialno)
 
   ret = rename (users_file_new, users_file_old);
   if (ret == -1)
-    err = gpg_error_from_errno (errno);
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  *nentries = nentries_removed;
 
  out:
 
