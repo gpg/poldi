@@ -16,3 +16,5 @@ Changes since version 0.2:
 
 * Dropped ugly `install-pam-module' mechanism; now the PAM module gets
   installed automatically during `make install'.
+
+* Improved error reporting.
