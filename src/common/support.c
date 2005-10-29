@@ -39,7 +39,11 @@
 #include <jnlib/xmalloc.h>
 #include <jnlib/stringhelp.h>
 
+
+
 #define CHALLENGE_MD_ALGORITHM GCRY_MD_SHA1
+
+
 
 gpg_error_t
 challenge_generate (unsigned char **challenge, size_t *challenge_n)
@@ -76,7 +80,7 @@ challenge_verify_sexp (gcry_sexp_t sexp_key,
     {
       if (gcry_mpi_scan (&mpi_signature, GCRYMPI_FMT_USG, response, response_n,
 			 NULL))
-	err = GPG_ERR_INTERNAL;	/* FIXME.  */
+	err = gpg_error (GPG_ERR_BAD_MPI);
     }
 
   /* Create according S-Expressions.  */
@@ -107,7 +111,7 @@ challenge_verify (gcry_sexp_t key,
 		  unsigned char *challenge, size_t challenge_n,
 		  unsigned char *response, size_t response_n)
 {
-  gpg_error_t err = GPG_ERR_NO_ERROR;
+  gpg_error_t err;
 
   err = challenge_verify_sexp (key,
 			       challenge, challenge_n, response, response_n);
@@ -157,43 +161,38 @@ usersdb_translate (const char *serialno, const char *username, char **found)
 	}
 
       line_serialno = strtok (line, delimiters);
-      if (! line_serialno)
-	{
-	  err = gpg_error (GPG_ERR_INTERNAL); /* FIXME?  */
-	  break;
-	}
-
       line_username = strtok (NULL, delimiters);
-      if (! line_username)
-	{
-	  err = gpg_error (GPG_ERR_INTERNAL); /* FIXME?  */
-	  break;
-	}
 
-      if (serialno)
+      if (line_serialno && line_username)
 	{
-	  if (! strcmp (serialno, line_serialno))
+	  /* Only process this line in case it is `valid' (contains of
+	     two tokens).  */
+
+	  if (serialno)
 	    {
-	      if (found)
+	      if (! strcmp (serialno, line_serialno))
 		{
-		  token_found = strdup (line_username);
-		  if (! token_found)
-		    err = gpg_error_from_errno (errno);
+		  if (found)
+		    {
+		      token_found = strdup (line_username);
+		      if (! token_found)
+			err = gpg_error_from_errno (errno);
+		    }
+		  break;
 		}
-	      break;
 	    }
-	}
-      else
-	{
-	  if (! strcmp (username, line_username))
+	  else
 	    {
-	      if (found)
+	      if (! strcmp (username, line_username))
 		{
-		  token_found = strdup (line_serialno);
-		  if (! token_found)
-		    err = gpg_error_from_errno (errno);
+		  if (found)
+		    {
+		      token_found = strdup (line_serialno);
+		      if (! token_found)
+			err = gpg_error_from_errno (errno);
+		    }
+		  break;
 		}
-	      break;
 	    }
 	}
 
@@ -319,24 +318,26 @@ usersdb_remove_entry (const char *username, const char *serialno,
 	}
 
       line_serialno = strtok (line, delimiters);
-      if (! line_serialno)
-	{
-	  err = gpg_error (GPG_ERR_INTERNAL); /* FIXME?  */
-	  break;
-	}
-
       line_username = strtok (NULL, delimiters);
-      if (! line_username)
-	{
-	  err = gpg_error (GPG_ERR_INTERNAL); /* FIXME?  */
-	  break;
-	}
 
-      if ((username && strcmp (username, line_username))
-	  || (serialno && strcmp (serialno, line_serialno)))
-	fprintf (users_file_new_fp, "%s\t%s\n", line_serialno, line_username);
+      if (line_serialno && line_username)
+	{
+	  /* Complete line (consisting of two tokens).  */
+
+	  if ((username && strcmp (username, line_username))
+	      || (serialno && strcmp (serialno, line_serialno)))
+	    fprintf (users_file_new_fp, "%s\t%s\n",
+		     line_serialno, line_username);
+	  else
+	    nentries_removed++;
+	}
       else
-	nentries_removed++;
+	{
+	  /* Incomplete line (less than two tokens), pass through.  */
+
+	  fprintf (users_file_new_fp, "%s\n",
+		   line_serialno ? line_serialno : "");
+	}
 
       free (line);
       line = NULL;
@@ -375,24 +376,32 @@ usersdb_remove_entry (const char *username, const char *serialno,
   return err;
 }
 
+/* This function converts the given S-Expression SEXP into it's
+   `ADVANCED' string representation, using newly-allocated memory,
+   storing the resulting NUL-terminated string in *SEXP_STRING.
+   Returns a proper error code.  */
 gpg_error_t
 sexp_to_string (gcry_sexp_t sexp, char **sexp_string)
 {
+  const int fmt = GCRYSEXP_FMT_ADVANCED;
   gpg_error_t err;
-  char *buffer;
   size_t buffer_n;
-  int fmt;
+  char *buffer;
+
+  assert (sexp);
 
   buffer = NULL;
-  fmt = GCRYSEXP_FMT_ADVANCED;
 
+  /* Figure out amount of memory required for
+     string-representation.  */
   buffer_n = gcry_sexp_sprint (sexp, fmt, NULL, 0);
   if (! buffer_n)
     {
-      err = gpg_error (GPG_ERR_INTERNAL); /* ? */
+      err = gpg_error (GPG_ERR_INV_SEXP); /* ? */
       goto out;
     }
 
+  /* Allocate memory.  */
   buffer = malloc (buffer_n);
   if (! buffer)
     {
@@ -400,10 +409,11 @@ sexp_to_string (gcry_sexp_t sexp, char **sexp_string)
       goto out;
     }
 
+  /* And write string-representation into buffer.  */
   buffer_n = gcry_sexp_sprint (sexp, fmt, buffer, buffer_n);
   if (! buffer_n)
     {
-      err = gpg_error (GPG_ERR_INTERNAL);
+      err = gpg_error (GPG_ERR_INV_SEXP); /* ? */
       goto out;
     }
 
@@ -418,6 +428,9 @@ sexp_to_string (gcry_sexp_t sexp, char **sexp_string)
   return err;
 }
 
+/* This functions converts the given string-representation of an
+   S-Expression into a new S-Expression object, which is to be stored
+   in *SEXP.  Returns proper error code.  */
 gpg_error_t
 string_to_sexp (gcry_sexp_t *sexp, char *string)
 {
@@ -428,18 +441,22 @@ string_to_sexp (gcry_sexp_t *sexp, char *string)
   return err;
 }
 
+/* This function retrieves the content from the file specified by
+   FILENAMED and writes it into a newly allocated chunk of memory,
+   which is then stored in *STRING.  Returns proper error code.  */
 gpg_error_t
 file_to_string (const char *filename, char **string)
 {
-  gpg_error_t err;
   struct stat statbuf;
   char *string_new;
+  gpg_error_t err;
   FILE *fp;
   int ret;
 
-  fp = NULL;
   string_new = NULL;
+  fp = NULL;
 
+  /* Retrieve file size.  */
   ret = stat (filename, &statbuf);
   if (ret)
     {
@@ -468,8 +485,6 @@ file_to_string (const char *filename, char **string)
 	  goto out;
 	}
       string_new[statbuf.st_size] = 0;
-      fclose (fp);		/* FIXME?  */
-      fp = NULL;
     }
 
   err = 0;
@@ -488,6 +503,10 @@ file_to_string (const char *filename, char **string)
 
 
 
+/* This functions construct a new C-string containing the absolute
+   path for the file, which is to expected to contain the public key
+   for the card identified by SERIALNO.  Returns proper error
+   code.  */
 gpg_error_t
 key_filename_construct (char **filename, const char *serialno)
 {
@@ -499,6 +518,12 @@ key_filename_construct (char **filename, const char *serialno)
   return 0;
 }
 
+/* This function retrieves the username of the user associated with
+   the current process and stores it *USERNAME.
+
+   Note: the username is contained in statically (!) allocated memory,
+   which may be overwritten by calls to this functions or
+   getpwuid().  */
 gpg_error_t
 lookup_own_username (const char **username)
 {

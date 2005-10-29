@@ -1,3 +1,7 @@
+2005-10-29  Moritz Schulte  <moritz@g10code.com>
+
+	* pam_poldi.c: More verbose logging.
+
 2005-10-23  Moritz Schulte  <moritz@g10code.com>
 
 	* pam_poldi.c: Remove Syslog logging macros, use jnlib logging

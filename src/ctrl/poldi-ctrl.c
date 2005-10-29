@@ -982,6 +982,23 @@ cmd_remove_user (void)
       exit (EXIT_FAILURE);
     }
 
+  /* Make sure to have the serial number.  */
+
+  if (poldi_ctrl_opt.serialno)
+    serialno = poldi_ctrl_opt.serialno;
+  else
+    {
+      serialno = NULL;
+      err = usersdb_lookup_by_username (poldi_ctrl_opt.account, &serialno);
+      if (err)
+	{
+	  log_error ("Warning: failed to lookup serial number "
+		     "for username `%s': %s; thus cannot remove key file\n",
+		     poldi_ctrl_opt.account, gpg_strerror (err));
+	  err = 0;
+	}
+    }
+
   /* Try to remove entry from user database.  */
 
   err = usersdb_remove_entry (poldi_ctrl_opt.account, poldi_ctrl_opt.serialno,
@@ -1000,32 +1017,18 @@ cmd_remove_user (void)
   /* FIXME: skip step of key file removal in case key file does not
      exist (for whatever reasons).  */
 
-  /* Make sure to have the serial number.  */
-
-  if (poldi_ctrl_opt.serialno)
-    serialno = poldi_ctrl_opt.serialno;
-  else
-    {
-      serialno = NULL;
-      err = usersdb_lookup_by_username (poldi_ctrl_opt.account, &serialno);
-      if (err)
-	{
-	  log_error ("Error: failed to lookup serial number "
-		     "for username `%s': %s; thus cannot remove key file\n",
-		     poldi_ctrl_opt.account, gpg_strerror (err));
-	  goto out;
-	}
-    }
-
   /* Remove key file.  */
 
-  err = key_file_remove (serialno);
-  if (err)
+  if (serialno)
     {
-      log_error ("Error: failed to remove key file for "
-		 "serial number `%s': %s\n",
-		 serialno, gpg_strerror (err));
-      goto out;
+      err = key_file_remove (serialno);
+      if (err)
+	{
+	  log_error ("Error: failed to remove key file for "
+		     "serial number `%s': %s\n",
+		     serialno, gpg_strerror (err));
+	  goto out;
+	}
     }
 
  out:

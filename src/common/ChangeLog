@@ -1,3 +1,9 @@
+2005-10-29  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (sexp_to_string): Initialize FMT directly, declare
+	const.
+	Added even more comments.
+
 2005-10-26  Moritz Schulte  <moritz@g10code.com>
 
 	* support.c (usersdb_remove_entry): Use assert to make verify to

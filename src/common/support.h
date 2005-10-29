@@ -32,10 +32,35 @@ gpg_error_t usersdb_lookup_by_username (const char *username, char **serialno);
 gpg_error_t usersdb_remove_entry (const char *username, const char *serialno,
 				  unsigned int *nentries);
 gpg_error_t usersdb_add_entry (const char *username, const char *serialno);
+
+/* This function converts the given S-Expression SEXP into it's
+   `ADVANCED' string representation, using newly-allocated memory,
+   storing the resulting NUL-terminated string in *SEXP_STRING.
+   Returns a proper error code.  */
 gpg_error_t sexp_to_string (gcry_sexp_t sexp, char **sexp_string);
+
+/* This function retrieves the content from the file specified by
+   FILENAMED and writes it into a newly allocated chunk of memory,
+   which is then stored in *STRING.  Returns proper error code.  */
 gpg_error_t file_to_string (const char *filename, char **string);
+
+/* This functions converts the given string-representation of an
+   S-Expression into a new S-Expression object, which is to be stored
+   in *SEXP.  Returns proper error code.  */
 gpg_error_t string_to_sexp (gcry_sexp_t *sexp, char *string);
+
+/* This functions construct a new C-string containing the absolute
+   path for the file, which is to expected to contain the public key
+   for the card identified by SERIALNO.  Returns proper error
+   code.  */
 gpg_error_t key_filename_construct (char **filename, const char *serialno);
+
+/* This function retrieves the username of the user associated with
+   the current process and stores it *USERNAME.
+
+   Note: the username is contained in statically (!) allocated memory,
+   which may be overwritten by calls to this functions or
+   getpwuid().  */
 gpg_error_t lookup_own_username (const char **username);
 
 #endif

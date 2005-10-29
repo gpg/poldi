@@ -306,21 +306,39 @@ lookup_key (const char *username, gcry_sexp_t *key)
 
   err = usersdb_lookup_by_username (username, &serialno);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to lookup serial number for user `%s': %s\n",
+		 username, gpg_strerror (err));
+      goto out;
+    }
 
   err = key_filename_construct (&key_path, serialno);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to construct key file path "
+		 "for serial number `%s': %s\n",
+		 serialno, gpg_strerror (err));
+      goto out;
+    }
 
   err = file_to_string (key_path, &key_string);
   if ((! err) && (! key_string))
     err = gpg_error (GPG_ERR_NO_PUBKEY);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to retrieve key from key file `%s': %s\n",
+		 key_path, gpg_strerror (err));
+      goto out;
+    }
 
   err = string_to_sexp (&key_sexp, key_string);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to convert key "
+		 "from `%s' into S-Expression: %s\n",
+		 key_path, gpg_strerror (err));
+      goto out;
+    }
 
   *key = key_sexp;
 
@@ -354,12 +372,19 @@ wait_for_card (int slot, int require_card_switch,
     {
       if (gpg_err_code (err) == GPG_ERR_CARD_NOT_PRESENT)
 	tell_user (conv, "Timeout inserting card");
+      else
+	log_error ("Error: failed to initialize card: %s\n",
+		   gpg_strerror (err));
       goto out;
     }
 
   err = card_info (slot, &serialno_new, NULL, NULL);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to retrieve card information: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   *serialno = serialno_new;
 
@@ -391,7 +416,7 @@ parse_argv (int argc, const char **argv)
 	pam_poldi_opt.wait_timeout = atoi (argv[i] + 8);
       else
 	{
-	  log_error ("Unknown PAM argument: %s", argv[i]);
+	  log_error ("Error: Unknown PAM argument: %s", argv[i]);
 	  err = gpg_error (GPG_ERR_UNKNOWN_NAME);
 	}
 
@@ -424,22 +449,39 @@ do_auth (int slot, const struct pam_conv *conv, gcry_sexp_t key)
   /* Query user for PIN.  */
   err = ask_user (conv, POLDI_PIN2_QUERY_MSG, &pin);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to retrieve PIN from user: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   /* Send PIN to card.  */
   err = card_pin_provide (slot, 2, pin);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to send PIN to card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   /* Generate challenge.  */
   err = challenge_generate (&challenge, &challenge_n);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to generate challenge: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   /* Let card sign the challenge.  */
   err = card_sign (slot, challenge, challenge_n, &response, &response_n);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to retrieve challenge signature "
+		 "from card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   /* Verify response.  */
   err = challenge_verify (key, challenge, challenge_n, response, response_n);
@@ -457,7 +499,8 @@ do_auth (int slot, const struct pam_conv *conv, gcry_sexp_t key)
 
 
 
-/* Uaaahahahh, ich will dir einloggen!  */
+/* Uaaahahahh, ich will dir einloggen!  PAM authentication entry
+   point.  */
 PAM_EXTERN int
 pam_sm_authenticate (pam_handle_t *pam_handle,
 		     int flags, int argc, const char **argv)
@@ -482,12 +525,26 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   err = options_parse_conf  (pam_poldi_options_cb, NULL,
 			     arg_opts, POLDI_CONF_FILE);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to parse configuration file: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   /* Parse argument vector provided by PAM.  */
   err = parse_argv (argc, argv);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to parse PAM argument vector: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* Initialize logging: in case `logfile' has been set in the
+     configuration file, initialize jnlib-logging the traditional
+     file, loggin to the file (or socket special file) specified in
+     the configuration file; in case `logfile' has NOT been set in the
+     configuration file, log through Syslog.  */
 
   if (pam_poldi_opt.logfile)
     {
@@ -503,6 +560,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   else
     log_set_syslog ("poldi", LOG_AUTH);
 
+  /* Initialize libscd.  */
   scd_init (pam_poldi_opt.debug,
 	    pam_poldi_opt.debug_sc,
 	    pam_poldi_opt.verbose,
@@ -512,6 +570,10 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 	    pam_poldi_opt.disable_opensc,
 	    pam_poldi_opt.disable_ccid,
 	    pam_poldi_opt.debug_ccid_driver);
+
+  /*
+   * Retrieve information from PAM.
+   */
 
   /* Ask PAM for username.  */
   ret = pam_get_item (pam_handle, PAM_USER, &username_void);
@@ -537,6 +599,10 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   if (err)
     goto out;
 
+  /*
+   * Process authentication request.
+   */
+
   if (username)
     {
       /* We got a username from PAM, thus we are waiting for a
@@ -561,14 +627,28 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 	{
 	  /* Either the account could not be found or it is not the
 	     expected one -> fail.  */
-	  tell_user (conv, "Serial no %s is not associated with %s",
-		     serialno, username);
+
 	  if (! err)
-	    err = gpg_error (GPG_ERR_INV_NAME);
+	    {
+	      tell_user (conv, "Serial no %s is not associated with %s",
+			 serialno, username);
+	      err = gpg_error (GPG_ERR_INV_NAME);
+	    }
+	  else
+	    log_error ("Error: failed to lookup username for "
+		       "serial number `%s': %s\n",
+		       serialno, gpg_strerror (err));
 	}
       else
-	/* Inform user about inserted card.  */
-	err = tell_user (conv, "Serial no: %s", serialno);
+	{
+	  /* Inform user about inserted card.  */
+	
+	  err = tell_user (conv, "Serial no: %s", serialno);
+	  if (err)
+	    log_error ("Error: failed to inform user about inserted card: %s\n",
+		       gpg_strerror (err));
+	}
+
       if (err)
 	goto out;
 
@@ -592,17 +672,30 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
       /* Inform user about inserted card.  */
       err = tell_user (conv, "Serial no: %s", serialno);
       if (err)
-	goto out;
+	{
+	  log_error ("Error: failed to inform user about inserted card: %s\n",
+		     gpg_strerror (err));
+	  goto out;
+	}
 
       /* Lookup account for inserted card.  */
       err = usersdb_lookup_by_serialno (serialno, &account);
       if (err)
-	goto out;
+	{
+	  log_error ("Error: failed to lookup username for "
+		     "serial number `%s': %s\n",
+		     serialno, gpg_strerror (err));
+	  goto out;
+	}
 
       /* Inform user about looked up account.  */
       err = tell_user (conv, "Account: %s", account);
       if (err)
-	goto out;
+	{
+	  log_error ("Error: failed to inform user about inserted card: %s\n",
+		     gpg_strerror (err));
+	  goto out;
+	}
 
       /* Lookup key for looked up account.  */
       err = lookup_key (account, &key);
@@ -648,6 +741,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   return err ? PAM_AUTH_ERR : PAM_SUCCESS;
 }
 
+
+/* PAM's `set-credentials' interface.  */
 PAM_EXTERN int
 pam_sm_setcred (pam_handle_t *pam_handle,
 		int flags, int argc, const char **argv)
