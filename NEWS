@@ -1,3 +1,5 @@
+                                                                -*- outline -*-
+
 Changes since version 0.2:
 
 * Better support for Version 0x0101 cards (no Admin PIN necessary for
@@ -18,3 +20,5 @@ Changes since version 0.2:
   installed automatically during `make install'.
 
 * Improved error reporting.
+
+* Code cleanup: heavily improved code documentation.
