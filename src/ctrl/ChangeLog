@@ -4,6 +4,7 @@
 	(conversation): New function.
 	Use authenticate() instead of duplicating the authentication
 	mechanism.
+	(cmd_dump): Retrieve and print signing key fingerprint.
 
 2005-10-29  Moritz Schulte  <moritz@g10code.com>
 

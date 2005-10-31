@@ -622,12 +622,14 @@ cmd_dump (void)
   int slot;
   char *pin;
   unsigned int version;
+  char *fingerprint;
 
   slot = -1;
   serialno = NULL;
   key = NULL;
   key_s = NULL;
   pin = NULL;
+  fingerprint = NULL;
 
   /* Open and initialize card.  */
 
@@ -650,7 +652,7 @@ cmd_dump (void)
 
   /* Retrieve more card information.  */
 
-  err = card_info (slot, &serialno, &version, NULL);
+  err = card_info (slot, &serialno, &version, &fingerprint);
   if (err)
     {
       log_error ("Error: failed to retreive basic information"
@@ -709,6 +711,7 @@ cmd_dump (void)
   printf ("Slot: %i\n", slot);
   printf ("Serial number: %s\n", serialno);
   printf ("Version: 0x%X\n", version);
+  printf ("Signing key fingerprint: %s\n", fingerprint);
   printf ("Key:\n%s\n", key_s);
 
  out:
@@ -719,6 +722,7 @@ cmd_dump (void)
   gcry_free (key_s);
   free (serialno);
   free (pin);
+  free (fingerprint);
 
   return err;
 }
