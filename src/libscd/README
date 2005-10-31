@@ -1,0 +1,6 @@
+This directory contains the smartcard related code (unmodified!)
+extracted from the GnuPG 1.9 package (scdaemon), boundled into a small
+library named "libscd".
+
+The code, with the exception of init.c, is NOT maintained here;
+instead it is updated periodically from the GnuPG tree.

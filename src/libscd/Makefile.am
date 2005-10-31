@@ -1,4 +1,4 @@
-# Copyright (C) 2004 g10 Code GmbH
+# Copyright (C) 2004, 2005 g10 Code GmbH
 #
 # This file is part of Poldi.
 #
@@ -18,6 +18,8 @@
 # 02111-1307, USA
 
 AM_CFLAGS = $(GPG_ERROR_CFLAGS)
+
+EXTRA_DIST = README
 
 noinst_LIBRARIES = libscd.a
 
