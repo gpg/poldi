@@ -439,35 +439,61 @@ key_file_remove (const char *serialno)
  * Command functions.
  */
 
+static gpg_error_t
+conversation (conversation_type_t type, void *opaque,
+	      const char *info, char **response)
+{
+  gpg_error_t err;
+
+  switch (type)
+    {
+    case CONVERSATION_TELL:
+      printf ("%s\n", info);
+      err = 0;
+      break;
+
+    case CONVERSATION_ASK_SECRET:
+      {
+	char *secret;
+
+	secret = getpass (info);
+	if (! secret)
+	  {
+	    err = gpg_error_from_errno (errno);
+	    log_error ("Error: getpass() returned NULL: %s\n",
+		       gpg_strerror (err));
+	  }
+	else
+	  {
+	    *response = secret;
+	    err = 0;
+	  }
+      }
+      break;
+
+    default:
+      /* This CANNOT happen.  */
+      abort ();
+    }
+
+  return err;
+}
 
 /* Implementation of `test' command; test authentication
    mechanism.  */
 static gpg_error_t
 cmd_test (void)
 {
-  unsigned char *challenge;
-  unsigned char *signature;
-  size_t challenge_n;
-  size_t signature_n;
   gpg_error_t err;
   int slot;
   char *serialno;
   char *account;
-  char *pin;
-  struct passwd *pwent;
-  char *key_path;
-  gcry_sexp_t key_sexp;
-  char *key_string;
+  gcry_sexp_t key;
   unsigned int version;
 
   slot = -1;
-  pin = NULL;
-  key_path = NULL;
-  key_sexp = NULL;
-  key_string = NULL;
+  key = NULL;
   account = NULL;
-  challenge = NULL;
-  signature = NULL;
   serialno = NULL;
   version = 0;
 
@@ -481,132 +507,90 @@ cmd_test (void)
       goto out;
     }
 
-  printf ("Waiting for card...\n");
-  err = card_init (slot, 1, poldi_ctrl_opt.wait_timeout,
-		   poldi_ctrl_opt.require_card_switch);
-  if (err)
+  if (poldi_ctrl_opt.account)
     {
-      /* FIXME: wording.  */
-      log_error ("Error: failed to initialize card: %s\n",
-		 gpg_strerror (err));
-      goto out;
+      /* Trying authentication for a given username.  */
+
+      /* We do not need the key right now already, but it seems to be
+	 a good idea to make the login fail before waiting for card in
+	 case no key has been installed for that card.  */
+      err = key_lookup_by_username (poldi_ctrl_opt.account, &key);
+      if (err)
+	goto out;
+
+      err = wait_for_card (slot, poldi_ctrl_opt.require_card_switch,
+			   poldi_ctrl_opt.wait_timeout,
+			   conversation, NULL, &serialno,
+			   &version, NULL);
+
+      printf ("Serial No: %s\n", serialno);
+      printf ("Card version: %u\n", version);
+
+      /* Converting card serial number into account, through user
+	 database.  */
+
+      err = usersdb_lookup_by_serialno (serialno, &account);
+      if (err || strcmp (account, poldi_ctrl_opt.account))
+	{
+	  /* Either the account could not be found or it is not the
+	     expected one -> fail.  */
+
+	  if (! err)
+	    {
+	      tell_user (conv, "Serial no %s is not associated with %s",
+			 serialno, username);
+	      err = gpg_error (GPG_ERR_INV_NAME);
+	    }
+	  else
+	    log_error ("Error: failed to lookup username for "
+		       "serial number `%s': %s\n",
+		       serialno, gpg_strerror (err));
+	}
+      if (err)
+	goto out;
+
+      err = authenticate (slot, key, conversation, NULL);
+      if (err)
+	goto out;
     }
-
-  /* Generate a challenge.  */
-  err = challenge_generate (&challenge, &challenge_n);
-  if (err)
+  else
     {
-      log_error ("Error: failed to generate challenge: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
+      /* No username has been provided by PAM, thus we accept any
+	 card.  */
 
-  /* Retrieve more card information.  */
+      err = wait_for_card (slot, poldi_ctrl_opt.require_card_switch,
+			   poldi_ctrl_opt.wait_timeout, conversation, NULL,
+			   &serialno, &version, NULL);
+      if (err)
+	/* FIXME */
+	goto out;
 
-  err = card_info (slot, &serialno, &version, NULL);
-  if (err)
-    {
-      log_error ("Error: failed to retreive basic information"
-		 "from card: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
+      /* Lookup account for inserted card.  */
+      err = usersdb_lookup_by_serialno (serialno, &account);
+      if (err)
+	{
+	  log_error ("Error: failed to lookup username for "
+		     "serial number `%s': %s\n",
+		     serialno, gpg_strerror (err));
+	  goto out;
+	}
 
-  printf ("Serial No: %s\n", serialno);
-  printf ("Card version: %u\n", version);
+      /* Inform user about looked up account.  */
+      printf ("Account: %s\n", account);
 
-  /* Converting card serial number into account, through user
-     database.  */
+      /* Lookup key for looked up account.  */
+      err = key_lookup_by_username (account, &key);
+      if (err)
+	goto out;
 
-  err = usersdb_lookup_by_serialno (serialno, &account);
-  if (err)
-    {
-      log_error ("Error: failed to lookup username for serial number "
-		 "`%s': %s\n",
-		 serialno, gpg_strerror (err));
-      goto out;
+      /* Try authentication with looked up key.  */
+      err = authenticate (slot, key, conversation, NULL);
+      if (err)
+	goto out;
     }
 
   printf ("Account: %s\n", account);
 
-  /* Lookup account information in system password database.  */
-
-  pwent = getpwnam (account);
-  if (! pwent)
-    {
-      err = gpg_error_from_errno (errno);
-      log_error ("Error: failed to lookup user `%s' in "
-		 "password database: %s\n",
-		 account, gpg_strerror (errno));
-      goto out;
-    }
-
-  /* Retrieve key S-Expression belonging to given card.  */
-
-  err = key_filename_construct (&key_path, serialno);
-  if (err)
-    {
-      log_error ("Error: failed to construct key filename: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  err = file_to_string (key_path, &key_string);
-  /* Note: use error code "NO_PUBKEY" in case the file is empty.  */
-  if ((! err) && (! key_string))
-    err = gpg_error (GPG_ERR_NO_PUBKEY);
-  if (err)
-    {
-      log_error ("Error: key could not be read from key file `%s': %s\n",
-		 key_path, gpg_strerror (err));
-      goto out;
-    }
-
-  err = string_to_sexp (&key_sexp, key_string);
-  if (err)
-    {
-      log_error ("Error: failed to convert key into S-Expression: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  /* Retrieve PIN from user.  */
-
-  pin = getpass (POLDI_PIN2_QUERY_MSG);
-  if (! pin)
-    {
-      /* FIXME: correct error handling?  */
-      err = gpg_error_from_errno (errno);
-      log_error ("Error: failed to retrieve PIN from user: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  /* Send PIN to card.  */
-
-  err = card_pin_provide (slot, 2, pin);
-  if (err)
-    {
-      log_error ("Error: failed to send PIN to card: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  /* Retrieve challenge signature from card.  */
-
-  err = card_sign (slot, challenge, challenge_n, &signature, &signature_n);
-  if (err)
-    {
-      log_error ("Error: failed to retrieve challenge signature "
-		 "from card: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  /* Verify challenge signature and print result.  */
-
-  err = challenge_verify (key_sexp,
-			  challenge, challenge_n, signature, signature_n);
   if (err)
     printf ("Authentication failed (%s)\n", gpg_strerror (err));
   else
@@ -619,11 +603,8 @@ cmd_test (void)
   if (slot != -1)
     card_close (slot);
   free (account);
-  free (pin);
   free (serialno);
-  free (key_string);
-  free (key_path);
-  gcry_sexp_release (key_sexp);
+  gcry_sexp_release (key);
 
   return err;
 }
