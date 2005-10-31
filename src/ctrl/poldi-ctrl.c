@@ -537,8 +537,8 @@ cmd_test (void)
 
 	  if (! err)
 	    {
-	      tell_user (conv, "Serial no %s is not associated with %s",
-			 serialno, username);
+	      fprintf (stderr, "Serial no %s is not associated with %s\n",
+		       serialno, poldi_ctrl_opt.account);
 	      err = gpg_error (GPG_ERR_INV_NAME);
 	    }
 	  else
