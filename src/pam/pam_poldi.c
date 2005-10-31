@@ -195,6 +195,14 @@ pam_poldi_options_cb (ARGPARSE_ARGS *parg, void *opaque)
  * PAM user interaction through PAM conversation functions.
  */
 
+/* We need this wrapper type, since PAM's CONV function is declared
+   const, but Poldi's conversation callback interface includes a
+   non-const "void *opaque" argument.  */
+typedef struct conv_opaque
+{
+  const struct pam_conv *conv;
+} conv_opaque_t;
+
 /* This function queries the PAM user for input through the
    conversation function CONV; TEXT will be displayed as prompt, the
    user's response will be stored in *RESPONSE.  Returns proper error
@@ -243,7 +251,7 @@ ask_user (const struct pam_conv *conv, const char *text, char **response)
    user's response will be stored in *RESPONSE.  Returns proper error
    code.  */
 static gpg_error_t
-tell_user (const struct pam_conv *conv, char *fmt, ...)
+tell_user (const struct pam_conv *conv, const char *fmt, ...)
 {
   struct pam_message messages[1] = { { PAM_TEXT_INFO, NULL } };
   const struct pam_message *pmessages[1] = { &messages[0] };
@@ -283,115 +291,36 @@ tell_user (const struct pam_conv *conv, char *fmt, ...)
   return err;
 }
 
+static gpg_error_t
+pam_conversation (conversation_type_t type, void *opaque,
+		  const char *info, char **response)
+{
+  conv_opaque_t *conv_opaque = opaque;
+  gpg_error_t err;
+
+  switch (type)
+    {
+    case CONVERSATION_TELL:
+      err = tell_user (conv_opaque->conv, info, response);
+      break;
+
+    case CONVERSATION_ASK_SECRET:
+      err = ask_user (conv_opaque->conv, info, response);
+      break;
+
+    default:
+      /* This CANNOT happen.  */
+      abort ();
+    }
+
+  return err;
+}
+
 
 
 /*
  * Helper functions.
  */
-
-/* Lookup the key belonging to the user specified by USERNAME.
-   Returns a proper error code.  */
-static gpg_error_t
-lookup_key (const char *username, gcry_sexp_t *key)
-{
-  gcry_sexp_t key_sexp;
-  char *key_string;
-  char *key_path;
-  char *serialno;
-  gpg_error_t err;
-
-  serialno = NULL;
-  key_path = NULL;
-  key_string = NULL;
-
-  err = usersdb_lookup_by_username (username, &serialno);
-  if (err)
-    {
-      log_error ("Error: failed to lookup serial number for user `%s': %s\n",
-		 username, gpg_strerror (err));
-      goto out;
-    }
-
-  err = key_filename_construct (&key_path, serialno);
-  if (err)
-    {
-      log_error ("Error: failed to construct key file path "
-		 "for serial number `%s': %s\n",
-		 serialno, gpg_strerror (err));
-      goto out;
-    }
-
-  err = file_to_string (key_path, &key_string);
-  if ((! err) && (! key_string))
-    err = gpg_error (GPG_ERR_NO_PUBKEY);
-  if (err)
-    {
-      log_error ("Error: failed to retrieve key from key file `%s': %s\n",
-		 key_path, gpg_strerror (err));
-      goto out;
-    }
-
-  err = string_to_sexp (&key_sexp, key_string);
-  if (err)
-    {
-      log_error ("Error: failed to convert key "
-		 "from `%s' into S-Expression: %s\n",
-		 key_path, gpg_strerror (err));
-      goto out;
-    }
-
-  *key = key_sexp;
-
- out:
-
-  free (key_path);
-  free (key_string);
-  free (serialno);
-
-  return err;
-}
-
-/* Wait for insertion of a card in slot specified by SLOT,
-   communication with the user through the PAM conversation function
-   CONV.  If REQUIRE_CARD_SWITCH is TRUE, require a card switch.  The
-   serial number of the inserted card will be stored in a newly
-   allocated string in **SERIALNO.  Returns proper error code.  */
-static gpg_error_t
-wait_for_card (int slot, int require_card_switch,
-	       const struct pam_conv *conv, char **serialno)
-{
-  char *serialno_new;
-  gpg_error_t err;
-
-  err = tell_user (conv, "Insert card ...");
-  if (err)
-    goto out;
-
-  err = card_init (slot, 1, pam_poldi_opt.wait_timeout, require_card_switch);
-  if (err)
-    {
-      if (gpg_err_code (err) == GPG_ERR_CARD_NOT_PRESENT)
-	tell_user (conv, "Timeout inserting card");
-      else
-	log_error ("Error: failed to initialize card: %s\n",
-		   gpg_strerror (err));
-      goto out;
-    }
-
-  err = card_info (slot, &serialno_new, NULL, NULL);
-  if (err)
-    {
-      log_error ("Error: failed to retrieve card information: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  *serialno = serialno_new;
-
- out:
-
-  return err;
-}
 
 /* This function parses the PAM argument vector ARGV of size ARGV */
 static gpg_error_t
@@ -429,75 +358,9 @@ parse_argv (int argc, const char **argv)
 
 
 
-/* Core authentication function.  Tries to authenticate the card
-   specified by SLOT against the public key KEY, using CONV as PAM
-   conversation function.  Returns proper error code.  */
-static gpg_error_t
-do_auth (int slot, const struct pam_conv *conv, gcry_sexp_t key)
-{
-  unsigned char *challenge;
-  unsigned char *response;
-  size_t challenge_n;
-  size_t response_n;
-  gpg_error_t err;
-  char *pin;
-
-  challenge = NULL;
-  response = NULL;
-  pin = NULL;
-
-  /* Query user for PIN.  */
-  err = ask_user (conv, POLDI_PIN2_QUERY_MSG, &pin);
-  if (err)
-    {
-      log_error ("Error: failed to retrieve PIN from user: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  /* Send PIN to card.  */
-  err = card_pin_provide (slot, 2, pin);
-  if (err)
-    {
-      log_error ("Error: failed to send PIN to card: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  /* Generate challenge.  */
-  err = challenge_generate (&challenge, &challenge_n);
-  if (err)
-    {
-      log_error ("Error: failed to generate challenge: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  /* Let card sign the challenge.  */
-  err = card_sign (slot, challenge, challenge_n, &response, &response_n);
-  if (err)
-    {
-      log_error ("Error: failed to retrieve challenge signature "
-		 "from card: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  /* Verify response.  */
-  err = challenge_verify (key, challenge, challenge_n, response, response_n);
-
- out:
-
-  /* Release resources.  */
-
-  free (challenge);
-  free (response);
-  free (pin);
-
-  return err;
-}
-
-
+/*
+ * PAM interface.
+ */
 
 /* Uaaahahahh, ich will dir einloggen!  PAM authentication entry
    point.  */
@@ -506,6 +369,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 		     int flags, int argc, const char **argv)
 {
   const void *conv_void;
+  conv_opaque_t conv_opaque;
   const struct pam_conv *conv;
   gcry_sexp_t key;
   gpg_error_t err;
@@ -593,6 +457,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
       goto out;
     }
   conv = conv_void;
+  conv_opaque.conv = conv;
 
   /* Open card slot.  */
   err = card_open (NULL, &slot);
@@ -611,13 +476,15 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
       /* We do not need the key right now already, but it seems to be
 	 a good idea to make the login fail before waiting for card in
 	 case no key has been installed for that card.  */
-      err = lookup_key (username, &key);
+      err = key_lookup_by_username (username, &key);
       if (err)
 	goto out;
 
       /* Wait for card.  */
       err = wait_for_card (slot, pam_poldi_opt.require_card_switch,
-			   conv, &serialno);
+			   pam_poldi_opt.wait_timeout,
+			   pam_conversation, &conv_opaque, &serialno,
+			   NULL, NULL);
       if (err)
 	goto out;
 
@@ -654,7 +521,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
       /* It is the correct card, try authentication with given
 	 key.  */
-      err = do_auth (slot, conv, key);
+      err = authenticate (slot, key, pam_conversation, &conv_opaque);
       if (err)
 	goto out;
     }
@@ -665,7 +532,9 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
       /* Wait for card.  */
       err = wait_for_card (slot, pam_poldi_opt.require_card_switch,
-			   conv, &serialno);
+			   pam_poldi_opt.wait_timeout,
+			   pam_conversation, &conv_opaque, &serialno,
+			   NULL, NULL);
       if (err)
 	goto out;
 
@@ -698,12 +567,12 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 	}
 
       /* Lookup key for looked up account.  */
-      err = lookup_key (account, &key);
+      err = key_lookup_by_username (account, &key);
       if (err)
 	goto out;
 
       /* Try authentication with looked up key.  */
-      err = do_auth (slot, conv, key);
+      err = authenticate (slot, key, pam_conversation, &conv_opaque);
       if (err)
 	goto out;
 
@@ -751,4 +620,4 @@ pam_sm_setcred (pam_handle_t *pam_handle,
   return PAM_SUCCESS;
 }
 
-/* END. */
+/* END */

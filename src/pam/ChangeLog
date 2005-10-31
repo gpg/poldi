@@ -1,6 +1,20 @@
+2005-10-31  Moritz Schulte  <moritz@g10code.com>
+
+	* pam_poldi.c: Added some more comments.
+	(pam_sm_authenticate): Adjusted to new wait_for_card() API.
+	(conv_opaque_t): New type.
+	(pam_conversation): New function.
+	(wait_for_card): Removed function, it's not included in common/.
+	(do_auth): Removed function; use authenticate() now, which is
+	included in common/.
+	
+	(lookup_key): Removed function; use key_lookup_by_username() now,
+	which is included in common/.
+
 2005-10-29  Moritz Schulte  <moritz@g10code.com>
 
 	* pam_poldi.c: More verbose logging.
+	(tell_user): Declare FMT const.
 
 2005-10-23  Moritz Schulte  <moritz@g10code.com>
 
