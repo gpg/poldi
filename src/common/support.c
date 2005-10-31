@@ -36,8 +36,11 @@
 #include "support.h"
 #include "defs.h"
 
-#include <jnlib/xmalloc.h>
 #include <jnlib/stringhelp.h>
+#include <jnlib/xmalloc.h>
+#include <jnlib/logging.h>
+
+#include <common/card.h>
 
 
 
@@ -45,6 +48,10 @@
 
 
 
+/* This function generates a challenge; the challenge will be stored
+   in newly allocated memory, which is to be stored in *CHALLENGE;
+   it's length in bytes is to be stored in *CHALLENGE_N.  Returns
+   proper error code.  */
 gpg_error_t
 challenge_generate (unsigned char **challenge, size_t *challenge_n)
 {
@@ -106,14 +113,19 @@ challenge_verify_sexp (gcry_sexp_t sexp_key,
   return err;
 }
 
+/* This functions verifies that the signature contained in RESPONSE of
+   size RESPONSE_N (in bytes) is indeed the result of signing the
+   challenge given in CHALLENGE of size CHALLENGE_N (in bytes) with
+   the secret key belonging to the public key given as PUBLIC_KEY.
+   Returns proper error code.  */
 gpg_error_t
-challenge_verify (gcry_sexp_t key,
+challenge_verify (gcry_sexp_t public_key,
 		  unsigned char *challenge, size_t challenge_n,
 		  unsigned char *response, size_t response_n)
 {
   gpg_error_t err;
 
-  err = challenge_verify_sexp (key,
+  err = challenge_verify_sexp (public_key,
 			       challenge, challenge_n, response, response_n);
 
   return err;
@@ -540,6 +552,193 @@ lookup_own_username (const char **username)
       *username = pwent->pw_name;
       err = 0;
     }
+
+  return err;
+}
+
+/* Lookup the key belonging to the user specified by USERNAME.
+   Returns a proper error code.  */
+gpg_error_t
+key_lookup_by_username (const char *username, gcry_sexp_t *key)
+{
+  gcry_sexp_t key_sexp;
+  char *key_string;
+  char *key_path;
+  char *serialno;
+  gpg_error_t err;
+
+  serialno = NULL;
+  key_path = NULL;
+  key_string = NULL;
+
+  err = usersdb_lookup_by_username (username, &serialno);
+  if (err)
+    {
+      log_error ("Error: failed to lookup serial number for user `%s': %s\n",
+		 username, gpg_strerror (err));
+      goto out;
+    }
+
+  err = key_filename_construct (&key_path, serialno);
+  if (err)
+    {
+      log_error ("Error: failed to construct key file path "
+		 "for serial number `%s': %s\n",
+		 serialno, gpg_strerror (err));
+      goto out;
+    }
+
+  err = file_to_string (key_path, &key_string);
+  if ((! err) && (! key_string))
+    err = gpg_error (GPG_ERR_NO_PUBKEY);
+  if (err)
+    {
+      log_error ("Error: failed to retrieve key from key file `%s': %s\n",
+		 key_path, gpg_strerror (err));
+      goto out;
+    }
+
+  err = string_to_sexp (&key_sexp, key_string);
+  if (err)
+    {
+      log_error ("Error: failed to convert key "
+		 "from `%s' into S-Expression: %s\n",
+		 key_path, gpg_strerror (err));
+      goto out;
+    }
+
+  *key = key_sexp;
+
+ out:
+
+  free (key_path);
+  free (key_string);
+  free (serialno);
+
+  return err;
+}
+
+
+
+/* This function implements the core authentication mechanism.
+   CARD_SLOT is the slot ID, which is used for interaction with the
+   smartcard; KEY is the public key; CONV is the conversation function
+   to use for interaction with the user and OPAQUE is the opaque
+   argument to pass to the conversation functions.  Returns proper
+   error code: in case it returns zero, authentication was
+   successful.  */
+gpg_error_t
+authenticate (int card_slot, gcry_sexp_t key,
+	      conversation_cb_t conv, void *opaque)
+{
+  unsigned char *challenge;
+  unsigned char *response;
+  size_t challenge_n;
+  size_t response_n;
+  gpg_error_t err;
+  char *pin;
+
+  challenge = NULL;
+  response = NULL;
+  pin = NULL;
+
+  /* Query user for PIN.  */
+  err = (*conv) (CONVERSATION_ASK_SECRET, opaque, POLDI_PIN2_QUERY_MSG, &pin);
+  if (err)
+    {
+      log_error ("Error: failed to retrieve PIN from user: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* Send PIN to card.  */
+  err = card_pin_provide (card_slot, 2, pin);
+  if (err)
+    {
+      log_error ("Error: failed to send PIN to card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* Generate challenge.  */
+  err = challenge_generate (&challenge, &challenge_n);
+  if (err)
+    {
+      log_error ("Error: failed to generate challenge: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* Let card sign the challenge.  */
+  err = card_sign (card_slot, challenge, challenge_n, &response, &response_n);
+  if (err)
+    {
+      log_error ("Error: failed to retrieve challenge signature "
+		 "from card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* Verify response.  */
+  err = challenge_verify (key, challenge, challenge_n, response, response_n);
+
+ out:
+
+  /* Release resources.  */
+
+  free (challenge);
+  free (response);
+  free (pin);
+
+  return err;
+}
+
+
+
+/* Wait for insertion of a card in slot specified by SLOT,
+   communication with the user through the PAM conversation function
+   CONV.  If REQUIRE_CARD_SWITCH is TRUE, require a card switch.
+
+   The serial number of the inserted card will be stored in a newly
+   allocated string in **SERIALNO, it's version will be stored in
+   *VERSION and the fingerprint of the signing key on the card will be
+   stored in newly allocated memory in *FINGERPRINT.
+
+   Returns proper error code.  */
+gpg_error_t
+wait_for_card (int slot, int require_card_switch, unsigned int timeout,
+	       conversation_cb_t conv, void *opaque, char **serialno,
+	       unsigned int *card_version, char **fingerprint)
+{
+  gpg_error_t err;
+
+  err = (*conv) (CONVERSATION_TELL, opaque, "Insert card ...", NULL);
+  if (err)
+    /* FIXME.  */
+    goto out;
+
+  err = card_init (slot, 1, timeout, require_card_switch);
+  if (err)
+    {
+      if (gpg_err_code (err) == GPG_ERR_CARD_NOT_PRESENT)
+	(*conv) (CONVERSATION_TELL, opaque, "Timeout inserting card", NULL);
+      else
+	log_error ("Error: failed to initialize card: %s\n",
+		   gpg_strerror (err));
+      goto out;
+    }
+
+  err = card_info (slot, serialno, card_version, fingerprint);
+  if (err)
+    {
+      log_error ("Error: failed to retrieve card information: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* FIXME: error checking?  */
+
+ out:
 
   return err;
 }

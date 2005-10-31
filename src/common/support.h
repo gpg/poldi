@@ -23,10 +23,21 @@
 
 #include <gcrypt.h>
 
+/* This function generates a challenge; the challenge will be stored
+   in newly allocated memory, which is to be stored in *CHALLENGE;
+   it's length in bytes is to be stored in *CHALLENGE_N.  Returns
+   proper error code.  */
 gpg_error_t challenge_generate (unsigned char **challenge, size_t *challenge_n);
-gpg_error_t challenge_verify (gcry_sexp_t key,
+
+/* This functions verifies that the signature contained in RESPONSE of
+   size RESPONSE_N (in bytes) is indeed the result of signing the
+   challenge given in CHALLENGE of size CHALLENGE_N (in bytes) with
+   the secret key belonging to the public key given as PUBLIC_KEY.
+   Returns proper error code.  */
+gpg_error_t challenge_verify (gcry_sexp_t public_key,
 			      unsigned char *challenge, size_t challenge_n,
-			      unsigned char *respone, size_t response_n);
+			      unsigned char *response, size_t response_n);
+
 gpg_error_t usersdb_lookup_by_serialno (const char *serialno, char **username);
 gpg_error_t usersdb_lookup_by_username (const char *username, char **serialno);
 gpg_error_t usersdb_remove_entry (const char *username, const char *serialno,
@@ -63,4 +74,51 @@ gpg_error_t key_filename_construct (char **filename, const char *serialno);
    getpwuid().  */
 gpg_error_t lookup_own_username (const char **username);
 
+/* Lookup the key belonging to the user specified by USERNAME.
+   Returns a proper error code.  */
+gpg_error_t key_lookup_by_username (const char *username, gcry_sexp_t *key);
+
+/* List of ``conversations types''; these are passed to functions of
+   type ``conversation_cb_t''.  */
+typedef enum
+  {
+    CONVERSATION_TELL,		/* Inform the user about
+				   something.  */
+    CONVERSATION_ASK_SECRET	/* Retrieve a secret from the
+				   user.  */
+  }
+conversation_type_t;
+
+/* A function of this type is passed to authenticate().  */
+typedef gpg_error_t (*conversation_cb_t) (conversation_type_t type,
+					  void *opaque,
+					  const char *info, char **response);
+
+/* This function implements the core authentication mechanism.
+   CARD_SLOT is the slot ID, which is used for interaction with the
+   smartcard; KEY is the public key; CONV is the conversation function
+   to use for interaction with the user and OPAQUE is the opaque
+   argument to pass to the conversation functions.  Returns proper
+   error code: in case it returns zero, authentication was
+   successful.  */
+gpg_error_t authenticate (int card_slot, gcry_sexp_t key,
+			  conversation_cb_t conv, void *opaque);
+
+/* Wait for insertion of a card in slot specified by SLOT,
+   communication with the user through the PAM conversation function
+   CONV.  If REQUIRE_CARD_SWITCH is TRUE, require a card switch.
+
+   The serial number of the inserted card will be stored in a newly
+   allocated string in **SERIALNO, it's version will be stored in
+   *VERSION and the fingerprint of the signing key on the card will be
+   stored in newly allocated memory in *FINGERPRINT.
+
+   Returns proper error code.  */
+gpg_error_t wait_for_card (int slot, int require_card_switch,
+			   unsigned int timeout, conversation_cb_t conv,
+			   void *opaque, char **serialno,
+			   unsigned int *card_version, char **fingerprint);
+
 #endif
+
+/* END */

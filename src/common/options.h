@@ -1,5 +1,5 @@
 /* options.h - Poldi option handling
-   Copyright (C) 2004 g10 Code GmbH.
+   Copyright (C) 2004, 2005 g10 Code GmbH.
  
    This file is part of Poldi.
   
@@ -34,3 +34,5 @@ gpg_error_t options_parse_conf (options_callback_t callback, void *opaque,
 				ARGPARSE_OPTS *arg_opts, const char *filename);
 
 #endif
+
+/* END */

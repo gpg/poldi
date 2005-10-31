@@ -1,8 +1,24 @@
+2005-10-31  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c, support.h, card.c, card.h: Added code documentation.
+
+	* support.c (challenge_verify): Renamed parameter KEY to
+	PUBLIC_KEY.
+
 2005-10-29  Moritz Schulte  <moritz@g10code.com>
 
 	* support.c (sexp_to_string): Initialize FMT directly, declare
-	const.
-	Added even more comments.
+	const.  Added even more comments.
+	(key_lookup_by_username): New function (formerly: lookup_key from
+	pam_poldi.c).
+	Include <jnlib/logging.h>.
+	(authenticate): New function (formerly: do_auth from pam_poldi.c).
+	(wait_for_card): New function (based on former wait_for_card from
+	pam_poldi.c)
+
+	* support.h (key_lookup_by_username): Declare new function.
+	(authenticate): Declare new function.
+	(wait_for_card): New function.
 
 2005-10-26  Moritz Schulte  <moritz@g10code.com>
 
