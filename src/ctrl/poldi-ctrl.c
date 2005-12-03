@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <pwd.h>
+#include <assert.h>
 
 #include <gcrypt.h>
 
@@ -34,6 +35,7 @@
 #include <common/options.h>
 #include <common/card.h>
 #include <common/support.h>
+#include <common/usersdb.h>
 #include <common/defs.h>
 #include <libscd/scd.h>
 
@@ -327,6 +329,50 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 
 
 /*
+ * User interaction.
+ */
+
+static gcry_error_t
+ask_user (const char *prompt, char **answer)
+{
+  gcry_error_t err;
+  size_t buffer_n;
+  char *buffer;
+  ssize_t ret;
+  char *c;
+
+  fprintf (stderr, "%s: ", prompt);
+  fflush (stderr);
+
+  buffer = NULL;
+  buffer_n = 0;
+
+  ret = getline (&buffer, &buffer_n, stdin);
+  if (ret == -1)
+    {
+      if (ferror (stdin))
+	err = gcry_error_from_errno (errno);
+      else
+	err = gcry_error (GPG_ERR_INTERNAL); /* FIXME. */
+      goto out;
+    }
+  else
+    err = 0;
+
+  c = strchr (buffer, '\n');
+  if (c)
+    *c = '\0';
+
+  *answer = buffer;
+
+ out:
+
+  return err;
+}
+
+
+
+/*
  * Key file management.
  */
 
@@ -355,6 +401,8 @@ key_file_create (struct passwd *pwent, const char *serialno)
   fd = open (path, O_WRONLY | O_CREAT, 0644);
   if (fd == -1)
     {
+      /* FIXME: do not fail in case the file does already exist.
+	 instead just skip.  */
       err = gpg_error_from_errno (errno);
       log_error ("Error: failed to open key file `%s': %s\n",
 		 path, gpg_strerror (err));
@@ -445,6 +493,10 @@ conversation (conversation_type_t type, void *opaque,
 {
   gpg_error_t err;
 
+  assert ((type == CONVERSATION_TELL)
+	  || (type == CONVERSATION_ASK_SECRET));
+
+  err = 0;
   switch (type)
     {
     case CONVERSATION_TELL:
@@ -470,10 +522,6 @@ conversation (conversation_type_t type, void *opaque,
 	  }
       }
       break;
-
-    default:
-      /* This CANNOT happen.  */
-      abort ();
     }
 
   return err;
@@ -507,102 +555,66 @@ cmd_test (void)
       goto out;
     }
 
+  err = wait_for_card (slot, poldi_ctrl_opt.require_card_switch,
+		       poldi_ctrl_opt.wait_timeout,
+		       conversation, NULL, &serialno,
+		       &version, CARD_KEY_NONE, NULL);
+  if (err)
+    goto out;
+
+  /* FIXME: quiet?  */
+  printf ("Serial No: %s\n", serialno);
+  printf ("Card version: %u\n", version);
+
   if (poldi_ctrl_opt.account)
-    {
-      /* Trying authentication for a given username.  */
-
-      /* We do not need the key right now already, but it seems to be
-	 a good idea to make the login fail before waiting for card in
-	 case no key has been installed for that card.  */
-      err = key_lookup_by_username (poldi_ctrl_opt.account, &key);
-      if (err)
-	goto out;
-
-      err = wait_for_card (slot, poldi_ctrl_opt.require_card_switch,
-			   poldi_ctrl_opt.wait_timeout,
-			   conversation, NULL, &serialno,
-			   &version, NULL);
-
-      printf ("Serial No: %s\n", serialno);
-      printf ("Card version: %u\n", version);
-
-      /* Converting card serial number into account, through user
-	 database.  */
-
-      err = usersdb_lookup_by_serialno (serialno, &account);
-      if (err || strcmp (account, poldi_ctrl_opt.account))
-	{
-	  /* Either the account could not be found or it is not the
-	     expected one -> fail.  */
-
-	  if (! err)
-	    {
-	      fprintf (stderr, "Serial no %s is not associated with %s\n",
-		       serialno, poldi_ctrl_opt.account);
-	      err = gpg_error (GPG_ERR_INV_NAME);
-	    }
-	  else
-	    log_error ("Error: failed to lookup username for "
-		       "serial number `%s': %s\n",
-		       serialno, gpg_strerror (err));
-	}
-      if (err)
-	goto out;
-
-      err = authenticate (slot, key, conversation, NULL);
-      if (err)
-	goto out;
-    }
+    account = poldi_ctrl_opt.account;
   else
     {
-      /* No username has been provided by PAM, thus we accept any
-	 card.  */
-
-      err = wait_for_card (slot, poldi_ctrl_opt.require_card_switch,
-			   poldi_ctrl_opt.wait_timeout, conversation, NULL,
-			   &serialno, &version, NULL);
-      if (err)
-	/* FIXME */
-	goto out;
-
-      /* Lookup account for inserted card.  */
       err = usersdb_lookup_by_serialno (serialno, &account);
-      if (err)
-	{
-	  log_error ("Error: failed to lookup username for "
-		     "serial number `%s': %s\n",
-		     serialno, gpg_strerror (err));
-	  goto out;
-	}
+      if (gcry_err_code (err) == GPG_ERR_AMBIGUOUS_NAME)
+	err = ask_user ("Need to know the username", &account);
 
-      /* Inform user about looked up account.  */
-      printf ("Account: %s\n", account);
-
-      /* Lookup key for looked up account.  */
-      err = key_lookup_by_username (account, &key);
-      if (err)
-	goto out;
-
-      /* Try authentication with looked up key.  */
-      err = authenticate (slot, key, conversation, NULL);
       if (err)
 	goto out;
     }
 
-  printf ("Account: %s\n", account);
+  /* FIXME: quiet?  */
+  printf ("Trying authentication as `%s'...\n", account);
+
+  /* Check if the given account is associated with the serial
+     number.  */
+  err = usersdb_check (serialno, account);
+  if (err)
+    {
+      fprintf (stderr, "Serial no %s is not associated with %s\n",
+	       serialno, account);
+      err = gcry_error (GPG_ERR_INV_NAME);
+      goto out;
+    }
+
+  /* Retrieve key belonging to card.  */
+  err = key_lookup_by_serialno (serialno, &key);
+  if (err)
+    goto out;
+
+  err = authenticate (slot, key, conversation, NULL);
+  if (err)
+    goto out;
+
+ out:
 
   if (err)
     printf ("Authentication failed (%s)\n", gpg_strerror (err));
   else
-    printf ("Authentication succeeded\n");
-
- out:
+    printf ("Authentication succeeded as user `%s'\n",
+	    account);
 
   /* Deallocate resources.  */
 
   if (slot != -1)
     card_close (slot);
-  free (account);
+  if (account != poldi_ctrl_opt.account)
+    free (account);
   free (serialno);
   gcry_sexp_release (key);
 
@@ -623,6 +635,7 @@ cmd_dump (void)
   char *pin;
   unsigned int version;
   char *fingerprint;
+  unsigned int key_nbits;
 
   slot = -1;
   serialno = NULL;
@@ -652,7 +665,7 @@ cmd_dump (void)
 
   /* Retrieve more card information.  */
 
-  err = card_info (slot, &serialno, &version, &fingerprint);
+  err = card_info (slot, &serialno, &version, CARD_KEY_AUTH, &fingerprint);
   if (err)
     {
       log_error ("Error: failed to retreive basic information"
@@ -689,7 +702,7 @@ cmd_dump (void)
 
   /* Retrieve key from card.  */
 
-  err = card_read_key (slot, &key);
+  err = card_read_key (slot, CARD_KEY_AUTH, &key, &key_nbits);
   if (err)
     {
       log_error ("Error: failed to retrieve key from card: %s\n",
@@ -712,6 +725,7 @@ cmd_dump (void)
   printf ("Serial number: %s\n", serialno);
   printf ("Version: 0x%X\n", version);
   printf ("Signing key fingerprint: %s\n", fingerprint);
+  printf ("Key size: %u\n", key_nbits);
   printf ("Key:\n%s\n", key_s);
 
  out:
@@ -734,80 +748,10 @@ cmd_dump (void)
 static gpg_error_t
 cmd_list_users (void)
 {
-  char users_file[] = POLDI_USERS_DB_FILE;
-  FILE *users_file_fp;
-  char delimiters[] = "\t\n ";
-  gpg_error_t err;
-  char *line;
-  size_t line_n;
-  size_t line_number;
-  char *serialno;
-  char *account;
-  int ret;
+  gcry_error_t err;
 
-  line = NULL;
-
-  /* Open user database file.  */
-
-  users_file_fp = fopen (users_file, "r");
-  if (! users_file_fp)
-    {
-      err = gpg_error_from_errno (errno);
-      log_error ("Error: failed to open user database `%s': %s\n",
-		 users_file, gpg_strerror (err));
-      goto out;
-    }
-
-  line_number = 1;
-  err = 0;
-
-  /* Iterate over file.  */
-
-  while (1)
-    {
-      free (line);
-      line = NULL;
-
-      /* Read next line.  */
-
-      ret = getline (&line, &line_n, users_file_fp);
-      if (ret == -1)
-	{
-	  if (ferror (users_file_fp))
-	    {
-	      err = gpg_error_from_errno (errno);
-	      log_error ("Error: getline() failed: %s\n",
-			 gpg_strerror (err));
-	    }
-	  /* else must be EOF.  */
-
-	  break;
-	}
-
-      /* Parse line.  */
-
-      serialno = strtok (line, delimiters);
-      if (! serialno)
-	log_error ("Error: user database seems to be corrupt; "
-		   "serial number missing in line: %i\n",
-		   line_number);
-      account = strtok (NULL, delimiters);
-      if (! account)
-	log_error ("Error: user database seems to be corrupt; "
-		   "account missing in line: %i\n",
-		   line_number);
-
-      if (account && serialno)
-	printf ("Account: %s; Serial No: %s\n", account, serialno);
-
-      line_number++;
-    }
-
- out:
-
-  free (line);
-  if (users_file_fp)
-    fclose (users_file_fp);
+  err = usersdb_list (stdout);
+  /* FIXME.  */
 
   return err;
 }
@@ -823,7 +767,6 @@ cmd_add_user (void)
   gpg_error_t err;
   char *serialno;
   char *account;
-  int skip_userdb;
 
   serialno = poldi_ctrl_opt.serialno;
   account = poldi_ctrl_opt.account;
@@ -831,7 +774,8 @@ cmd_add_user (void)
   if (! (serialno && account))
     {
       log_error ("Error: serial number and accounts needs to be given\n");
-      exit (EXIT_FAILURE);
+      err = gcry_error (GPG_ERR_INV_PARAMETER);
+      goto out;
     }
 
   /* Lookup user in password database.  */
@@ -840,96 +784,16 @@ cmd_add_user (void)
   if (! pwent)
     {
       log_error ("Error: unknown user `%s'\n", account);
-      exit (EXIT_FAILURE);
-    }
-
-  /* Make sure that given serial number is not already associated with
-     a different account and that the given account is not already
-     associated with a different serial number.  */
-
-  skip_userdb = 0;
-
-  err = usersdb_lookup_by_serialno (serialno, &account);
-  if (! err)
-    {
-      /* Entry found; serial number IS already associated with an
-	 account.  */
-
-      if (strcmp (account, pwent->pw_name))
-	{
-	  /* It is associated with a DIFFERENT account.  */
-	  log_error ("Error: serial number `%s' "
-		     "already associated with user `%s'\n",
-		     serialno, account);
-	  exit (EXIT_FAILURE);
-	}
-      else
-	{
-	  /* It is already associated with the SPECIFIED account.  */
-	  log_info ("Note: serial number `%s' is already associated with "
-		    "user `%s'\n",
-		    serialno, account);
-	  skip_userdb = 1;
-	}
-    }
-  else if (gpg_err_code (err) == GPG_ERR_NOT_FOUND)
-    /* This is not an error in this context.  */
-    err = 0;
-  else
-    {
-      /* Unexpected error occured.  */
-      log_error ("Error: unexpected failure during user database lookup: %s\n",
-		 gpg_strerror (err));
+      err = gcry_error (GPG_ERR_INV_NAME);
       goto out;
     }
 
-  err = usersdb_lookup_by_username (pwent->pw_name, &serialno);
-  if (! err)
+  err = usersdb_add (account, serialno);
+  if (err)
     {
-      /* Entry found; username is already associated with a serial
-	 number.  */
-
-      if (strcmp (serialno, poldi_ctrl_opt.serialno))
-	{
-	  /* It is associated with a DIFFERENT serial number.  */
-	  log_error ("Error: user `%s' is already "
-		     "associated with serial number `%s'\n",
-		     pwent->pw_name, serialno);
-	  exit (EXIT_FAILURE);
-	}
-      else
-	{
-	  /* It is already associated with the SPECIFIED account.  */
-	  log_info ("Note: user `%s' is aleady associated with "
-		    " serial number `%s'\n",
-		    pwent->pw_name, serialno);
-	  skip_userdb = 1;
-	}
-    }
-  else if (gpg_err_code (err) == GPG_ERR_NOT_FOUND)
-    /* This is not an error in this context.  */
-    err = 0;
-  else
-    {
-      /* Unexpected error occured.  */
-      log_error ("Error: unexpected failure during user database lookup: %s\n",
+      log_error ("Error: failed to add entry to user database: %s\n",
 		 gpg_strerror (err));
       goto out;
-    }
-
-  if (skip_userdb)
-    log_info ("Note: not modifying user database\n");
-  else
-    {
-      /* No such entry found in user database, add entry.  */
-  
-      err = usersdb_add_entry (account, serialno);
-      if (err)
-	{
-	  log_error ("Error: failed to add entry to user database: %s\n",
-		     gpg_strerror (err));
-	  goto out;
-	}
     }
 
   /* Create empty key file.  */
@@ -951,12 +815,12 @@ cmd_add_user (void)
 
 
 /* Implementation of `remove-user' command; removes a user.  */
+/* FIXME: do not remove key file in case there are other users in
+   usersdb using that card.  */
 static gpg_error_t
 cmd_remove_user (void)
 {
-  unsigned int nentries_removed;
   gpg_error_t err;
-  char *serialno;
 
   /* Make sure that required information are given (serialno OR
      account).  */
@@ -964,30 +828,13 @@ cmd_remove_user (void)
   if (! (poldi_ctrl_opt.serialno || poldi_ctrl_opt.account))
     {
       fprintf (stderr, "Error: account or serial number needs to be given\n");
-      exit (EXIT_FAILURE);
+      err = gcry_error (GPG_ERR_INV_PARAMETER);
+      goto out;
     }
 
-  /* Make sure to have the serial number.  */
-
-  if (poldi_ctrl_opt.serialno)
-    serialno = poldi_ctrl_opt.serialno;
-  else
-    {
-      serialno = NULL;
-      err = usersdb_lookup_by_username (poldi_ctrl_opt.account, &serialno);
-      if (err)
-	{
-	  log_error ("Warning: failed to lookup serial number "
-		     "for username `%s': %s; thus cannot remove key file\n",
-		     poldi_ctrl_opt.account, gpg_strerror (err));
-	  err = 0;
-	}
-    }
-
-  /* Try to remove entry from user database.  */
-
-  err = usersdb_remove_entry (poldi_ctrl_opt.account, poldi_ctrl_opt.serialno,
-			      &nentries_removed);
+  /* COMMENT.  */
+  
+  err = usersdb_remove (poldi_ctrl_opt.account, poldi_ctrl_opt.serialno);
   if (err)
     {
       log_error ("Error: failed to remove entry for user `%s' "
@@ -996,30 +843,25 @@ cmd_remove_user (void)
 		 gpg_strerror (err));
       goto out;
     }
-  else if (! nentries_removed)
-    log_info ("Note: no entries removed from user database\n");
 
   /* FIXME: skip step of key file removal in case key file does not
      exist (for whatever reasons).  */
 
   /* Remove key file.  */
 
-  if (serialno)
+  if (poldi_ctrl_opt.serialno)
     {
-      err = key_file_remove (serialno);
+      err = key_file_remove (poldi_ctrl_opt.serialno);
       if (err)
 	{
 	  log_error ("Error: failed to remove key file for "
 		     "serial number `%s': %s\n",
-		     serialno, gpg_strerror (err));
+		     poldi_ctrl_opt.serialno, gpg_strerror (err));
 	  goto out;
 	}
     }
 
  out:
-
-  if (serialno != poldi_ctrl_opt.serialno)
-    free (serialno);
 
   return err;
 }
@@ -1073,7 +915,7 @@ cmd_set_key (void)
 
   /* Retrieve more information from card.  */
 
-  err = card_info (slot, &serialno, &version, NULL);
+  err = card_info (slot, &serialno, &version, CARD_KEY_NONE, NULL);
   if (err)
     {
       log_error ("Error: failed to retreive basic information"
@@ -1126,7 +968,7 @@ cmd_set_key (void)
 
   /* Retrieve key from card.  */
 
-  err = card_read_key (slot, &key_sexp);
+  err = card_read_key (slot, CARD_KEY_AUTH, &key_sexp, NULL);
   if (err)
     {
       log_error ("Error: failed to retrieve key from card: %s\n",
@@ -1203,35 +1045,45 @@ cmd_show_key (void)
   key_sexp = NULL;
   key_string = NULL;
 
-  /* Retrieve username of caller.  */
-
-  err = lookup_own_username (&username);
-  if (err)
+  if (poldi_ctrl_opt.serialno)
+    err = key_filename_construct (&path, poldi_ctrl_opt.serialno);
+  else
     {
-      log_error ("Error: failed to lookup own username: %s\n",
-		 gpg_strerror (err));
-      goto out;
+      /* Retrieve username of caller.  */
+      err = lookup_own_username (&username);
+      if (err)
+	{
+	  log_error ("Error: failed to lookup own username: %s\n",
+		     gpg_strerror (err));
+	  goto out;
+	}
+      
+      /* Lookup serial number for username.  */
+
+      err = usersdb_lookup_by_username (username, &serialno);
+      if (gcry_err_code (err) == GPG_ERR_AMBIGUOUS_NAME)
+	err = ask_user ("Need to figure out the serialno", &serialno);
+
+      if (err)
+	{
+	  log_error ("Error: failed to lookup serial number "
+		     "for user `%s': %s\n",
+		     username, gpg_strerror (err));
+	  goto out;
+	}
+
+      /* Construct key path.  */
+
+      err = key_filename_construct (&path, serialno);
     }
-
-  /* Lookup serial number for username.  */
-
-  err = usersdb_lookup_by_username (username, &serialno);
-  if (err)
-    {
-      log_error ("Error: failed to lookup serial number "
-		 "for user `%s': %s\n",
-		 username, gpg_strerror (err));
-      goto out;
-    }
-
-  /* Construct key path.  */
-
-  err = key_filename_construct (&path, serialno);
+  
   if (err)
     {
       log_error ("Error: failed to construct key file path "
 		 "for serial number `%s': %s\n",
-		 serialno, gpg_strerror (err));
+		 (poldi_ctrl_opt.serialno
+		  ? poldi_ctrl_opt.serialno : serialno),
+		 gcry_strerror (err));
       goto out;
     }
 

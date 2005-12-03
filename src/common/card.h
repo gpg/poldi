@@ -23,6 +23,16 @@
 
 #include <gcrypt.h>
 
+/* List key types.  */
+typedef enum
+  {
+    CARD_KEY_NONE,
+    CARD_KEY_SIG,
+    CARD_KEY_ENC,
+    CARD_KEY_AUTH
+  }
+card_key_t;
+
 /* This functions opens the card terminal specified by PORT.  On
    success an according handle, the slot ID, will be stored in *SLOT.
    Returns proper error code.  */
@@ -63,12 +73,14 @@ void card_close (int slot);
 
    Returns proper error code.  */
 gcry_error_t card_info (int slot, char **serial_no,
-			unsigned int *card_version, char **fingerprint);
+			unsigned int *card_version,
+			card_key_t type, char **fingerprint);
 
-/* This function retrieves the signing key of an initialized card
-   accessed through SLOT and stores it, converted into an
-   S-Expression, in *KEY.  Returns proper error code.  */
-gcry_error_t card_read_key (int slot, gcry_sexp_t *key);
+/* This function retrieves the key identified by TYPE of an
+   initialized card accessed through SLOT and stores it, converted
+   into an S-Expression, in *KEY.  Returns proper error code.  */
+gcry_error_t card_read_key (int slot, card_key_t type,
+			    gcry_sexp_t *key, unsigned int *nbits);
 
 /* This function sends the PIN contained in PIN to the card accessed
    through SLOT.  WHICH specifies the type of PIN:
@@ -86,6 +98,25 @@ gcry_error_t card_pin_provide (int slot, int which, const unsigned char *pin);
    proper error code.  */
 gcry_error_t card_sign (int slot, const unsigned char *data, size_t data_n,
 			unsigned char **data_signed, size_t *data_signed_n);
+
+#if 0
+
+/* This functions requests the card acccessed trough SLOT to decrypt
+   the data in DATA of DATA_N bytes; the decrypted data is to be
+   stored in *DATA_DECRYPTED, it's length in bytes in
+   *DATA_DECRYPTED_N.  Returns proper error code.  */
+gcry_error_t card_decrypt (int slot, const unsigned char *data, size_t data_n,
+			   unsigned char **data_decrypted,
+			   size_t *data_decrypted_n);
+
+/* This function requests the card accessed through SLOT to sign the
+   data in DATA of DATA_N bytes with the authentication key; the
+   signature is to be stored in DATA_SIGNED, it's length in bytes in
+   *DATA_SIGNED_N.  Returns proper error code.  */
+gcry_error_t card_auth (int slot, const unsigned char *data, size_t data_n,
+			unsigned char **data_signed, size_t *data_signed_n);
+
+#endif
 
 #endif
 

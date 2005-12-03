@@ -20,7 +20,8 @@
 noinst_LIBRARIES = libpoldi-common.a
 
 libpoldi_common_a_SOURCES = \
-	card.c card.h support.c support.h options.c options.h
+	card.c card.h support.c support.h options.c options.h \
+	usersdb.c usersdb.h
 
 libpoldi_common_a_CFLAGS = \
 	-Wall -I$(top_builddir)/src/include \

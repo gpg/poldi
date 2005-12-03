@@ -24,7 +24,7 @@ min_automake_version="1.7.9"
 
 # Version number: Remember to change it immediately *after* a release.
 #                 Add a "-cvs" prefix for non-released code.
-AC_INIT(poldi, 0.3, gnupg-devel@gnupg.org)
+AC_INIT(poldi, 0.3-cvs, gnupg-devel@gnupg.org)
 
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
@@ -215,7 +215,8 @@ if test "$PAM_MODULE_DIRECTORY" = "$DEFAULT_PAM_MODULE_DIRECTORY"; then
    AC_MSG_WARN([
 **
 ** Warning: using default value ($DEFAULT_PAM_MODULE_DIRECTORY) as
-**          installation directory for PAM module.
+**          installation directory for PAM module; this is probably not
+**          what you want.
 **])
 else
   AC_MSG_NOTICE([PAM module installation directory: $PAM_MODULE_DIRECTORY])

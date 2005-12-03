@@ -23,6 +23,8 @@
 
 #include <gcrypt.h>
 
+#include <card.h>
+
 /* This function generates a challenge; the challenge will be stored
    in newly allocated memory, which is to be stored in *CHALLENGE;
    it's length in bytes is to be stored in *CHALLENGE_N.  Returns
@@ -37,12 +39,6 @@ gpg_error_t challenge_generate (unsigned char **challenge, size_t *challenge_n);
 gpg_error_t challenge_verify (gcry_sexp_t public_key,
 			      unsigned char *challenge, size_t challenge_n,
 			      unsigned char *response, size_t response_n);
-
-gpg_error_t usersdb_lookup_by_serialno (const char *serialno, char **username);
-gpg_error_t usersdb_lookup_by_username (const char *username, char **serialno);
-gpg_error_t usersdb_remove_entry (const char *username, const char *serialno,
-				  unsigned int *nentries);
-gpg_error_t usersdb_add_entry (const char *username, const char *serialno);
 
 /* This function converts the given S-Expression SEXP into it's
    `ADVANCED' string representation, using newly-allocated memory,
@@ -74,9 +70,9 @@ gpg_error_t key_filename_construct (char **filename, const char *serialno);
    getpwuid().  */
 gpg_error_t lookup_own_username (const char **username);
 
-/* Lookup the key belonging to the user specified by USERNAME.
-   Returns a proper error code.  */
-gpg_error_t key_lookup_by_username (const char *username, gcry_sexp_t *key);
+/* Lookup the key belonging the card specified by SERIALNO.  Returns a
+   proper error code.  */
+gpg_error_t key_lookup_by_serialno (const char *serialno, gcry_sexp_t *key);
 
 /* List of ``conversations types''; these are passed to functions of
    type ``conversation_cb_t''.  */
@@ -117,7 +113,8 @@ gpg_error_t authenticate (int card_slot, gcry_sexp_t key,
 gpg_error_t wait_for_card (int slot, int require_card_switch,
 			   unsigned int timeout, conversation_cb_t conv,
 			   void *opaque, char **serialno,
-			   unsigned int *card_version, char **fingerprint);
+			   unsigned int *card_version,
+			   card_key_t type, char **fingerprint);
 
 #endif
 

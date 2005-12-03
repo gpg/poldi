@@ -1,3 +1,52 @@
+2005-12-03  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (key_lookup_by_username): Removed function.
+	(key_lookup_by_serialno): New function.
+	(wait_for_card): New parameter: type; pass to card_info.
+
+	* support.h: Include <card.h>.
+	(wait_for_card): New parameter: card_key_t type.
+	(key_lookup_by_username): Removed function.
+	(key_lookup_by_serialno): New function.
+
+	* card.c: Include <card.h>.
+	(key_identifier_codes): New array.
+	(card_info): Adjust API; read-out fingerprint depending on new
+	TYPE parameter.
+	(card_decrypt, card_auth): New functions.
+
+	* card.h (card_key_t): New enumeration list.
+	(card_info): New parameter: card_kye_t type.
+	(card_decrypt, card_auth): Declare new functions.
+
+	* support.c, support.h: Moved usersdb-related code ...
+	* usersdb.c, usersdb.h: ... into these new files.
+	* Makefile.am (libpoldo_common_a_SOURCES): Added new files.
+
+2005-11-19  Moritz Schulte  <moritz@g10code.com>
+
+	* card.c (card_read_key): New parameter: *KEY_NBITS, fill with
+	size of RSA modulus in case it is non-NULL.
+	* card.h (card_read_key): Adjust API.
+
+2005-11-12  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (wait_for_card): New parameter: card_key_t type; pass
+	to card_info().
+	* support.h (wait_for_card): Adjust to new API.
+	Include <card.h>.
+
+	* card.h (card_key_t): New type.
+	(card_read_key): New parameter: card_key_t type.
+	(card_info): Likewise.
+
+	* card.c (key_identifier_codes): New static array.
+	(card_read_key): Adjust to new API; return error in case TYPE
+	contains an unknown type; lookup key code in KEY_IDENTIFIER_CODES
+	instead of hard-coding the code for the signature key.
+	Include <card.h>.
+	
+
 2005-10-31  Moritz Schulte  <moritz@g10code.com>
 
 	* support.c, support.h, card.c, card.h: Added code documentation.

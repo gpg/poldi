@@ -131,262 +131,11 @@ challenge_verify (gcry_sexp_t public_key,
   return err;
 }
 
-static gpg_error_t
-usersdb_translate (const char *serialno, const char *username, char **found)
-{
-  const char *delimiters = "\t\n ";
-  gpg_error_t err;
-  FILE *usersdb;
-  char *line;
-  char *line_serialno;
-  char *line_username;
-  char *token_found;
-  size_t line_n;
-  ssize_t ret;
+
 
-  err = 0;
-  line = NULL;
-  token_found = NULL;
-  line_serialno = NULL;
-  line_username = NULL;
-
-  usersdb = fopen (POLDI_USERS_DB_FILE, "r");
-  if (! usersdb)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-
-  while (1)
-    {
-      /* Get next line.  */
-      line = NULL;
-      line_n = 0;
-      ret = getline (&line, &line_n, usersdb);
-      if (ret == -1)
-	{
-	  if (ferror (usersdb))
-	    err = gpg_error_from_errno (errno);
-	  else
-	    err = gpg_error (GPG_ERR_NOT_FOUND);
-	  break;
-	}
-
-      line_serialno = strtok (line, delimiters);
-      line_username = strtok (NULL, delimiters);
-
-      if (line_serialno && line_username)
-	{
-	  /* Only process this line in case it is `valid' (contains of
-	     two tokens).  */
-
-	  if (serialno)
-	    {
-	      if (! strcmp (serialno, line_serialno))
-		{
-		  if (found)
-		    {
-		      token_found = strdup (line_username);
-		      if (! token_found)
-			err = gpg_error_from_errno (errno);
-		    }
-		  break;
-		}
-	    }
-	  else
-	    {
-	      if (! strcmp (username, line_username))
-		{
-		  if (found)
-		    {
-		      token_found = strdup (line_serialno);
-		      if (! token_found)
-			err = gpg_error_from_errno (errno);
-		    }
-		  break;
-		}
-	    }
-	}
-
-      free (line);
-    }
-  if (err)
-    goto out;
-
-  if (found)
-    *found = token_found;
-
- out:
-
-  if (usersdb)
-    fclose (usersdb);
-  free (line);
-
-  return err;
-}
-
-gpg_error_t
-usersdb_lookup_by_serialno (const char *serialno, char **username)
-{
-  return usersdb_translate (serialno, NULL, username);
-}
-
-gpg_error_t
-usersdb_lookup_by_username (const char *username, char **serialno)
-{
-  return usersdb_translate (NULL, username, serialno);
-}
-
-gpg_error_t
-usersdb_add_entry (const char *username, const char *serialno)
-{
-  char users_file[] = POLDI_USERS_DB_FILE;
-  FILE *users_file_fp;
-  gpg_error_t err;
-  int ret;
-
-  users_file_fp = NULL;
-  
-  users_file_fp = fopen (users_file, "a");
-  if (! users_file_fp)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-
-  fprintf (users_file_fp, "%s\t%s\n", serialno, username);
-  if (ferror (users_file_fp))
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-  
-  ret = fclose (users_file_fp);
-  users_file_fp = NULL;
-  if (ret)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-  
-  err = 0;
-
- out:
-
-  if (users_file_fp)
-    fclose (users_file_fp);
-
-  return err;
-}
-
-gpg_error_t
-usersdb_remove_entry (const char *username, const char *serialno,
-		      unsigned int *nentries)
-{
-  char users_file_old[] = POLDI_USERS_DB_FILE;
-  char users_file_new[] = POLDI_USERS_DB_FILE ".new";
-  unsigned int nentries_removed;
-  char delimiters[] = "\t\n ";
-  FILE *users_file_old_fp;
-  FILE *users_file_new_fp;
-  char *line;
-  char *line_serialno;
-  char *line_username;
-  size_t line_n;
-  ssize_t ret;
-  gpg_error_t err;
-
-  line_n = 0;
-  line = NULL;
-  users_file_old_fp = NULL;
-  users_file_new_fp = NULL;
-
-  assert (username || serialno);
-
-  users_file_old_fp = fopen (users_file_old, "r");
-  if (! users_file_old_fp)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-  users_file_new_fp = fopen (users_file_new, "w");
-  if (! users_file_new_fp)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-
-  nentries_removed = 0;
-  err = 0;
-
-  while (1)
-    {
-      ret = getline (&line, &line_n, users_file_old_fp);
-      if (ret == -1)
-	{
-	  if (ferror (users_file_old_fp))
-	    err = gpg_error_from_errno (errno);
-	  break;
-	}
-
-      line_serialno = strtok (line, delimiters);
-      line_username = strtok (NULL, delimiters);
-
-      if (line_serialno && line_username)
-	{
-	  /* Complete line (consisting of two tokens).  */
-
-	  if ((username && strcmp (username, line_username))
-	      || (serialno && strcmp (serialno, line_serialno)))
-	    fprintf (users_file_new_fp, "%s\t%s\n",
-		     line_serialno, line_username);
-	  else
-	    nentries_removed++;
-	}
-      else
-	{
-	  /* Incomplete line (less than two tokens), pass through.  */
-
-	  fprintf (users_file_new_fp, "%s\n",
-		   line_serialno ? line_serialno : "");
-	}
-
-      free (line);
-      line = NULL;
-      line_n = 0;
-    }
-
-  fclose (users_file_old_fp);	/* FIXME: it's alright to ignore
-				   errors here, right?  */
-  users_file_old_fp = NULL;
-  
-  ret = fclose (users_file_new_fp);
-  users_file_new_fp = NULL;
-  if (ret)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-
-  ret = rename (users_file_new, users_file_old);
-  if (ret == -1)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
-
-  *nentries = nentries_removed;
-
- out:
-
-  free (line);
-  if (users_file_old_fp)
-    fclose (users_file_old_fp);
-  if (users_file_new_fp)
-    fclose (users_file_new_fp);
-
-  return err;
-}
+/*
+ * S-Expression conversion.
+ */
 
 /* This function converts the given S-Expression SEXP into it's
    `ADVANCED' string representation, using newly-allocated memory,
@@ -556,28 +305,18 @@ lookup_own_username (const char **username)
   return err;
 }
 
-/* Lookup the key belonging to the user specified by USERNAME.
-   Returns a proper error code.  */
+/* Lookup the key belonging the card specified by SERIALNO.  Returns a
+   proper error code.  */
 gpg_error_t
-key_lookup_by_username (const char *username, gcry_sexp_t *key)
+key_lookup_by_serialno (const char *serialno, gcry_sexp_t *key)
 {
   gcry_sexp_t key_sexp;
   char *key_string;
   char *key_path;
-  char *serialno;
   gpg_error_t err;
 
-  serialno = NULL;
   key_path = NULL;
   key_string = NULL;
-
-  err = usersdb_lookup_by_username (username, &serialno);
-  if (err)
-    {
-      log_error ("Error: failed to lookup serial number for user `%s': %s\n",
-		 username, gpg_strerror (err));
-      goto out;
-    }
 
   err = key_filename_construct (&key_path, serialno);
   if (err)
@@ -613,7 +352,6 @@ key_lookup_by_username (const char *username, gcry_sexp_t *key)
 
   free (key_path);
   free (key_string);
-  free (serialno);
 
   return err;
 }
@@ -659,6 +397,8 @@ authenticate (int card_slot, gcry_sexp_t key,
 		 gpg_strerror (err));
       goto out;
     }
+
+  /* FIXME: size of challenge should be provieded.  */
 
   /* Generate challenge.  */
   err = challenge_generate (&challenge, &challenge_n);
@@ -708,7 +448,8 @@ authenticate (int card_slot, gcry_sexp_t key,
 gpg_error_t
 wait_for_card (int slot, int require_card_switch, unsigned int timeout,
 	       conversation_cb_t conv, void *opaque, char **serialno,
-	       unsigned int *card_version, char **fingerprint)
+	       unsigned int *card_version,
+	       card_key_t type, char **fingerprint)
 {
   gpg_error_t err;
 
@@ -728,7 +469,7 @@ wait_for_card (int slot, int require_card_switch, unsigned int timeout,
       goto out;
     }
 
-  err = card_info (slot, serialno, card_version, fingerprint);
+  err = card_info (slot, serialno, card_version, type, fingerprint);
   if (err)
     {
       log_error ("Error: failed to retrieve card information: %s\n",

@@ -1,3 +1,29 @@
+2005-12-03  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c: Include <assert.h>, <common/usersdb.h>.
+	(ask_user): New function.
+	(cmd_test): Mostly rewritten.
+	(cmd_list): Removed function body; add call to usersdb_list.
+	(cmd_add, cmd_remove): Stripped.
+	Adjusted to new usersdb API.
+
+	* poldi-ctrl.c (cmd_add_user): Removed exit calls.
+	(cmd_remove_user): Likewise.
+
+2005-11-19  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c (cmd_dump): Retrive key size information through
+	card_read_key, print key size.
+	(cmd_set_key): Adjust to card_read_key API.
+
+2005-11-12  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c (cmd_test): Adjust to new wait_for_card() API.
+	(cmd_set_key, cmd_dump): Adjust to new card_info() API.
+
+	* Makefile.am (poldi_ctrl_CFLAGS): Added include path:
+	$(top_srcdir)/src/common.
+
 2005-10-31  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi-ctrl.c (cmd_test): Adjusted to new wait_for_card() API.

@@ -22,6 +22,7 @@ PAM_MODULE_DIRECTORY = @PAM_MODULE_DIRECTORY@
 AM_CFLAGS = \
 	-Wall -fPIC \
 	-I$(top_srcdir)/src -I$(top_builddir)/src -I$(top_builddir) \
+	-I$(top_srcdir)/src/common \
 	 $(LIBGCRYPT_CFLAGS) $(GPG_ERROR_CFLAGS)
 
 pam_poldi.o: pam_poldi.c

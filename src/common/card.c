@@ -38,13 +38,30 @@
 
 #include "options.h"
 #include <../jnlib/xmalloc.h>
+#include <../jnlib/logging.h>
 
 #include <syslog.h>
+
+#include <card.h>
+
+
 
 /* To help tracking changed cards we use this counter and save the
    last known status.  */
 static unsigned int change_counter;
 static unsigned int last_status;
+
+  /* This list matches card_key_t defined in card.h.  */
+static struct
+{
+  const char *code;
+} key_identifier_codes[] =
+  {
+    { NULL },
+    { "\xB6" },
+    { "\xB8" },
+    { "\xA4" }
+  };
 
 /* This functions opens the card terminal specified by PORT.  On
    success an according handle, the slot ID, will be stored in *SLOT.
@@ -197,7 +214,8 @@ card_close (int slot)
    Returns proper error code.  */
 gpg_error_t
 card_info (int slot, char **serial_no,
-	   unsigned int *card_version, char **fingerprint)
+	   unsigned int *card_version,
+	   card_key_t type, char **fingerprint)
 {
   size_t fingerprint_new_n;
   char *fingerprint_new;
@@ -214,6 +232,21 @@ card_info (int slot, char **serial_no,
   serial_no_new = NULL;
   version = 0;
   err = 0;
+
+  if (! (0
+	 || (type == CARD_KEY_NONE)
+	 || (type == CARD_KEY_SIG)
+	 || (type == CARD_KEY_ENC)
+	 || (type == CARD_KEY_AUTH)))
+    {
+      err = gpg_error (GPG_ERR_INV_ARG);
+      goto out;
+    }
+  if ((type == CARD_KEY_NONE) && fingerprint)
+    {
+      err = gpg_error (GPG_ERR_INV_ARG);
+      goto out;
+    }
 
   if (serial_no || card_version)
     {
@@ -273,9 +306,34 @@ card_info (int slot, char **serial_no,
 	}
 
       if (! err)
-	/* Copy out third key FPR.  */
-	for (i = 0; i < 20; i++)
-	  sprintf (fingerprint_new + (i * 2), "%02X", (value + (2 * 20))[i]);
+	{
+	  unsigned int keypos;
+
+	/* Copy out key FPR.  */
+	  switch (type)
+	    {
+	    case CARD_KEY_SIG:
+	      keypos = 0;
+	      break;
+
+	    case CARD_KEY_ENC:
+	      keypos = 1;
+	      break;
+
+	    case CARD_KEY_AUTH:
+	      keypos = 2;
+	      break;
+
+	    default:
+	      /* Not possible.  */
+	      keypos = 0;
+	      break;
+	    }
+	     
+	  for (i = 0; i < 20; i++)
+	    sprintf (fingerprint_new + (i * 2),
+		     "%02X", (value + (keypos * 20))[i]);
+	}
 
       free (data);
       if (err)
@@ -306,7 +364,8 @@ card_info (int slot, char **serial_no,
    accessed through SLOT and stores it, converted into an
    S-Expression, in *KEY.  Returns proper error code.  */
 gpg_error_t
-card_read_key (int slot, gcry_sexp_t *key)
+card_read_key (int slot, card_key_t type,
+	       gcry_sexp_t *key, unsigned int *key_nbits)
 {
   const unsigned char *data;
   const unsigned char *e;
@@ -321,6 +380,7 @@ card_read_key (int slot, gcry_sexp_t *key)
   int rc;
   gpg_error_t err;
   gcry_sexp_t key_sexp;
+  unsigned int nbits;
 
   buffer = NULL;
   data = NULL;
@@ -330,7 +390,17 @@ card_read_key (int slot, gcry_sexp_t *key)
   n_mpi = NULL;
   key_sexp = NULL;
 
-  rc = iso7816_read_public_key (slot, "\xA4", 2, &buffer, &buffer_n);
+  if (! (0
+	 || (type == CARD_KEY_SIG)
+	 || (type == CARD_KEY_ENC)
+	 || (type == CARD_KEY_AUTH)))
+    {
+      err = gpg_error (GPG_ERR_INV_ARG);
+      goto out;
+    }
+
+  rc = iso7816_read_public_key (slot, key_identifier_codes[type].code,
+				2, &buffer, &buffer_n);
   if (rc)
     {
       err = gpg_error (GPG_ERR_CARD);
@@ -369,12 +439,20 @@ card_read_key (int slot, gcry_sexp_t *key)
   if (err)
     goto out;
 
+  if (key_nbits)
+    nbits = gcry_mpi_get_nbits (n_mpi);
+  else
+    /* Silence compiler.  */
+    nbits = 0;
+
   err = gcry_sexp_build (&key_sexp, NULL,
 			 "(public-key (rsa (n %m) (e %m)))", n_mpi, e_mpi);
   if (err)
     goto out;
 
   *key = key_sexp;
+  if (key_nbits)
+    *key_nbits = nbits;
 
  out:
 
@@ -442,6 +520,8 @@ card_sign (int slot, const unsigned char *data, size_t data_n,
 	err = GPG_ERR_ENOMEM;
     }
 
+  /* FIXME: this function should use  */
+
   if (! err)
     {
       memcpy (digestinfo, md_asn, md_asn_n);
@@ -456,5 +536,93 @@ card_sign (int slot, const unsigned char *data, size_t data_n,
 
   return err;
 }
+
+#if 0
+
+/* This functions requests the card acccessed trough SLOT to decrypt
+   the data in DATA of DATA_N bytes; the decrypted data is to be
+   stored in *DATA_DECRYPTED, it's length in bytes in
+   *DATA_DECRYPTED_N.  Returns proper error code.  */
+gcry_error_t
+card_decrypt (int slot, const unsigned char *data, size_t data_n,
+	      unsigned char **data_decrypted,
+	      size_t *data_decrypted_n)
+{
+  gcry_ac_eme_pkcs_v1_5_t encoding_spec;
+  unsigned char *data_encoded;
+  size_t data_encoded_n;
+  gcry_ac_io_t io_write;
+  gcry_ac_io_t io_read;
+  gcry_error_t err;
+
+  data_encoded = NULL;
+
+  /* Decrypt, storing decrypted but still encoded data in
+     DATA_ENCODED.  */
+  err = iso7816_decipher (slot, data, data_n, 0,
+			  &data_encoded, &data_encoded_n);
+  if (err)
+    {
+      log_error ("Error: iso7816_decipher() returned: %s\n",
+		 gcry_strerror (err));
+      goto out;
+    }
+
+  gcry_ac_io_init (&io_read, GCRY_AC_IO_READABLE, GCRY_AC_IO_STRING,
+		   data_encoded, data_encoded_n);
+  gcry_ac_io_init (&io_write, GCRY_AC_IO_WRITABLE, GCRY_AC_IO_STRING,
+		   data_decrypted, data_decrypted_n);
+
+  /* FIXME, do not hard-code.  */
+  encoding_spec.key_size = 1024;
+
+  err = gcry_ac_data_encode (GCRY_AC_EME_PKCS_V1_5, 0, &encoding_spec,
+			     &io_read, &io_write);
+
+ out:
+
+  free (data_encoded);
+
+  return err;
+}
+
+/* This function requests the card accessed through SLOT to sign the
+   data in DATA of DATA_N bytes with the authentication key; the
+   signature is to be stored in DATA_SIGNED, it's length in bytes in
+   *DATA_SIGNED_N.  Returns proper error code.  */
+gcry_error_t
+card_auth (int slot, const unsigned char *data, size_t data_n,
+	   unsigned char **data_signed, size_t *data_signed_n)
+{
+  gpg_error_t err = GPG_ERR_NO_ERROR;
+  unsigned char *digestinfo = NULL;
+  size_t digestinfo_n = 0;
+  unsigned char md_asn[100] = {};
+  size_t md_asn_n = sizeof (md_asn);
+
+  err = gcry_md_get_asnoid (GCRY_MD_SHA1, md_asn, &md_asn_n);
+  if (! err)
+    {
+      digestinfo_n = md_asn_n + data_n;
+      digestinfo = malloc (digestinfo_n);
+      if (! digestinfo)
+	err = gpg_error_from_errno (errno);
+    }
+
+  if (! err)
+    {
+      memcpy (digestinfo, md_asn, md_asn_n);
+      memcpy (digestinfo + md_asn_n, data, data_n);
+      
+      err = iso7816_internal_authenticate (slot, digestinfo, digestinfo_n,
+					   data_signed, data_signed_n);
+    }
+
+  if (digestinfo)
+    free (digestinfo);
+
+  return err;
+}
+#endif
 
 /* END */

@@ -108,9 +108,6 @@ Poldi is package consisting of a PAM module (pam_poldi) and a CLI
 program (poldi-ctrl) , which implement authentication via OpenPGP
 smartcards (http://www.g10code.de/p-card.html).
 
-Poldi expects a 1:1 mapping between Unix accounts and smartcards; this
-mapping can be established with the help of poldi-ctrl.
-
 @node Building
 @section Building
 

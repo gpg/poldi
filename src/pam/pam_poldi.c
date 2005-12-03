@@ -1,4 +1,4 @@
-/* poldi.c - PAM authentication via OpenPGP smartcards.
+/* pam_poldi.c - PAM authentication via OpenPGP smartcards.
    Copyright (C) 2004, 2005 g10 Code GmbH
  
    This file is part of Poldi.
@@ -38,6 +38,7 @@
 #include <common/options.h>
 #include <common/card.h>
 #include <common/defs.h>
+#include <common/usersdb.h>
 #include <libscd/scd.h>
 
 
@@ -208,15 +209,21 @@ typedef struct conv_opaque
    user's response will be stored in *RESPONSE.  Returns proper error
    code.  */
 static gpg_error_t
-ask_user (const struct pam_conv *conv, const char *text, char **response)
+ask_user (int secret,
+	  const struct pam_conv *conv, const char *text, char **response)
 {
-  struct pam_message messages[1] = { { PAM_PROMPT_ECHO_OFF, text } };
+  struct pam_message messages[1] = { { 0, text } };
   const struct pam_message *pmessages[1] = { &messages[0] };
   struct pam_response *responses = NULL;
   char *response_new;
   gpg_error_t err;
   int ret;
 
+  if (secret)
+    messages[0].msg_style = PAM_PROMPT_ECHO_OFF;
+  else
+    messages[0].msg_style = PAM_PROMPT_ECHO_ON;
+  
   response_new = NULL;
 
   ret = (*conv->conv) (sizeof (messages) / (sizeof (*messages)), pmessages,
@@ -305,7 +312,7 @@ pam_conversation (conversation_type_t type, void *opaque,
       break;
 
     case CONVERSATION_ASK_SECRET:
-      err = ask_user (conv_opaque->conv, info, response);
+      err = ask_user (1, conv_opaque->conv, info, response);
       break;
 
     default:
@@ -380,6 +387,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   int slot;
   int ret;
 
+  username = NULL;
   serialno = NULL;
   account = NULL;
   slot = -1;
@@ -468,116 +476,70 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
    * Process authentication request.
    */
 
-  if (username)
+  /* Wait for card.  */
+  err = wait_for_card (slot, pam_poldi_opt.require_card_switch,
+		       pam_poldi_opt.wait_timeout,
+		       pam_conversation, &conv_opaque, &serialno,
+		       NULL, CARD_KEY_NONE, NULL);
+  if (err)
+    goto out;
+
+  if (! username)
     {
-      /* We got a username from PAM, thus we are waiting for a
-	 specific card.  */
+      /* We didn't receive a username from PAM, therefore we need to
+	 figure it out somehow...  */
 
-      /* We do not need the key right now already, but it seems to be
-	 a good idea to make the login fail before waiting for card in
-	 case no key has been installed for that card.  */
-      err = key_lookup_by_username (username, &key);
-      if (err)
-	goto out;
-
-      /* Wait for card.  */
-      err = wait_for_card (slot, pam_poldi_opt.require_card_switch,
-			   pam_poldi_opt.wait_timeout,
-			   pam_conversation, &conv_opaque, &serialno,
-			   NULL, NULL);
-      if (err)
-	goto out;
-
-      /* Lookup account for given card.  */
       err = usersdb_lookup_by_serialno (serialno, &account);
-      if (err || strcmp (account, username))
+      if (gcry_err_code (err) == GPG_ERR_AMBIGUOUS_NAME)
 	{
-	  /* Either the account could not be found or it is not the
-	     expected one -> fail.  */
-
-	  if (! err)
-	    {
-	      tell_user (conv, "Serial no %s is not associated with %s",
-			 serialno, username);
-	      err = gpg_error (GPG_ERR_INV_NAME);
-	    }
-	  else
-	    log_error ("Error: failed to lookup username for "
-		       "serial number `%s': %s\n",
-		       serialno, gpg_strerror (err));
-	}
-      else
-	{
-	  /* Inform user about inserted card.  */
-	
-	  err = tell_user (conv, "Serial no: %s", serialno);
-	  if (err)
-	    log_error ("Error: failed to inform user about inserted card: %s\n",
-		       gpg_strerror (err));
+	  err = 0;		/* FIXME */
+	  ask_user (0, conv, "Need to figure out username: ", &account);
 	}
 
       if (err)
 	goto out;
 
-      /* It is the correct card, try authentication with given
-	 key.  */
-      err = authenticate (slot, key, pam_conversation, &conv_opaque);
-      if (err)
-	goto out;
+      username = account;
     }
-  else
+
+  /* FIXME: quiet?  */
+  tell_user (conv, "Trying authentication as user `%s'...", username);
+
+  /* Check if the given account is associated with the serial
+     number.  */
+  err = usersdb_check (serialno, username);
+  if (err)
     {
-      /* No username has been provided by PAM, thus we accept any
-	 card.  */
+      tell_user (conv, "Serial no %s is not associated with %s\n",
+		 serialno, username);
+      err = gcry_error (GPG_ERR_INV_NAME);
+      goto out;
+    }
 
-      /* Wait for card.  */
-      err = wait_for_card (slot, pam_poldi_opt.require_card_switch,
-			   pam_poldi_opt.wait_timeout,
-			   pam_conversation, &conv_opaque, &serialno,
-			   NULL, NULL);
-      if (err)
-	goto out;
+  /* Retrieve key belonging to card.  */
+  err = key_lookup_by_serialno (serialno, &key);
+  if (err)
+    goto out;
 
-      /* Inform user about inserted card.  */
-      err = tell_user (conv, "Serial no: %s", serialno);
-      if (err)
-	{
-	  log_error ("Error: failed to inform user about inserted card: %s\n",
-		     gpg_strerror (err));
-	  goto out;
-	}
+  /* Inform user about inserted card.  */
 
-      /* Lookup account for inserted card.  */
-      err = usersdb_lookup_by_serialno (serialno, &account);
-      if (err)
-	{
-	  log_error ("Error: failed to lookup username for "
-		     "serial number `%s': %s\n",
-		     serialno, gpg_strerror (err));
-	  goto out;
-	}
+  err = tell_user (conv, "Serial no: %s", serialno);
+  if (err)
+    {
+      /* FIXME?? do we need this?  */
+      log_error ("Error: failed to inform user about inserted card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
-      /* Inform user about looked up account.  */
-      err = tell_user (conv, "Account: %s", account);
-      if (err)
-	{
-	  log_error ("Error: failed to inform user about inserted card: %s\n",
-		     gpg_strerror (err));
-	  goto out;
-	}
+  err = authenticate (slot, key, pam_conversation, &conv_opaque);
+  if (err)
+    goto out;
 
-      /* Lookup key for looked up account.  */
-      err = key_lookup_by_username (account, &key);
-      if (err)
-	goto out;
-
-      /* Try authentication with looked up key.  */
-      err = authenticate (slot, key, pam_conversation, &conv_opaque);
-      if (err)
-	goto out;
-
+  if (username == account)
+    {
       /* Make username available to application.  */
-      ret = pam_set_item (pam_handle, PAM_USER, account);
+      ret = pam_set_item (pam_handle, PAM_USER, username);
       if (ret != PAM_SUCCESS)
 	{
 	  err = gpg_error (GPG_ERR_INTERNAL);
@@ -592,7 +554,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   /* Release resources.  */
   gcry_sexp_release (key);
   free (serialno);
-  free (account);
+  if (username == account)
+    free (account);
   if (slot != -1)
     card_close (slot);
 

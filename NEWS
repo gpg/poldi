@@ -2,8 +2,14 @@
 
 Changes since version 0.2:
 
-* Better support for Version 0x0101 cards (no Admin PIN necessary for
-  public key retrival).
+* Smartcard to account mapping:
+  In the past, Poldi implemented a 1:1 mapping between smartcards and
+  system accounts.  As of now, Poldi implements a M:N mapping, meaning
+  that one user can have multiple cards and that several users can
+  share a card.
+
+* Better support for Version 0x0101 cards:
+  no Admin PIN necessary for public key retrival).
 
 * Work around a problem in libpam_misc, which causes the PIN prompt to
   appear to late.
