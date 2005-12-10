@@ -8,8 +8,15 @@ Changes since version 0.2:
   that one user can have multiple cards and that several users can
   share a card.
 
+  Instead of "add-user" and "remove-user" commands we now have:
+   - "register-card"
+   - "unregister-card"
+   - "list-cards"
+   - "associate"
+   - "disassociate".
+
 * Better support for Version 0x0101 cards:
-  no Admin PIN necessary for public key retrival).
+  no Admin PIN necessary for public key retrival.
 
 * Work around a problem in libpam_misc, which causes the PIN prompt to
   appear to late.

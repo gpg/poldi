@@ -41,6 +41,10 @@
 
 
 
+#define KEY_FILE_CREATE_MODE 0644
+
+
+
 /* Global flags.  */
 struct poldi_ctrl_opt
 {
@@ -51,7 +55,8 @@ struct poldi_ctrl_opt
   char *pcsc_driver;  /* Library to access the PC/SC system. */
   char *reader_port;  /* NULL or reder port to use. */
   int disable_opensc;  /* Disable the use of the OpenSC framework. */
-  int disable_ccid;    /* Disable the use of the internal CCID driver. */
+  int disable_ccid;    /* Disable the use of the internal CCID
+			  driver. */
   int debug_ccid_driver;	/* Debug the internal CCID driver.  */
   char *config_file;
   char *account;
@@ -59,11 +64,14 @@ struct poldi_ctrl_opt
   int require_card_switch;
   int cmd_test;
   int cmd_dump;
+  int cmd_register_card;
+  int cmd_unregister_card;
   int cmd_set_key;
   int cmd_show_key;
-  int cmd_add_user;
-  int cmd_remove_user;
   int cmd_list_users;
+  int cmd_list_cards;
+  int cmd_associate;
+  int cmd_disassociate;
   unsigned int wait_timeout;
 } poldi_ctrl_opt;
 
@@ -89,6 +97,9 @@ struct poldi_ctrl_opt poldi_ctrl_opt =
     0,
     0,
     0,
+    0,
+    0,
+    0,
     0
   };
 
@@ -96,12 +107,20 @@ enum arg_opt_ids
   {
     arg_test = 't',
     arg_dump = 'd',
+
+    arg_register_card = 'r',
+    arg_unregister_card = 'u',
+    arg_list_cards = 'l',
+
     arg_set_key = 's',
     arg_show_key = 'k',
-    arg_add_user  = 'a',
-    arg_remove_user  = 'r',
-    arg_list_users  = 'l',
+
+    arg_associate = 'a',
+    arg_disassociate = 'D',
+    arg_list_users  = 'L',
+
     arg_config_file = 'c',
+
     arg_ctapi_driver = 500,
     arg_account,
     arg_serialno,
@@ -124,12 +143,18 @@ static ARGPARSE_OPTS arg_opts[] =
       "test",        256, "Test authentication"                },
     { arg_dump,
       "dump",        256, "Dump certain card information"      },
-    { arg_add_user,
-      "add-user",    256, "Add account to users db"            },
-    { arg_remove_user,
-      "remove-user",    256, "Remove account from users db"    },
+    { arg_register_card,
+      "register-card",    256, "Register new smartcard"        },
+    { arg_unregister_card,
+      "unregister-card", 256,  "Unregister smartcard"          },
+    { arg_list_cards,
+      "list-cards", 256,  "List registered smartcards"         },
     { arg_list_users,
       "list-users",    256, "List accounts from users db"      },
+    { arg_associate,
+      "associate",     256, "Associate user with smartcard"    },
+    { arg_disassociate,
+      "disassociate",     256, "Disassociate a user from smartcard"      },
     { arg_set_key,
       "set-key",     256, "Set key for calling user"           },
     { arg_show_key,
@@ -233,6 +258,16 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 	poldi_ctrl_opt.cmd_set_key = 1;
       break;
 
+    case arg_associate:
+      if (parsing_stage)
+	poldi_ctrl_opt.cmd_associate = 1;
+      break;
+
+    case arg_disassociate:
+      if (parsing_stage)
+	poldi_ctrl_opt.cmd_disassociate = 1;
+      break;
+
     case arg_show_key:
       if (parsing_stage)
 	poldi_ctrl_opt.cmd_show_key = 1;
@@ -243,14 +278,19 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 	poldi_ctrl_opt.cmd_dump = 1;
       break;
 
-    case arg_add_user:
+    case arg_register_card:
       if (parsing_stage)
-	poldi_ctrl_opt.cmd_add_user = 1;
+	poldi_ctrl_opt.cmd_register_card = 1;
       break;
 
-    case arg_remove_user:
+    case arg_unregister_card:
       if (parsing_stage)
-	poldi_ctrl_opt.cmd_remove_user = 1;
+	poldi_ctrl_opt.cmd_unregister_card = 1;
+      break;
+
+    case arg_list_cards:
+      if (parsing_stage)
+	poldi_ctrl_opt.cmd_list_cards = 1;
       break;
 
     case arg_list_users:
@@ -344,26 +384,41 @@ ask_user (const char *prompt, char **answer)
   fprintf (stderr, "%s: ", prompt);
   fflush (stderr);
 
+  /* Read single line of data.  */
+
   buffer = NULL;
   buffer_n = 0;
-
   ret = getline (&buffer, &buffer_n, stdin);
   if (ret == -1)
     {
       if (ferror (stdin))
 	err = gcry_error_from_errno (errno);
       else
-	err = gcry_error (GPG_ERR_INTERNAL); /* FIXME. */
+	err = gcry_error (GPG_ERR_NO_DATA);
       goto out;
     }
   else
     err = 0;
 
+  /* We got a line of data.  */
+
+  /* Remove newline.  */
+
   c = strchr (buffer, '\n');
   if (c)
     *c = '\0';
 
-  *answer = buffer;
+  if (! strlen (buffer))
+    {
+      /* If this yields an empty line, bail out.  */
+
+      free (buffer);
+      buffer_n = 0;
+      buffer = NULL;
+      err = gcry_error (GPG_ERR_INV_NAME);
+    }
+  else
+    *answer = buffer;
 
  out:
 
@@ -398,14 +453,19 @@ key_file_create (struct passwd *pwent, const char *serialno)
       goto out;
     }
 
-  fd = open (path, O_WRONLY | O_CREAT, 0644);
+  fd = open (path, O_WRONLY | O_CREAT | O_EXCL, KEY_FILE_CREATE_MODE);
   if (fd == -1)
     {
-      /* FIXME: do not fail in case the file does already exist.
-	 instead just skip.  */
-      err = gpg_error_from_errno (errno);
-      log_error ("Error: failed to open key file `%s': %s\n",
-		 path, gpg_strerror (err));
+      err = gcry_error_from_errno (errno);
+      if (gcry_err_code (err) == GPG_ERR_EEXIST)
+	{
+	  log_error ("Warning: key file `%s' does already exist, skipping\n",
+		     path);
+	  err = 0;
+	}
+      else
+	log_error ("Error: failed to open key file `%s' for writing: %s\n",
+		   path, gcry_strerror (err));
       goto out;
     }
 
@@ -418,22 +478,27 @@ key_file_create (struct passwd *pwent, const char *serialno)
       goto out;
     }
 
-  ret = stat (path, &statbuf);
-  if (ret == -1)
+  if (pwent)
     {
-      err = gpg_error_from_errno (errno);
-      log_error ("Error: failed to stat key file `%s': %s\n",
-		 path, gpg_strerror (err));
-      goto out;
-    }
+      /* Adjust access control.  */
 
-  ret = chown (path, pwent->pw_uid, statbuf.st_gid);
-  if (ret == -1)
-    {
-      err = gpg_error_from_errno (errno);
-      log_error ("Error: failed to chown key file `%s' to (%i, %i): %s\n",
-		 path, pwent->pw_uid, statbuf.st_gid, gpg_strerror (err));
-      goto out;
+      ret = stat (path, &statbuf);
+      if (ret == -1)
+	{
+	  err = gpg_error_from_errno (errno);
+	  log_error ("Error: failed to stat key file `%s': %s\n",
+		     path, gpg_strerror (err));
+	  goto out;
+	}
+
+      ret = chown (path, pwent->pw_uid, statbuf.st_gid);
+      if (ret == -1)
+	{
+	  err = gpg_error_from_errno (errno);
+	  log_error ("Warning: failed to chown key file `%s' to (%i, %i): %s\n",
+		     path, pwent->pw_uid, statbuf.st_gid, gpg_strerror (err));
+	  goto out;
+	}
     }
 
   err = 0;
@@ -562,9 +627,9 @@ cmd_test (void)
   if (err)
     goto out;
 
-  /* FIXME: quiet?  */
-  printf ("Serial No: %s\n", serialno);
-  printf ("Card version: %u\n", version);
+  printf ("Serial No: %s\n"
+	  "Card version: %u\n",
+	  serialno, version);
 
   if (poldi_ctrl_opt.account)
     account = poldi_ctrl_opt.account;
@@ -578,7 +643,6 @@ cmd_test (void)
 	goto out;
     }
 
-  /* FIXME: quiet?  */
   printf ("Trying authentication as `%s'...\n", account);
 
   /* Check if the given account is associated with the serial
@@ -721,12 +785,13 @@ cmd_dump (void)
       goto out;
     }
 
-  printf ("Slot: %i\n", slot);
-  printf ("Serial number: %s\n", serialno);
-  printf ("Version: 0x%X\n", version);
-  printf ("Signing key fingerprint: %s\n", fingerprint);
-  printf ("Key size: %u\n", key_nbits);
-  printf ("Key:\n%s\n", key_s);
+  printf ("Slot: %i\n"
+	  "Serial number: %s\n"
+	  "Version: 0x%X\n"
+	  "Signing key fingerprint: %s\n"
+	  "Key size: %u\n"
+	  "Key:\n%s\n",
+	  slot, serialno, version, fingerprint, key_nbits, key_s);
 
  out:
 
@@ -758,10 +823,120 @@ cmd_list_users (void)
 
 
 
-/* Implementation of `add-user' command; add a user for Poldi
-   authentication.  */
+/* Implementation of `register-card' command.  */
 static gpg_error_t
-cmd_add_user (void)
+cmd_register_card (void)
+{
+  struct passwd *pwent;
+  gpg_error_t err;
+  char *serialno;
+  char *account;
+
+  serialno = poldi_ctrl_opt.serialno;
+  account = poldi_ctrl_opt.account;
+
+  if (! serialno)
+    {
+      log_error ("Error: serial number needs to be given\n");
+      err = gcry_error (GPG_ERR_INV_PARAMETER);
+      goto out;
+    }
+
+  if (! account)
+    {
+      log_error ("Warning: no account specified, therefore the key "
+		 "file will be owned by the current user\n");
+      pwent = NULL;
+    }
+  else
+    {
+      /* Lookup user in password database.  */
+
+      pwent = getpwnam (account);
+      if (! pwent)
+	{
+	  log_error ("Error: unknown user `%s'\n", account);
+	  err = gcry_error (GPG_ERR_INV_NAME);
+	  goto out;
+	}
+    }
+
+  /* Create empty key file.  */
+
+  err = key_file_create (pwent, serialno);
+  if (err)
+    {
+      log_error ("Error: failed to create key file for "
+		 "serial number: %s\n",
+		 serialno);
+      goto out;
+    }
+
+ out:
+
+  return err;
+}
+
+/* Implementation of `unregister-card' command.  */
+static gpg_error_t
+cmd_unregister_card (void)
+{
+  gpg_error_t err;
+
+  if (! poldi_ctrl_opt.serialno)
+    {
+      fprintf (stderr, "Error: serial number needs to be given\n");
+      err = gcry_error (GPG_ERR_INV_PARAMETER);
+      goto out;
+    }
+
+  /* FIXME: print warning in case accounts are still connected with
+     that card?  */
+
+  err = key_file_remove (poldi_ctrl_opt.serialno);
+  if (err)
+    {
+      log_error ("Error: failed to remove key file for "
+		 "serial number `%s': %s\n",
+		 poldi_ctrl_opt.serialno, gpg_strerror (err));
+      goto out;
+    }
+
+ out:
+
+  return err;
+}
+
+
+
+static gpg_error_t
+directory_process_cb (void *opaque, struct dirent *dirent)
+{
+  int length;
+
+  length = strlen (dirent->d_name);
+
+  if (length == 32)		/* FIXME? */
+    printf ("%s\n", dirent->d_name);
+
+  return 0;
+}
+
+/* Implementation of `list-cards' command.  */
+static gpg_error_t
+cmd_list_cards (void)
+{
+  gpg_error_t err;
+
+  err = directory_process (POLDI_KEY_DIRECTORY, directory_process_cb, NULL);
+
+  return err;
+}
+
+
+
+static gpg_error_t
+cmd_associate (void)
 {
   struct passwd *pwent;
   gpg_error_t err;
@@ -796,29 +971,13 @@ cmd_add_user (void)
       goto out;
     }
 
-  /* Create empty key file.  */
-
-  err = key_file_create (pwent, serialno);
-  if (err)
-    {
-      log_error ("Error: failed to create key file for "
-		 "serial number: %s\n",
-		 serialno);
-      goto out;
-    }
-
  out:
 
   return err;
 }
 
-
-
-/* Implementation of `remove-user' command; removes a user.  */
-/* FIXME: do not remove key file in case there are other users in
-   usersdb using that card.  */
 static gpg_error_t
-cmd_remove_user (void)
+cmd_disassociate (void)
 {
   gpg_error_t err;
 
@@ -844,27 +1003,11 @@ cmd_remove_user (void)
       goto out;
     }
 
-  /* FIXME: skip step of key file removal in case key file does not
-     exist (for whatever reasons).  */
-
-  /* Remove key file.  */
-
-  if (poldi_ctrl_opt.serialno)
-    {
-      err = key_file_remove (poldi_ctrl_opt.serialno);
-      if (err)
-	{
-	  log_error ("Error: failed to remove key file for "
-		     "serial number `%s': %s\n",
-		     poldi_ctrl_opt.serialno, gpg_strerror (err));
-	  goto out;
-	}
-    }
-
  out:
 
   return err;
 }
+
 
 
 
@@ -1203,9 +1346,12 @@ main (int argc, char **argv)
   ncommands = (0
 	       + poldi_ctrl_opt.cmd_test
 	       + poldi_ctrl_opt.cmd_set_key
+	       + poldi_ctrl_opt.cmd_associate
+	       + poldi_ctrl_opt.cmd_disassociate
 	       + poldi_ctrl_opt.cmd_show_key
-	       + poldi_ctrl_opt.cmd_add_user
-	       + poldi_ctrl_opt.cmd_remove_user
+	       + poldi_ctrl_opt.cmd_register_card
+	       + poldi_ctrl_opt.cmd_unregister_card
+	       + poldi_ctrl_opt.cmd_list_cards
 	       + poldi_ctrl_opt.cmd_list_users
 	       + poldi_ctrl_opt.cmd_dump);
   if (ncommands > 1)
@@ -1225,12 +1371,18 @@ main (int argc, char **argv)
     err = cmd_dump ();
   else if (poldi_ctrl_opt.cmd_set_key)
     err = cmd_set_key ();
+  else if (poldi_ctrl_opt.cmd_associate)
+    err = cmd_associate ();
+  else if (poldi_ctrl_opt.cmd_disassociate)
+    err = cmd_disassociate ();
   else if (poldi_ctrl_opt.cmd_show_key)
     err = cmd_show_key ();
-  else if (poldi_ctrl_opt.cmd_add_user)
-    err = cmd_add_user ();
-  else if (poldi_ctrl_opt.cmd_remove_user)
-    err = cmd_remove_user ();
+  else if (poldi_ctrl_opt.cmd_register_card)
+    err = cmd_register_card ();
+  else if (poldi_ctrl_opt.cmd_unregister_card)
+    err = cmd_unregister_card ();
+  else if (poldi_ctrl_opt.cmd_list_cards)
+    err = cmd_list_cards ();
   else if (poldi_ctrl_opt.cmd_list_users)
     err = cmd_list_users ();
 
@@ -1239,4 +1391,4 @@ main (int argc, char **argv)
   return err ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
-/* END. */
+/* END */

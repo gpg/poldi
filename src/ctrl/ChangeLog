@@ -1,3 +1,27 @@
+2005-12-10  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c (ask_user): Return ERR_NO_DATA in case of EOF while
+	reading username, return ERR_INV_NAME in case an empty line was
+	read.
+	(key_file_create): Print warning instead of error message in case
+	the key file does already exist; only change file owner in case
+	PWENT is non-NULL.
+	(main): Include new commands, removed old commands.
+
+	(key_file_create): Open key file with O_EXCL flag set, better
+	error handling.
+
+	(struct poldi_ctrl_opt): New members: cmd_register_card,
+	cmd_unregister_card, cmd_list_cards, cmd_associate,
+	cmd_disassociate; removed members: cmd_add_user, cmd_remove_user.
+	Implemented new commands.
+
+	(cmd_register_card, cmd_unregister_card, cmd_list_cards,
+	cmd_associate, cmd_disassociate, directory_process_cb): New
+	functions.
+	(cmd_add_user, cmd_remove_user): Removed functions.
+	(enum arg_opt_ids): Add new symbols for new command arguments.
+
 2005-12-03  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi-ctrl.c: Include <assert.h>, <common/usersdb.h>.

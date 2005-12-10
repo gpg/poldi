@@ -22,6 +22,7 @@
 #define SUPPORT_H
 
 #include <gcrypt.h>
+#include <dirent.h>
 
 #include <card.h>
 
@@ -115,6 +116,12 @@ gpg_error_t wait_for_card (int slot, int require_card_switch,
 			   void *opaque, char **serialno,
 			   unsigned int *card_version,
 			   card_key_t type, char **fingerprint);
+
+typedef gpg_error_t (*directory_process_cb_t) (void *opaque,
+					       struct dirent *dirent);
+
+gpg_error_t directory_process (const char *name,
+			       directory_process_cb_t callback, void *opaque);
 
 #endif
 

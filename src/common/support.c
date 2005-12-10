@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <pwd.h>
+#include <dirent.h>
 
 #include <gcrypt.h>
 
@@ -480,6 +481,44 @@ wait_for_card (int slot, int require_card_switch, unsigned int timeout,
   /* FIXME: error checking?  */
 
  out:
+
+  return err;
+}
+
+/* FIXME: need to comment; another candidate for inclusion in a
+   central code repository.  */
+gpg_error_t
+directory_process (const char *name,
+		   directory_process_cb_t callback, void *opaque)
+{
+  struct dirent *dirent;
+  gpg_error_t err;
+  DIR *dir;
+
+  err = 0;
+
+  dir = opendir (name);
+  if (! dir)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  while (1)
+    {
+      dirent = readdir (dir);
+      if (! dirent)
+	break;
+
+      err = (*callback) (opaque, dirent);
+      if (err)
+	break;
+    }
+
+ out:
+
+  if (dir)
+    closedir (dir);
 
   return err;
 }
