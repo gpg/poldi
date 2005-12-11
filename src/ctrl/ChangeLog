@@ -1,3 +1,7 @@
+2005-12-11  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctrl.c: Removed some FIXMEs.
+
 2005-12-10  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi-ctrl.c (ask_user): Return ERR_NO_DATA in case of EOF while

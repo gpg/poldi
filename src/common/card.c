@@ -497,6 +497,8 @@ card_pin_provide (int slot, int which, const unsigned char *pin)
   return err;
 }
 
+#if 0
+
 /* This function requests the card accessed through SLOT to sign the
    data in DATA of DATA_N bytes; the signature is to be stored in
    *DATA_SIGNED, it's length in bytes in *DATA_SIGNED_N.  Returns
@@ -536,8 +538,6 @@ card_sign (int slot, const unsigned char *data, size_t data_n,
 
   return err;
 }
-
-#if 0
 
 /* This functions requests the card acccessed trough SLOT to decrypt
    the data in DATA of DATA_N bytes; the decrypted data is to be
@@ -586,6 +586,8 @@ card_decrypt (int slot, const unsigned char *data, size_t data_n,
   return err;
 }
 
+#endif
+
 /* This function requests the card accessed through SLOT to sign the
    data in DATA of DATA_N bytes with the authentication key; the
    signature is to be stored in DATA_SIGNED, it's length in bytes in
@@ -623,6 +625,5 @@ card_auth (int slot, const unsigned char *data, size_t data_n,
 
   return err;
 }
-#endif
 
 /* END */

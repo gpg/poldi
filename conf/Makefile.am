@@ -19,3 +19,4 @@
 
 install-conf-skeleton:
 	$(INSTALL) -d $(POLDI_CONF_DIRECTORY)/keys
+	touch $(POLDI_CONF_DIRECTORY)/users

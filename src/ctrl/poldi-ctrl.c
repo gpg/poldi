@@ -748,7 +748,6 @@ cmd_dump (void)
       pin = getpass (POLDI_PIN3_QUERY_MSG);
       if (! pin)
 	{
-	  /* FIXME: correct error handling?  */
 	  err = gpg_error_from_errno (errno);
 	  log_error ("Error: failed to retrieve PIN from user: %s\n",
 		     gpg_strerror (err));
@@ -1091,7 +1090,6 @@ cmd_set_key (void)
       pin = getpass (POLDI_PIN3_QUERY_MSG);
       if (! pin)
 	{
-	  /* FIXME: correct error handling?  */
 	  err = gpg_error_from_errno (errno);
 	  log_error ("Error: failed to retrieve PIN from user: %s\n",
 		     gpg_strerror (err));

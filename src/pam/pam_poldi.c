@@ -491,10 +491,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
       err = usersdb_lookup_by_serialno (serialno, &account);
       if (gcry_err_code (err) == GPG_ERR_AMBIGUOUS_NAME)
-	{
-	  err = 0;		/* FIXME */
-	  ask_user (0, conv, "Need to figure out username: ", &account);
-	}
+	err = ask_user (0, conv, "Need to figure out username: ", &account);
 
       if (err)
 	goto out;
@@ -579,7 +576,6 @@ PAM_EXTERN int
 pam_sm_setcred (pam_handle_t *pam_handle,
 		int flags, int argc, const char **argv)
 {
-  /* FIXME?  */
   return PAM_SUCCESS;
 }
 

@@ -92,14 +92,14 @@ gcry_error_t card_read_key (int slot, card_key_t type,
    Returns proper error code.  */
 gcry_error_t card_pin_provide (int slot, int which, const unsigned char *pin);
 
+#if 0
+
 /* This function requests the card accessed through SLOT to sign the
    data in DATA of DATA_N bytes; the signature is to be stored in
    *DATA_SIGNED, it's length in bytes in *DATA_SIGNED_N.  Returns
    proper error code.  */
 gcry_error_t card_sign (int slot, const unsigned char *data, size_t data_n,
 			unsigned char **data_signed, size_t *data_signed_n);
-
-#if 0
 
 /* This functions requests the card acccessed trough SLOT to decrypt
    the data in DATA of DATA_N bytes; the decrypted data is to be
@@ -109,14 +109,14 @@ gcry_error_t card_decrypt (int slot, const unsigned char *data, size_t data_n,
 			   unsigned char **data_decrypted,
 			   size_t *data_decrypted_n);
 
+#endif
+
 /* This function requests the card accessed through SLOT to sign the
    data in DATA of DATA_N bytes with the authentication key; the
    signature is to be stored in DATA_SIGNED, it's length in bytes in
    *DATA_SIGNED_N.  Returns proper error code.  */
 gcry_error_t card_auth (int slot, const unsigned char *data, size_t data_n,
 			unsigned char **data_signed, size_t *data_signed_n);
-
-#endif
 
 #endif
 

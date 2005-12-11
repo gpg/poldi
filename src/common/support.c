@@ -411,7 +411,7 @@ authenticate (int card_slot, gcry_sexp_t key,
     }
 
   /* Let card sign the challenge.  */
-  err = card_sign (card_slot, challenge, challenge_n, &response, &response_n);
+  err = card_auth (card_slot, challenge, challenge_n, &response, &response_n);
   if (err)
     {
       log_error ("Error: failed to retrieve challenge signature "
