@@ -139,6 +139,8 @@ and Usage of Poldi.
 
 @menu
 * Configuration::               Configuring Poldi
+* Access control::              How to setup Poldi for authentication
+* Example::                     Example
 * Testing::                     Testing basic functionality
 @end menu
 
@@ -170,6 +172,49 @@ The semantics used by Poldi in respect to choosing a default card
 driver and handling of the card driver specific options should match
 those of scdaemon.
 
+@node Access control
+@section Access control
+
+In order for a user to be able to authenticate himself through Poldi,
+several preconditions must be satisfied:
+
+@table @asis
+@item the smartcard in question needs to be introduced to Poldi
+@item the smartcard's key must be installed
+@item the user must be associated with the smartcard
+@end table
+
+@table @asis
+
+@item Smartcard management:
+
+Poldi manages a list of ``registered'' smartcards.  Each registered
+smartcard is associated with exactly one key.
+
+Smartcard registration/unregistration needs to be done by a user having
+write access to Poldi's key directory, which is stored beneath
+SYSCONFDIR/poldi by default.  Therefore the system administrator is
+usually the only user able to register/unregister smartcards in case
+Poldi is installed globally in the system.
+
+It might be desired to allow a user who is not the system administrator
+to install or update the key of his smartcard.  In this case, the
+appropriate user needs to be specified during card registration.
+
+@item Key setup:
+
+After a smartcard has been registered, it's key needs to be installed in
+order to allow authentication with the given card.
+
+@item Associating a user with a card:
+
+Poldi manages a ``user database'', which is used for associating users
+with smartcards.  There are no quantitative restrictions in respect to
+the mapping of users and smartcards: on smartcard can be associated with
+many users and one user can be associated with many smartcards.
+
+@item Details:
+
 The public keys are stored in files beneath the directory
 ``keys''. which are named after the card serial numbers.  These files
 must contain the public key as a single S-Expression.
@@ -180,27 +225,44 @@ Such an entry has to be of the following form:
 
 <card serial number> <white space(s)> <account>.
 
-Maintaining the information in these files can be simplified by using
-the Poldi maintaince tool.
+@end table
 
-An example follows.
+@node Example
+@section Example
 
 The user ``bender'', who got a OpenPGP card with the serial number
-``D2760001240101000001000000CF0000'', would like to authenticate
-himself through Poldi.  First, the system administrator of the system
-in question has to introduce ``bender'' to Poldi:
+``D2760001240101000001000000CF0000'', would like to authenticate himself
+through Poldi.  Neither the card, nor the user is already known to
+Poldi.
+
+First, the system administrator has to register the new card for Poldi:
 
 @example
-$ poldi-ctrl --add-user --account bender --serialno D2760001240101000001000000CF0000.
+$ poldi-ctrl --register-card --serialno D2760001240101000001000000CF0000
 @end example
 
-That's it.  Now, bender has to write the public key of his OpenPGP
-card into the appropriate key file:
+If bender should be able to install or update his card's key himself,
+the following can be used:
+
+@example
+$ poldi-ctrl --register-card --account bender --serialno D2760001240101000001000000CF0000
+@end example
+
+Now, after the card has been registered, a mapping needs to be
+established between the user ``bender'' and the smartcard he owns:
+
+@example
+$ poldi-ctrl --associate --account bender --serialno D2760001240101000001000000CF0000
+@end example
+
+Now, bender has to write the public key of his OpenPGP card into the
+appropriate key file:
 
 @example
 $ poldi-ctrl --set-key
 @end example
 
+That's it.
 
 @node Testing
 @section Testing
