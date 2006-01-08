@@ -1,3 +1,7 @@
+2005-12-11  Moritz Schulte  <moritz@g10code.com>
+
+	* pam_poldi.c: Removed some FIXMEs.
+
 2005-12-03  Moritz Schulte  <moritz@g10code.com>
 
 	* pam_poldi.c (ask_user): New parameter: secret.
