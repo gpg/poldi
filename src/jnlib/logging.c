@@ -52,6 +52,7 @@
 static FILE *logstream;
 static int log_socket = -1;
 static char prefix_buffer[80];
+static int prefix_length;
 static int with_time;
 static int with_prefix;
 static int with_pid;
@@ -364,11 +365,8 @@ set_file_fd (const char *name, int fd)
 
 /* Use syslog as logging backend.  */
 static void
-set_syslog (const char *ident, int facility) 
+set_syslog (void) 
 {
-  /* Initialize syslog logging.  */
-  openlog (ident, 0, facility);
-  
   force_prefixes = 0;
   missing_lf = 0;
   logging_to_syslog = 1;
@@ -397,9 +395,9 @@ log_set_fd (int fd)
 }
 
 void
-log_set_syslog (const char *ident, int facility)
+log_set_syslog (void)
 {
-  set_syslog (ident, facility);
+  set_syslog ();
 }
 
 void
@@ -407,7 +405,6 @@ log_close (void)
 {
   if (logging_to_syslog)
     {
-      closelog ();
       logging_to_syslog = 0;
     }
   else
@@ -428,6 +425,7 @@ log_set_prefix (const char *text, unsigned int flags)
     {
       strncpy (prefix_buffer, text, sizeof (prefix_buffer)-1);
       prefix_buffer[sizeof (prefix_buffer)-1] = 0;
+      prefix_length = strlen (prefix_buffer);
     }
   
   with_prefix = (flags & JNLIB_LOG_WITH_PREFIX);
@@ -495,6 +493,46 @@ log_get_stream ()
   return (logstream || logging_to_syslog) ? logstream : stderr;
 }
 
+/* This is a wrapper for vsyslog().  It makes sure that the prefix
+   contained in PREFIX_BUFFER will be prepended to the message before
+   sending it to syslog.  */
+static void
+log_to_syslog_va (int priority, const char *fmt, va_list arg)
+{
+  size_t fmt_final_length;
+  char *fmt_final;
+
+  fmt_final_length = vsnprintf (NULL, 0, fmt, arg);
+  if (with_prefix)
+    fmt_final_length += prefix_length;
+  fmt_final = jnlib_xmalloc (fmt_final_length);
+  if (with_prefix)
+    {
+      strcpy (fmt_final, prefix_buffer);
+      vsnprintf (fmt_final + prefix_length,
+		 fmt_final_length - prefix_length, fmt, arg);
+    }
+  else
+    vsnprintf (fmt_final, fmt_final_length, fmt, arg);
+
+  syslog (priority, fmt_final);
+
+  free (fmt_final);
+}
+
+/* This is a wrapper for syslog().  It makes sure that the prefix
+   contained in PREFIX_BUFFER will be prepended to the message before
+   sending it to syslog.  */
+static void
+log_to_syslog (int priority, const char *fmt, ...)
+{
+  va_list arg;
+
+  va_start (arg, fmt);
+  log_to_syslog_va (priority, fmt, arg);
+  va_end (arg);
+}
+
 static void
 do_logv (int level, const char *fmt, va_list arg_ptr)
 {
@@ -541,6 +579,7 @@ do_logv (int level, const char *fmt, va_list arg_ptr)
                    1900+tp->tm_year, tp->tm_mon+1, tp->tm_mday,
                    tp->tm_hour, tp->tm_min, tp->tm_sec );
         }
+
       if (with_prefix || force_prefixes)
         fputs (prefix_buffer, logstream);
       if (with_pid || force_prefixes)
@@ -592,53 +631,43 @@ do_logv (int level, const char *fmt, va_list arg_ptr)
 	    {
 	      strcpy (fmt_prefixed, fmt_prefix);
 	      strcat (fmt_prefixed, fmt);
-
-	      vsyslog (syslog_priorities[JNLIB_LOG_INFO],
-		       fmt_prefixed, arg_ptr);
+	      
+	      log_to_syslog_va (syslog_priorities[JNLIB_LOG_INFO],
+				fmt_prefixed, arg_ptr);
 	      free (fmt_prefixed);
 	    }
 	  else
 	    {
 	      /* Not enough memory for creating a prefixed version,
 		 but we should not simply loose the message...  */
-
-	      vsyslog (syslog_priorities[JNLIB_LOG_INFO],
-		       fmt_prefix, NULL);
-	      vsyslog (syslog_priorities[JNLIB_LOG_INFO],
-		       fmt, arg_ptr);
+	      log_to_syslog (syslog_priorities[JNLIB_LOG_INFO], fmt_prefix);
+	      log_to_syslog (syslog_priorities[JNLIB_LOG_INFO], fmt);
 	    }
 	}
       else if (level != JNLIB_LOG_BEGIN)
 	/* This is easy.  Note: we skip JNLIB_LOG_BEGIN messages,
 	   since they do not make much sense with the lousy _CONT
 	   implementation for Syslog.  */
-	vsyslog (syslog_priorities[level], fmt, arg_ptr);
-    }	  
+	log_to_syslog_va (syslog_priorities[level], fmt, arg_ptr);
+    }
   else
     {
       /* No Syslog logging; we can simply use the logstream.  */
       if (fmt)
 	{
 	  vfprintf (logstream, fmt, arg_ptr) ;
+
 	  if (*fmt && fmt[strlen (fmt) - 1] != '\n')
 	    missing_lf = 1;
 	}
     }
 
   /* Do not forget to call closelog() when aborting the current
-     program.  */
+     program.  FIXME, moritz, is this really necessary? */
   if (level == JNLIB_LOG_FATAL)
-    {
-      if (logging_to_syslog)
-	closelog ();
-      exit (2);
-    }
+    exit (2);
   if (level == JNLIB_LOG_BUG)
-    {
-      if (logging_to_syslog)
-	closelog ();
-      abort();
-    }
+    abort();
 }
 
 static void

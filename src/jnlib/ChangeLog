@@ -1,3 +1,17 @@
+2006-03-31  Moritz Schulte  <moritz@g10code.com>
+
+	* logging.c: New static variable: prefix_length.
+	(set_syslog): Removed parameters IDENT, FACILITY; do not call
+	openlog().
+	(log_set_syslog): Removed parameters IDENT, FACILITY.
+	(log_close): Do not call closelog.
+	(log_set_prefix): Initialize prefix_length.
+	(log_to_syslog_va, log_to_syslog): New functions.
+	(do_logv): Replaced calls to syslog/vsyslog with calls to
+	log_to_syslog/log_to_syslog_va; removed calls to closelog.
+
+	* logging.h (set_syslog): Adjust declaration.
+
 2005-10-22  Moritz Schulte  <moritz@g10code.com>
 
 	Updated jnlib.

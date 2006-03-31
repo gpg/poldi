@@ -34,7 +34,7 @@ int  log_get_errorcount (int clear);
 void log_inc_errorcount (void);
 void log_set_file( const char *name );
 void log_set_fd (int fd);
-void log_set_syslog (const char *ident, int facility);
+void log_set_syslog (void);
 void log_close (void);
 void log_set_prefix (const char *text, unsigned int flags);
 const char *log_get_prefix (unsigned int *flags);

@@ -430,7 +430,10 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 	setvbuf (stderr, NULL, _IONBF, 0);
     }
   else
-    log_set_syslog ("poldi", LOG_AUTH);
+    log_set_syslog ();
+
+  log_set_prefix ("[Poldi] ",
+		  JNLIB_LOG_WITH_PREFIX | JNLIB_LOG_WITH_TIME | JNLIB_LOG_WITH_PID);
 
   /* Initialize libscd.  */
   scd_init (pam_poldi_opt.debug,
@@ -562,8 +565,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   else
     log_info ("Success\n");
 
-  /* FIXME, should be done by logging.c somehow.  */
-  closelog ();
+  log_close ();
 
   /* Return to PAM.  */
 

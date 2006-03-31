@@ -1,3 +1,9 @@
+2006-03-31  Moritz Schulte  <moritz@g10code.com>
+
+	* pam_poldi.c (pam_sm_authenticate): Adjust call to log_set_syslog
+	to new API; call log_set_prefix() to register a logging prefix;
+	use log_close() instead of closelog().
+
 2005-12-11  Moritz Schulte  <moritz@g10code.com>
 
 	* pam_poldi.c: Removed some FIXMEs.

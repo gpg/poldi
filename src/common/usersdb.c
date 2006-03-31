@@ -613,7 +613,7 @@ usersdb_list_cb (const char *serialno, const char *username, void *opaque)
 }
 
 /* This functions lists information from the users database to the
-   stream STREAM.  Return proper error code.  */
+   stream STREAM.  Returns proper error code.  */
 gcry_error_t
 usersdb_list (FILE *stream)
 {
