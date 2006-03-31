@@ -308,6 +308,7 @@ run prior to Poldi.
 * su::
 * gdm::
 * xdm::
+* kdm::
 @end menu
 
 @node login
@@ -345,6 +346,12 @@ authentication.
 
 XDM does ask for usernames prior to triggering PAM authentication, as
 such it is not too suitable for use with Poldi.
+
+@node kdm
+@section kdm
+
+KDM asks for username and password in it's default configuration,
+instead of implementing PAM correctly.
 
 @include gpl.texi
 
