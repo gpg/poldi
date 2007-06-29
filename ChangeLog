@@ -1,5 +1,8 @@
 2007-06-29  Moritz  <moritz@g10code.com>
 
+	* BUGS: New file.
+	* NEWS: Updated.
+
 	* m4: New directory.
 	* m4/libassuan.m4: New file.
 	* configure.ac: Require libassuan.
