@@ -1,5 +1,6 @@
 2007-06-30  Moritz  <moritz@g10code.com>
 
+	* configure.ac (AC_CONFIG_FILES): Added am/Makefile.
 	* autogen,sh: New file.
 	* Makefile.am (SUBDIRS): Added "am".
 	* am: New directory.

@@ -226,6 +226,7 @@ fi
 
 AC_CONFIG_FILES([Makefile
 		 m4/Makefile
+		 am/Makefile
 		 doc/Makefile
 		 src/Makefile
 		 src/jnlib/Makefile
