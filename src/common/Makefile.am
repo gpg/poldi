@@ -1,4 +1,4 @@
-# Copyright (C) 2004 g10 Code GmbH
+# Copyright (C) 2004, 2007 g10 Code GmbH
 #
 # This file is part of Poldi.
 #
@@ -17,14 +17,22 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
+AM_CPPFLAGS =
+
+include $(top_srcdir)/am/cmacros.am
+
 noinst_LIBRARIES = libpoldi-common.a
 
 libpoldi_common_a_SOURCES = \
-	card.c card.h support.c support.h options.c options.h \
-	usersdb.c usersdb.h
+	support.c support.h \
+	optparse.c optparse.h \
+	usersdb.c usersdb.h \
+	membuf.c membuf.h \
+	util.h i18n.h
 
 libpoldi_common_a_CFLAGS = \
 	-Wall -I$(top_builddir)/src/include \
+	-I$(top_srcdir)/src/include -I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/include -I$(top_srcdir)/src \
 	$(LIBGCRYPT_CFLAGS) $(GPG_ERROR_CFLAGS)
 
@@ -39,6 +47,6 @@ defs.h: defs.h.in
 	$(generate) < $< > $@
 
 EXTRA_DIST = \
-	defs.h.in options.h support.h card.h
+	defs.h.in
 
 CLEANFILES = $(BUILT_SOURCES)
