@@ -1,5 +1,5 @@
 # configure.ac - Configure script for Poldi
-# Copyright (C) 2004, 2005 g10 Code GmbH
+# Copyright (C) 2004, 2005, 2007 g10 Code GmbH
 # 
 # This file is part of Poldi.
 #
@@ -31,6 +31,11 @@ VERSION=$PACKAGE_VERSION
 
 NEED_LIBGCRYPT_VERSION=0
 NEED_GPG_ERROR_VERSION=0.7
+
+NEED_LIBASSUAN_API=1
+NEED_LIBASSUAN_VERSION=0.9.3
+
+
 	
 AC_CONFIG_SRCDIR(src/pam/pam_poldi.c)
 AM_CONFIG_HEADER(config.h)
@@ -55,6 +60,9 @@ AC_GNU_SOURCE
 #have_gpg_error=no
 #have_libgcrypt=no 
 
+
+#have_libassuan=no
+
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
 AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
@@ -62,10 +70,12 @@ AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
 AC_DEFINE_UNQUOTED(PACKAGE_BUGREPORT, "$PACKAGE_BUGREPORT",
                                         [Bug report address])
 
+
 AH_BOTTOM([
-/* Tell the sources taken from GnuPG's SCD what header file they
-   should use. */
-#define GNUPG_SCD_MAIN_HEADER "scd.h"
+/* Setup the hardwired names of modules. */
+#ifndef GNUPG_DEFAULT_SCD
+#define GNUPG_DEFAULT_SCD    ( GNUPG_BINDIR "/scdaemon" )
+#endif
 ])
 
 AM_MAINTAINER_MODE
@@ -81,6 +91,7 @@ AM_MISSING_PROG(AUTOHEADER, autoheader, $missing_dir)
 AM_MISSING_PROG(MAKEINFO, makeinfo, $missing_dir)
 AC_PROG_AWK
 AC_PROG_CC
+AM_PROG_CC_C_O
 AC_PROG_CPP
 AC_PROG_RANLIB
 AC_PROG_INSTALL
@@ -99,6 +110,9 @@ have_gpg_error=no
 AM_PATH_GPG_ERROR("$NEED_GPG_ERROR_VERSION",
                   have_gpg_error=yes,have_gpg_error=no)
 
+have_libassuan=no
+AM_PATH_LIBASSUAN("$NEED_LIBASSUAN_API:$NEED_LIBASSUAN_VERSION",
+                  have_libassuan=yes,have_libassuan=no)
 
 #
 # libusb allows us to use the integrated CCID smartcard reader driver.
@@ -192,6 +206,16 @@ if test "$have_libgcrypt" = "no"; then
 *** (at least version $NEED_LIBGCRYPT_VERSION is required.)
 ***]])
 fi
+if test "$have_libassuan" = "no"; then
+   die=yes
+   AC_MSG_NOTICE([[
+***
+*** You need libassuan to build this program.
+*** This library is for example available at
+***   ftp://ftp.gnupg.org/gcrypt/libassuan/
+*** (at least version $NEED_LIBASSUAN_VERSION (API $NEED_LIBASSUAN_API) is required).
+***]])
+fi
 if test "$die" = "yes"; then
     AC_MSG_ERROR([[
 ***
@@ -201,11 +225,13 @@ if test "$die" = "yes"; then
 fi
 
 AC_CONFIG_FILES([Makefile
+		 m4/Makefile
 		 doc/Makefile
 		 src/Makefile
 		 src/jnlib/Makefile
-		 src/libscd/Makefile
 		 src/common/Makefile
+		 src/scd-support/Makefile
+		 src/scd/Makefile
 		 src/pam/Makefile
 		 src/ctrl/Makefile
 		 conf/Makefile])

@@ -1,3 +1,18 @@
+2007-06-29  Moritz  <moritz@g10code.com>
+
+	* m4: New directory.
+	* m4/libassuan.m4: New file.
+	* configure.ac: Require libassuan.
+	(AH_BOTTOM): Cleared, define GNUPG_DEFAULT_SCD.
+	Use AM_PROG_CC_C_O.
+	(AC_CONFIG_FILES): Added: m4/Makefile, src/scd-support/Makefile,
+	src/scd/Makefile; removed: src/libscd/Makefile.
+
+2007-03-03  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Integrate assuan; it's a new dependency from now
+	on.
+
 2005-12-12  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac: Bumped version number up to 0.4-cvs.
