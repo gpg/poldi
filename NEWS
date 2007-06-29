@@ -1,5 +1,11 @@
                                                                 -*- outline -*-
 
+Changes since version 0.3:
+
+* SCdaemon support
+  Poldi internals rewritten: uses the scdaemon from now on instead of
+  talking to the smartcard directly
+
 Changes since version 0.2:
 
 * Smartcard to account mapping:

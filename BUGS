@@ -1,0 +1,11 @@
+                                                                -*- outline -*-
+
+* initialization of libgcrypt secure memory: priviledge dropping
+  
+  causes problems with PAM (see comment in pam_poldi.c)
+
+
+* Scdaemons GETINFO
+
+   call seems slightly broken, thus Poldis wait-for-card feature is
+   disabled.
