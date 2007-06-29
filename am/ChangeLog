@@ -1,0 +1,3 @@
+2007-06-30  Moritz  <moritz@g10code.com>
+
+	* Makefile.am, cmacros.am: New files.

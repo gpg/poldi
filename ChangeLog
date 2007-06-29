@@ -1,3 +1,8 @@
+2007-06-30  Moritz  <moritz@g10code.com>
+
+	* Makefile.am (SUBDIRS): Added "am".
+	* am: New directory.
+
 2007-06-29  Moritz  <moritz@g10code.com>
 
 	* BUGS: New file.
