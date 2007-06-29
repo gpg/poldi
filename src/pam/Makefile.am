@@ -1,4 +1,4 @@
-# Copyright (C) 2004, 2005 g10 Code GmbH
+# Copyright (C) 2004, 2005, 2007 g10 Code GmbH
 #
 # This file is part of Poldi.
 #
@@ -17,23 +17,30 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/src \
+	-I$(top_builddir)/src \
+	-I$(top_builddir) \
+	-I$(top_srcdir)/src/common
+
+include $(top_srcdir)/am/cmacros.am
+
 PAM_MODULE_DIRECTORY = @PAM_MODULE_DIRECTORY@
 
 AM_CFLAGS = \
 	-Wall -fPIC \
-	-I$(top_srcdir)/src -I$(top_builddir)/src -I$(top_builddir) \
-	-I$(top_srcdir)/src/common \
 	 $(LIBGCRYPT_CFLAGS) $(GPG_ERROR_CFLAGS)
 
 pam_poldi.o: pam_poldi.c
-	$(CC) $(AM_CFLAGS) $(CFLAGS) -c -o pam_poldi.o $(top_srcdir)/src/pam/pam_poldi.c
+	$(CC) $(AM_CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pam_poldi.o $(top_srcdir)/src/pam/pam_poldi.c
 
-pam_poldi.so: pam_poldi.o ../common/libpoldi-common.a ../jnlib/libjnlib.a \
-	      ../libscd/libscd.a
+pam_poldi.so: pam_poldi.o ../scd-support/libscd-support.a ../scd/libscd.a \
+		../common/libpoldi-common.a ../jnlib/libjnlib.a
 	$(LD) --shared -x \
 	      -o $@ pam_poldi.o \
-	      ../common/libpoldi-common.a ../jnlib/libjnlib.a \
-	     ../libscd/libscd.a $(LIBGCRYPT_LDFLAGS) $(LIBGCRYPT_LIBS) $(LIBUSB_LIBS) -lc
+		../scd-support/libscd-support.a ../scd/libscd.a \
+		../common/libpoldi-common.a ../jnlib/libjnlib.a \
+	     $(LIBGCRYPT_LDFLAGS) $(LIBGCRYPT_LIBS) $(LIBASSUAN_LIBS) -lc
 
 all-local: pam_poldi.so
 
@@ -43,6 +50,8 @@ install-exec-local:
 
 uninstall-local:
 	rm -f $(DESTDIR)$(PAM_MODULE_DIRECTORY)/pam_poldi.so
+
+# FIXME, moritz, this seems wrong, doesn't it?
 
 EXTRA_DIST = pam_poldi.c
 

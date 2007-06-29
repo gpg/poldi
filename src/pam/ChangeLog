@@ -1,3 +1,16 @@
+2007-06-30  Moritz  <moritz@g10code.com>
+
+	* pam_poldi.c: Removed includes: <common/options.h>,
+	<libscd/scd.h>; added includes: <common/optparse.h>, <scd/scd.h>,
+	<scd/scd-support.h>.  Removed option switches: debug-sc,
+	ctapi-driver, pscs-driver, reader-port, disable-opensc,
+	disable-ccid, debug-ccid-driver
+	(cardinfo_null): New static variable.
+	(pam_sm_authenticate): Quasi rewrite, uses new scd interface.
+	
+	* Makefile.am: include $(top_srcdir)/am/cmacros.am.
+	(pam_poldi.so): Removed $(LIBUSB_LIBS) from linking command.
+
 2006-03-31  Moritz Schulte  <moritz@g10code.com>
 
 	* pam_poldi.c (pam_sm_authenticate): Adjust call to log_set_syslog

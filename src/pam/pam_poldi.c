@@ -1,5 +1,5 @@
 /* pam_poldi.c - PAM authentication via OpenPGP smartcards.
-   Copyright (C) 2004, 2005 g10 Code GmbH
+   Copyright (C) 2004, 2005, 2007 g10 Code GmbH
  
    This file is part of Poldi.
   
@@ -34,12 +34,14 @@
 
 #include <jnlib/xmalloc.h>
 #include <jnlib/logging.h>
+
 #include <common/support.h>
-#include <common/options.h>
-#include <common/card.h>
+#include <common/optparse.h>
 #include <common/defs.h>
 #include <common/usersdb.h>
-#include <libscd/scd.h>
+
+#include <scd/scd.h>
+#include <scd-support/scd-support.h>
 
 
 
@@ -85,14 +87,7 @@ struct pam_poldi_opt pam_poldi_opt =
 enum arg_opt_ids
   {
     arg_debug = 500,
-    arg_debug_sc,
     arg_verbose,
-    arg_ctapi_driver,
-    arg_pcsc_driver,
-    arg_reader_port,
-    arg_disable_opensc,
-    arg_disable_ccid,
-    arg_debug_ccid_driver,
     arg_require_card_switch,
     arg_logfile,
     arg_wait_timeout
@@ -103,24 +98,6 @@ static ARGPARSE_OPTS arg_opts[] =
   {
     { arg_debug,
       "debug", 256, "Debug PAM-Poldi" },
-    { arg_debug_sc,
-      "debug-sc", 256, "Debug sc FIXME" },
-    { arg_ctapi_driver,
-      "ctapi-driver", 2, "|NAME|use NAME as ct-API driver" },
-    { arg_pcsc_driver,
-      "pcsc-driver", 2,  "|NAME|use NAME as PC/SC driver" },
-    { arg_reader_port,
-      "reader-port", 2, "|N|connect to reader at port N" },
-#ifdef HAVE_LIBUSB
-    { arg_disable_ccid,
-      "disable-ccid", 0, "do not use the internal CCID driver" },
-    { arg_debug_ccid_driver,
-      "debug-ccid-driver", 0, "debug the  internal CCID driver" },
-#endif
-#ifdef HAVE_OPENSC
-    { arg_disable_opensc,
-      "disable-opensc", 0, "do not use the OpenSC layer" },
-#endif
     { arg_require_card_switch,
       "require-card-switch", 0, "Require re-insertion of card" },
     { arg_logfile,
@@ -140,34 +117,6 @@ pam_poldi_options_cb (ARGPARSE_ARGS *parg, void *opaque)
     {
     case arg_debug:
       pam_poldi_opt.debug = 1;
-      break;
-
-    case arg_debug_sc:
-      pam_poldi_opt.debug_sc = 1;
-      break;
-
-    case arg_ctapi_driver:
-      pam_poldi_opt.ctapi_driver = xstrdup (parg->r.ret_str);
-      break;
-
-    case arg_pcsc_driver:
-      pam_poldi_opt.pcsc_driver = xstrdup (parg->r.ret_str);
-      break;
-
-    case arg_reader_port:
-      pam_poldi_opt.reader_port = xstrdup (parg->r.ret_str);
-      break;
-
-    case arg_disable_ccid:
-      pam_poldi_opt.disable_ccid = 1;
-      break;
-
-    case arg_disable_opensc:
-      pam_poldi_opt.disable_opensc = 1;
-      break;
-
-    case arg_debug_ccid_driver:
-      pam_poldi_opt.debug_ccid_driver = 1;
       break;
 
     case arg_require_card_switch:
@@ -343,9 +292,7 @@ parse_argv (int argc, const char **argv)
 	{
 	  /* Handle "debug" option.  */
 	  pam_poldi_opt.debug = ~0;
-	  pam_poldi_opt.debug_sc = 1;
 	  pam_poldi_opt.verbose = 1;
-	  pam_poldi_opt.debug_ccid_driver = 1;
 	}
       else if (! strncmp (argv[i], "timeout=", 8))
 	/* Handle "timeout=" option.  */
@@ -369,12 +316,18 @@ parse_argv (int argc, const char **argv)
  * PAM interface.
  */
 
+static struct scd_cardinfo cardinfo_null;
+
 /* Uaaahahahh, ich will dir einloggen!  PAM authentication entry
    point.  */
 PAM_EXTERN int
 pam_sm_authenticate (pam_handle_t *pam_handle,
 		     int flags, int argc, const char **argv)
 {
+  unsigned char *challenge;
+  unsigned char *response;
+  size_t challenge_n;
+  size_t response_n;
   const void *conv_void;
   conv_opaque_t conv_opaque;
   const struct pam_conv *conv;
@@ -382,16 +335,32 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   gpg_error_t err;
   const void *username_void;
   const char *username;
-  char *serialno;
   char *account;
-  int slot;
   int ret;
+  struct scd_cardinfo cardinfo;
+  scd_context_t ctx;
+  struct pin_querying_parm parm;
 
+  challenge = NULL;
+  response = NULL;
+  cardinfo = cardinfo_null;
   username = NULL;
-  serialno = NULL;
   account = NULL;
-  slot = -1;
   key = NULL;
+  ctx = NULL;
+
+  /* Initialize Libgcrypt.  */
+
+  /* Disable secure memory for now; because of priviledge dropping,
+     enable this causes the following error:
+
+     su: Authentication service cannot retrieve authentication
+     info. */
+  
+  //gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
+  gcry_control (GCRYCTL_DISABLE_SECMEM);
+
+  err = scd_connect (&ctx, getenv ("SCDAEMON_INFO"), NULL, 0);
 
   /* Parse options.  */
   err = options_parse_conf  (pam_poldi_options_cb, NULL,
@@ -435,17 +404,6 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   log_set_prefix ("[Poldi] ",
 		  JNLIB_LOG_WITH_PREFIX | JNLIB_LOG_WITH_TIME | JNLIB_LOG_WITH_PID);
 
-  /* Initialize libscd.  */
-  scd_init (pam_poldi_opt.debug,
-	    pam_poldi_opt.debug_sc,
-	    pam_poldi_opt.verbose,
-	    pam_poldi_opt.ctapi_driver,
-	    pam_poldi_opt.reader_port,
-	    pam_poldi_opt.pcsc_driver,
-	    pam_poldi_opt.disable_opensc,
-	    pam_poldi_opt.disable_ccid,
-	    pam_poldi_opt.debug_ccid_driver);
-
   /*
    * Retrieve information from PAM.
    */
@@ -470,20 +428,21 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   conv = conv_void;
   conv_opaque.conv = conv;
 
-  /* Open card slot.  */
-  err = card_open (NULL, &slot);
-  if (err)
-    goto out;
-
   /*
    * Process authentication request.
    */
 
   /* Wait for card.  */
-  err = wait_for_card (slot, pam_poldi_opt.require_card_switch,
+  /* DISABLE because GETINFO status seems to be broken.  */
+#if 0
+  err = wait_for_card (ctx,
 		       pam_poldi_opt.wait_timeout,
-		       pam_conversation, &conv_opaque, &serialno,
-		       NULL, CARD_KEY_NONE, NULL);
+  		       pam_conversation, &conv_opaque);
+  if (err)
+    goto out;
+#endif
+
+  err = scd_learn (ctx, &cardinfo);
   if (err)
     goto out;
 
@@ -492,7 +451,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
       /* We didn't receive a username from PAM, therefore we need to
 	 figure it out somehow...  */
 
-      err = usersdb_lookup_by_serialno (serialno, &account);
+      err = usersdb_lookup_by_serialno (cardinfo.serialno, &account);
       if (gcry_err_code (err) == GPG_ERR_AMBIGUOUS_NAME)
 	err = ask_user (0, conv, "Need to figure out username: ", &account);
 
@@ -507,23 +466,23 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
   /* Check if the given account is associated with the serial
      number.  */
-  err = usersdb_check (serialno, username);
+  err = usersdb_check (cardinfo.serialno, username);
   if (err)
     {
       tell_user (conv, "Serial no %s is not associated with %s\n",
-		 serialno, username);
+		 cardinfo.serialno, username);
       err = gcry_error (GPG_ERR_INV_NAME);
       goto out;
     }
 
   /* Retrieve key belonging to card.  */
-  err = key_lookup_by_serialno (serialno, &key);
+  err = key_lookup_by_serialno (cardinfo.serialno, &key);
   if (err)
     goto out;
 
   /* Inform user about inserted card.  */
 
-  err = tell_user (conv, "Serial no: %s", serialno);
+  err = tell_user (conv, "Serial no: %s", cardinfo.serialno);
   if (err)
     {
       /* FIXME?? do we need this?  */
@@ -532,9 +491,39 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
       goto out;
     }
 
-  err = authenticate (slot, key, pam_conversation, &conv_opaque);
+  /* Generate challenge.  */
+  err = challenge_generate (&challenge, &challenge_n);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to generate challenge: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+
+  parm.conv = pam_conversation;
+  parm.conv_opaque = &conv_opaque;
+
+  /* Let card sign the challenge.  */
+  err = scd_pksign (ctx, "OPENPGP.3",
+		    getpin_cb, &parm,
+		    challenge, challenge_n,
+		    &response, &response_n);
+  if (err)
+    {
+      log_error ("Error: failed to retrieve challenge signature "
+		 "from card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* Verify response.  */
+  err = challenge_verify (key, challenge, challenge_n, response, response_n);
+  if (err)
+    {
+      log_error ("Error: failed to verify challenge\n");
+      goto out;
+    }
 
   if (username == account)
     {
@@ -553,11 +542,9 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
   /* Release resources.  */
   gcry_sexp_release (key);
-  free (serialno);
+  scd_release_cardinfo (&cardinfo);
   if (username == account)
     free (account);
-  if (slot != -1)
-    card_close (slot);
 
   /* Log result.  */
   if (err)
@@ -566,6 +553,10 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
     log_info ("Success\n");
 
   log_close ();
+
+  scd_disconnect (ctx);
+  free (challenge);
+  free (response);
 
   /* Return to PAM.  */
 
