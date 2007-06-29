@@ -1,0 +1,4 @@
+2007-06-29  Moritz  <moritz@g10code.com>
+
+	* README, scd-support.h, getpin-callback.c, wait-for-card.c: New
+	files.
