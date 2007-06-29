@@ -1,3 +1,26 @@
+2007-06-29  Moritz  <moritz@g10code.com>
+
+	* poldi-ctrl.c: Removed includes: <common/card.h>, <libscd/scd.h>,
+	<common/options.h>; new includes: <common/optparse.h>,
+	<scd/scd.h>, <scd-support/scd-support.h>.
+	(struct poldi_ctrl_opt): Removed members: debug_sc, ctapi_driver,
+	pcsc_driver, reader_port, disable_opensc, disable_ccid,
+	debug_ccid_driver.
+	(enum arg_opt_ids): Removed: arg_ctapi_driver, arg_pcsc_driver,
+	arg_reader_port, arg_disable_ccid, arg_disable_opensc,
+	arg_debug_ccid_driver, arg_require_card_switch.
+	(arg_opts[]): Adjusted to arg_opt_ids changes.
+	(poldi_ctrl_options_cb): Likewise.
+	(cardinfo_NULL): New variable.
+	(cmd_test, cmd_dump, cmd_set_key): Slightly rewritte, use new scd
+	interface.
+	(main): Initialize libgcrypt secure memory, removed call to
+	scd_init.
+
+	* Makefile.am: Adjusted CFLAGS/LDADD, include cmacros.am.
+	(poldi_ctrl_LDADD): Removed $(GPG_ERR_LDFLAGS),$(LIBUSB_LIBS);
+	added: $(LIBASSUAN_LIBS).
+
 2005-12-11  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi-ctrl.c: Removed some FIXMEs.

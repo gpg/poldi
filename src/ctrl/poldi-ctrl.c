@@ -1,5 +1,5 @@
 /* poldi-ctrl.c - Poldi maintaince tool
-   Copyright (C) 2004, 2005 g10 Code GmbH.
+   Copyright (C) 2004, 2005, 2007 g10 Code GmbH.
  
    This file is part of Poldi.
   
@@ -32,12 +32,13 @@
 #include <jnlib/argparse.h>
 #include <jnlib/xmalloc.h>
 #include <jnlib/logging.h>
-#include <common/options.h>
-#include <common/card.h>
+#include <common/optparse.h>
 #include <common/support.h>
 #include <common/usersdb.h>
 #include <common/defs.h>
-#include <libscd/scd.h>
+
+#include <scd/scd.h>
+#include <scd-support/scd-support.h>
 
 
 
@@ -49,15 +50,8 @@
 struct poldi_ctrl_opt
 {
   unsigned int debug; /* debug flags (DBG_foo_VALUE) */
-  int debug_sc;     /* OpenSC debug level */
   int verbose;      /* verbosity level */
-  char *ctapi_driver; /* Library to access the ctAPI. */
-  char *pcsc_driver;  /* Library to access the PC/SC system. */
-  char *reader_port;  /* NULL or reder port to use. */
-  int disable_opensc;  /* Disable the use of the OpenSC framework. */
-  int disable_ccid;    /* Disable the use of the internal CCID
-			  driver. */
-  int debug_ccid_driver;	/* Debug the internal CCID driver.  */
+
   char *config_file;
   char *account;
   char *serialno;
@@ -80,16 +74,10 @@ struct poldi_ctrl_opt poldi_ctrl_opt =
   {
     0,
     0,
-    0,
-    NULL,
-    NULL,
-    NULL,
-    0,
-    0,
-    0,
     POLDI_CONF_FILE,
     NULL,
     NULL,
+    0,
     0,
     0,
     0,
@@ -121,16 +109,10 @@ enum arg_opt_ids
 
     arg_config_file = 'c',
 
-    arg_ctapi_driver = 500,
-    arg_account,
+    arg_account = 500,
     arg_serialno,
-    arg_pcsc_driver,
-    arg_reader_port,
-    arg_disable_ccid,
-    arg_disable_opensc,
     arg_debug,
-    arg_debug_ccid_driver,
-    arg_require_card_switch,
+    //    arg_require_card_switch,
     arg_wait_timeout
   };
 
@@ -170,24 +152,8 @@ static ARGPARSE_OPTS arg_opts[] =
       "account",       2, "|NAME|Specify Unix account"         },
     { arg_serialno,
       "serialno",      2, "|NAME|Specify card serial number"   },
-    { arg_ctapi_driver,
-      "ctapi-driver", 2, "|NAME|use NAME as ct-API driver"     },
-    { arg_pcsc_driver,
-      "pcsc-driver", 2, "|NAME|use NAME as PC/SC driver"       },
-    { arg_reader_port,
-      "reader-port", 2, "|N|connect to reader at port N"       },
-#ifdef HAVE_LIBUSB
-    { arg_disable_ccid,
-      "disable-ccid", 0, "do not use the internal CCID driver" },
-    { arg_debug_ccid_driver,
-      "debug-ccid-driver", 0, "debug the  internal CCID driver" },
-#endif
-#ifdef HAVE_OPENSC
-    { arg_disable_opensc,
-      "disable-opensc", 0, "do not use the OpenSC layer"       },
-#endif
-    { arg_require_card_switch,
-      "require-card-switch", 0, "Require re-insertion of card" },
+    //    { arg_require_card_switch,
+    //      "require-card-switch", 0, "Require re-insertion of card" },
     { arg_wait_timeout,
       "wait-timeout", 1, "|SEC|Specify timeout for waiting" },
     { 0,
@@ -308,50 +274,20 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 	poldi_ctrl_opt.serialno = xstrdup (parg->r.ret_str);
       break;
       
-    case arg_ctapi_driver:
-      if (parsing_stage)
-	poldi_ctrl_opt.ctapi_driver = xstrdup (parg->r.ret_str);
-      break;
-
-    case arg_pcsc_driver:
-      if (parsing_stage)
-	poldi_ctrl_opt.pcsc_driver = xstrdup (parg->r.ret_str);
-      break;
-
-    case arg_reader_port:
-      if (parsing_stage)
-	poldi_ctrl_opt.reader_port = xstrdup (parg->r.ret_str);
-      break;
-
-    case arg_disable_ccid:
-      if (parsing_stage)
-	poldi_ctrl_opt.disable_ccid = 1;
-      break;
-
-    case arg_disable_opensc:
-      if (parsing_stage)
-	poldi_ctrl_opt.disable_opensc = 1;
-      break;
-
     case arg_debug:
       if (parsing_stage)
 	{
 	  poldi_ctrl_opt.debug = ~0;
-	  poldi_ctrl_opt.debug_sc = 1;
 	  poldi_ctrl_opt.verbose = 1;
-	  poldi_ctrl_opt.debug_ccid_driver = 1;
 	}
       break;
 
-    case arg_debug_ccid_driver:
-      if (parsing_stage)
-	poldi_ctrl_opt.debug_ccid_driver = 1;
-      break;
-
+#if 0
     case arg_require_card_switch:
       if (parsing_stage)
 	poldi_ctrl_opt.require_card_switch = 1;
       break;
+#endif
 
     case arg_wait_timeout:
       if (parsing_stage)
@@ -592,50 +528,71 @@ conversation (conversation_type_t type, void *opaque,
   return err;
 }
 
+static struct scd_cardinfo cardinfo_NULL;
+
 /* Implementation of `test' command; test authentication
    mechanism.  */
 static gpg_error_t
 cmd_test (void)
 {
+  unsigned char *challenge;
+  unsigned char *response;
+  size_t challenge_n;
+  size_t response_n;
   gpg_error_t err;
-  int slot;
-  char *serialno;
   char *account;
   gcry_sexp_t key;
   unsigned int version;
+  struct scd_cardinfo cardinfo;
+  scd_context_t ctx;
+  struct pin_querying_parm parm;
 
-  slot = -1;
+  parm.conv = conversation;
+  parm.conv_opaque = NULL;
+
+  challenge = NULL;
+  response = NULL;
+  ctx = NULL;
+  cardinfo = cardinfo_NULL;
   key = NULL;
   account = NULL;
-  serialno = NULL;
   version = 0;
 
-  /* Open and initialize card.  */
-
-  err = card_open (NULL, &slot);
+  /* Connect to Scdaemon. */
+  err = scd_connect (&ctx,
+		     getenv ("SCDAEMON_INFO"),
+		     NULL,
+		     SCD_FLAG_VERBOSE);
   if (err)
     {
-      log_error ("Error: failed to open card: %s\n",
+      log_error ("Error: scd_connect() failed: %s\n",
 		 gpg_strerror (err));
       goto out;
     }
 
-  err = wait_for_card (slot, poldi_ctrl_opt.require_card_switch,
-		       poldi_ctrl_opt.wait_timeout,
-		       conversation, NULL, &serialno,
-		       &version, CARD_KEY_NONE, NULL);
+  /* FIXME: WAIT for card?  */
+
+  err = scd_learn (ctx, &cardinfo);
   if (err)
-    goto out;
+    {
+      log_error ("Error: scd_learn() failed: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   printf ("Serial No: %s\n"
+	  "Card holder: %s\n"
 	  "Card version: %u\n",
-	  serialno, version);
+	  cardinfo.serialno,
+	  cardinfo.disp_name,
+	  0); /* FIXME: card version */
 
   if (poldi_ctrl_opt.account)
     account = poldi_ctrl_opt.account;
   else
     {
-      err = usersdb_lookup_by_serialno (serialno, &account);
+      err = usersdb_lookup_by_serialno (cardinfo.serialno,
+					&account);
       if (gcry_err_code (err) == GPG_ERR_AMBIGUOUS_NAME)
 	err = ask_user ("Need to know the username", &account);
 
@@ -647,23 +604,53 @@ cmd_test (void)
 
   /* Check if the given account is associated with the serial
      number.  */
-  err = usersdb_check (serialno, account);
+  err = usersdb_check (cardinfo.serialno, account);
   if (err)
     {
       fprintf (stderr, "Serial no %s is not associated with %s\n",
-	       serialno, account);
+	       cardinfo.serialno, account);
       err = gcry_error (GPG_ERR_INV_NAME);
       goto out;
     }
 
   /* Retrieve key belonging to card.  */
-  err = key_lookup_by_serialno (serialno, &key);
+  err = key_lookup_by_serialno (cardinfo.serialno, &key);
   if (err)
     goto out;
 
-  err = authenticate (slot, key, conversation, NULL);
+  parm.conv = conversation;
+  parm.conv_opaque = NULL;
+
+  /* Generate challenge.  */
+  err = challenge_generate (&challenge, &challenge_n);
   if (err)
-    goto out;
+    {
+      log_error ("Error: failed to generate challenge: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+
+  /* Let card sign the challenge.  */
+  err = scd_pksign (ctx, "OPENPGP.3",
+		    getpin_cb, &parm,
+		    challenge, challenge_n,
+		    &response, &response_n);
+  if (err)
+    {
+      log_error ("Error: failed to retrieve challenge signature "
+		 "from card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* Verify response.  */
+  err = challenge_verify (key, challenge, challenge_n, response, response_n);
+  if (err)
+    {
+      log_error ("Error: failed to verify challenge\n");
+      goto out;
+    }
 
  out:
 
@@ -675,12 +662,13 @@ cmd_test (void)
 
   /* Deallocate resources.  */
 
-  if (slot != -1)
-    card_close (slot);
   if (account != poldi_ctrl_opt.account)
     free (account);
-  free (serialno);
   gcry_sexp_release (key);
+  scd_release_cardinfo (&cardinfo);
+  scd_disconnect (ctx);
+  free (challenge);
+  free (response);
 
   return err;
 }
@@ -693,50 +681,46 @@ cmd_dump (void)
 {
   gcry_sexp_t key;
   char *key_s;
-  char *serialno;
   gpg_error_t err;
-  int slot;
-  char *pin;
-  unsigned int version;
-  char *fingerprint;
+  //unsigned int version;
   unsigned int key_nbits;
+  struct scd_cardinfo cardinfo;
+  char fpr[41];
+  scd_context_t ctx;
 
-  slot = -1;
-  serialno = NULL;
+  ctx = NULL;
+  cardinfo = cardinfo_NULL;
   key = NULL;
   key_s = NULL;
-  pin = NULL;
-  fingerprint = NULL;
+  //pin = NULL;
 
-  /* Open and initialize card.  */
+  /* Connect.  */
 
-  err = card_open (NULL, &slot);
+  err = scd_connect (&ctx,
+		     getenv ("SCDAEMON_INFO"),
+		     NULL,
+		     0);
   if (err)
     {
-      log_error ("Error: failed to open card: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  err = card_init (slot, 0, 0, 0);
-  if (err)
-    {
-      /* FIXME: wording.  */
-      log_error ("Error: failed to initialize card: %s\n",
+      log_error ("Error: scd_connect() failed: %s\n",
 		 gpg_strerror (err));
       goto out;
     }
 
   /* Retrieve more card information.  */
 
-  err = card_info (slot, &serialno, &version, CARD_KEY_AUTH, &fingerprint);
+  err = scd_learn (ctx, &cardinfo);
   if (err)
     {
-      log_error ("Error: failed to retreive basic information"
-		 "from card: %s\n",
+      log_error ("Error: scd_learn() failed: %s\n",
 		 gpg_strerror (err));
       goto out;
     }
+
+#if 0
+
+  /* FIXME, moritz, dunno wether we still need this with
+     gpg-agent.  */
 
   if (version <= 0x0100)
     {
@@ -763,9 +747,12 @@ cmd_dump (void)
 	}
     }
 
+#endif
+
   /* Retrieve key from card.  */
 
-  err = card_read_key (slot, CARD_KEY_AUTH, &key, &key_nbits);
+  err = scd_readkey (ctx, "OPENPGP.3", &key);
+  //  err = agent_scd_readkey ("OPENPGP.3", &key);
   if (err)
     {
       log_error ("Error: failed to retrieve key from card: %s\n",
@@ -784,23 +771,26 @@ cmd_dump (void)
       goto out;
     }
 
-  printf ("Slot: %i\n"
-	  "Serial number: %s\n"
-	  "Version: 0x%X\n"
+  convert_to_hex (cardinfo.fpr3, 20, fpr);
+
+  printf ("Serial number: %s\n"
 	  "Signing key fingerprint: %s\n"
 	  "Key size: %u\n"
 	  "Key:\n%s\n",
-	  slot, serialno, version, fingerprint, key_nbits, key_s);
+	  cardinfo.serialno, fpr,
+	  /* FIXME */
+	  0, "FIXME");
 
  out:
 
-  if (slot != -1)
-    card_close (slot);
   gcry_sexp_release (key);
   gcry_free (key_s);
-  free (serialno);
-  free (pin);
-  free (fingerprint);
+  //free (serialno);
+  //free (pin);
+  //free (fingerprint);
+
+  scd_release_cardinfo (&cardinfo);
+  scd_disconnect (ctx);
 
   return err;
 }
@@ -823,6 +813,8 @@ cmd_list_users (void)
 
 
 /* Implementation of `register-card' command.  */
+/* FIXME: shouldn't register-card simply register the card INSERTED
+   instead of requiring a specified serialno on the CLI? -mo  */
 static gpg_error_t
 cmd_register_card (void)
 {
@@ -1019,15 +1011,17 @@ cmd_set_key (void)
   gpg_error_t err;
   char *path;
   FILE *path_fp;
-  int slot;
   char *key_string;
   char *serialno;
   char *pin;
   gcry_sexp_t key_sexp;
   unsigned int version;
   int ret;
+  struct scd_cardinfo cardinfo;
+  scd_context_t ctx;
 
-  slot = -1;
+  ctx = NULL;
+  cardinfo = cardinfo_NULL;
   pin = NULL;
   path = NULL;
   path_fp = NULL;
@@ -1036,28 +1030,22 @@ cmd_set_key (void)
   key_string = NULL;
   version = 0;
 
-  /* Open and initialize card.  */
+  /* Connect.  */
 
-  err = card_open (NULL, &slot);
+  err = scd_connect (&ctx,
+		     getenv ("SCDAEMON_INFO"),
+		     NULL,
+		     0);
   if (err)
     {
-      log_error ("Error: failed to open card: %s\n",
+      log_error ("Error: scd_connect() failed: %s\n",
 		 gpg_strerror (err));
       goto out;
     }
 
-  err = card_init (slot, 0, 0, 0);
-  if (err)
-    {
-      /* FIXME: wording.  */
-      log_error ("Error: failed to initialize card: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
+  /* Retrieve basic information from card.  */
 
-  /* Retrieve more information from card.  */
-
-  err = card_info (slot, &serialno, &version, CARD_KEY_NONE, NULL);
+  err = scd_learn (ctx, &cardinfo);
   if (err)
     {
       log_error ("Error: failed to retreive basic information"
@@ -1068,13 +1056,15 @@ cmd_set_key (void)
 
   /* Construct key path.  */
 
-  err = key_filename_construct (&path, serialno);
+  err = key_filename_construct (&path, cardinfo.serialno);
   if (err)
     {
       log_error ("Error: failed to construct key filename: %s\n",
 		 gpg_strerror (err));
       goto out;
     }
+
+#if 0 /* FIXME, moritz? */
 
   if (version <= 0x0100)
     {
@@ -1107,9 +1097,11 @@ cmd_set_key (void)
 	}
     }
 
+#endif
+
   /* Retrieve key from card.  */
 
-  err = card_read_key (slot, CARD_KEY_AUTH, &key_sexp, NULL);
+  err = scd_readkey (ctx, "OPENPGP.3", &key_sexp);
   if (err)
     {
       log_error ("Error: failed to retrieve key from card: %s\n",
@@ -1161,8 +1153,8 @@ cmd_set_key (void)
     fclose (path_fp);
   free (key_string);
   gcry_sexp_release (key_sexp);
-  if (slot != -1)
-    card_close (slot);
+  scd_release_cardinfo (&cardinfo);
+  scd_disconnect (ctx);
 
   return err;
 }
@@ -1288,6 +1280,9 @@ main (int argc, char **argv)
 
   /* Initialize jnlib subsystems.  */
 
+  /* Initialize Libgcrypt.  */
+  gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
+
   set_strusage (my_strusage);
   log_set_prefix ("poldi-ctrl", 1);
 
@@ -1328,18 +1323,6 @@ main (int argc, char **argv)
 		 parsing_stage, gpg_strerror (err));
       goto out;
     }
-
-  /* Initialize libscd.  */
-
-  scd_init (poldi_ctrl_opt.debug,
-	    poldi_ctrl_opt.debug_sc,
-	    poldi_ctrl_opt.verbose,
-	    poldi_ctrl_opt.ctapi_driver,
-	    poldi_ctrl_opt.reader_port,
-	    poldi_ctrl_opt.pcsc_driver,
-	    poldi_ctrl_opt.disable_opensc,
-	    poldi_ctrl_opt.disable_ccid,
-	    poldi_ctrl_opt.debug_ccid_driver);
 
   ncommands = (0
 	       + poldi_ctrl_opt.cmd_test
