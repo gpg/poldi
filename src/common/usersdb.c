@@ -1,5 +1,5 @@
 /* usersdb.c - PAM authentication via OpenPGP smartcards.
-   Copyright (C) 2004, 2005 g10 Code GmbH
+   Copyright (C) 2004, 2005, 2007 g10 Code GmbH
  
    This file is part of Poldi.
   
@@ -276,6 +276,9 @@ usersdb_lookup_by_serialno (const char *serialno, char **username)
   struct lookup_cb_s ctx = { serialno, NULL, 0, NULL, 0 };
   gcry_error_t err;
 
+  assert (serialno);
+  assert (username);
+
   err = usersdb_process (usersdb_lookup_cb, &ctx);
   if (err)
     goto out;
@@ -321,6 +324,9 @@ usersdb_lookup_by_username (const char *username, char **serialno)
 {
   struct lookup_cb_s ctx = { NULL, username, 0, NULL, 0 };
   gcry_error_t err;
+
+  assert (username);
+  assert (serialno);
 
   err = usersdb_process (usersdb_lookup_cb, &ctx);
   if (err)

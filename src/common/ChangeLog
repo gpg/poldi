@@ -1,3 +1,19 @@
+2007-06-29  Moritz  <moritz@g10code.com>
+
+	* Makefile.am (libpoldi_common_a_SOURCES): Adjusted.
+	* card.c, card.h: Removed.
+	* i18n.h, membuf.c, membuf.h, util.h, README: New files.
+	* options.c, options.h: Renamed to optparse.c, optparse.h;
+	adjusted ifndef and include line.
+	* support.c: Include scd.h instead of card.h.
+	(authenticate): Removed function.
+	(wait_for_card): Likewise.
+	(convert_to_hex): New function.
+	* support.h: Added declaration for convert_to_hex, removed
+	declarations for authenticate and wait_for_card. Include scd.h
+	instead of card.h.
+	* usersdb.c: Added some assertions.
+
 2005-12-11  Moritz Schulte  <moritz@g10code.com>
 
 	* support.c (authenticate): Use card_auth() instead of

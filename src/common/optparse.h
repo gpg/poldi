@@ -1,5 +1,5 @@
 /* options.h - Poldi option handling
-   Copyright (C) 2004, 2005 g10 Code GmbH.
+   Copyright (C) 2004, 2005, 2007 g10 Code GmbH.
  
    This file is part of Poldi.
   
@@ -18,8 +18,8 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.  */
 
-#ifndef OPTIONS_H
-#define OPTIONS_H
+#ifndef OPTPARSE_H
+#define OPTPARSE_H
 
 #include <gpg-error.h>
 

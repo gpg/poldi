@@ -1,5 +1,5 @@
 /* poldi.c - PAM authentication via OpenPGP smartcards.
-   Copyright (C) 2004 g10 Code GmbH.
+   Copyright (C) 2004, 2007 g10 Code GmbH.
  
    This file is part of Libgcrypt.
   
@@ -28,7 +28,7 @@
 #include "../jnlib/argparse.h"
 #include "../jnlib/xmalloc.h"
 
-#include "options.h"
+#include "optparse.h"
 
 #include <defs.h>
 

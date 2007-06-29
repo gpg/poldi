@@ -1,5 +1,5 @@
 /* support.c - PAM authentication via OpenPGP smartcards.
-   Copyright (C) 2004, 2005 g10 Code GmbH
+   Copyright (C) 2004, 2005, 2007 g10 Code GmbH
  
    This file is part of Poldi.
   
@@ -41,7 +41,7 @@
 #include <jnlib/xmalloc.h>
 #include <jnlib/logging.h>
 
-#include <common/card.h>
+#include <scd/scd.h>
 
 
 
@@ -359,131 +359,7 @@ key_lookup_by_serialno (const char *serialno, gcry_sexp_t *key)
 
 
 
-/* This function implements the core authentication mechanism.
-   CARD_SLOT is the slot ID, which is used for interaction with the
-   smartcard; KEY is the public key; CONV is the conversation function
-   to use for interaction with the user and OPAQUE is the opaque
-   argument to pass to the conversation functions.  Returns proper
-   error code: in case it returns zero, authentication was
-   successful.  */
-gpg_error_t
-authenticate (int card_slot, gcry_sexp_t key,
-	      conversation_cb_t conv, void *opaque)
-{
-  unsigned char *challenge;
-  unsigned char *response;
-  size_t challenge_n;
-  size_t response_n;
-  gpg_error_t err;
-  char *pin;
-
-  challenge = NULL;
-  response = NULL;
-  pin = NULL;
-
-  /* Query user for PIN.  */
-  err = (*conv) (CONVERSATION_ASK_SECRET, opaque, POLDI_PIN2_QUERY_MSG, &pin);
-  if (err)
-    {
-      log_error ("Error: failed to retrieve PIN from user: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  /* Send PIN to card.  */
-  err = card_pin_provide (card_slot, 2, pin);
-  if (err)
-    {
-      log_error ("Error: failed to send PIN to card: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  /* FIXME: size of challenge should be provieded.  */
-
-  /* Generate challenge.  */
-  err = challenge_generate (&challenge, &challenge_n);
-  if (err)
-    {
-      log_error ("Error: failed to generate challenge: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  /* Let card sign the challenge.  */
-  err = card_auth (card_slot, challenge, challenge_n, &response, &response_n);
-  if (err)
-    {
-      log_error ("Error: failed to retrieve challenge signature "
-		 "from card: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  /* Verify response.  */
-  err = challenge_verify (key, challenge, challenge_n, response, response_n);
-
- out:
-
-  /* Release resources.  */
-
-  free (challenge);
-  free (response);
-  free (pin);
-
-  return err;
-}
-
 
-
-/* Wait for insertion of a card in slot specified by SLOT,
-   communication with the user through the PAM conversation function
-   CONV.  If REQUIRE_CARD_SWITCH is TRUE, require a card switch.
-
-   The serial number of the inserted card will be stored in a newly
-   allocated string in **SERIALNO, it's version will be stored in
-   *VERSION and the fingerprint of the signing key on the card will be
-   stored in newly allocated memory in *FINGERPRINT.
-
-   Returns proper error code.  */
-gpg_error_t
-wait_for_card (int slot, int require_card_switch, unsigned int timeout,
-	       conversation_cb_t conv, void *opaque, char **serialno,
-	       unsigned int *card_version,
-	       card_key_t type, char **fingerprint)
-{
-  gpg_error_t err;
-
-  err = (*conv) (CONVERSATION_TELL, opaque, "Insert card ...", NULL);
-  if (err)
-    /* FIXME.  */
-    goto out;
-
-  err = card_init (slot, 1, timeout, require_card_switch);
-  if (err)
-    {
-      if (gpg_err_code (err) == GPG_ERR_CARD_NOT_PRESENT)
-	(*conv) (CONVERSATION_TELL, opaque, "Timeout inserting card", NULL);
-      else
-	log_error ("Error: failed to initialize card: %s\n",
-		   gpg_strerror (err));
-      goto out;
-    }
-
-  err = card_info (slot, serialno, card_version, type, fingerprint);
-  if (err)
-    {
-      log_error ("Error: failed to retrieve card information: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  /* FIXME: error checking?  */
-
- out:
-
-  return err;
-}
 
 /* FIXME: need to comment; another candidate for inclusion in a
    central code repository.  */
@@ -522,5 +398,18 @@ directory_process (const char *name,
 
   return err;
 }
+
+
+
+void
+convert_to_hex (unsigned char *data, size_t data_n, char *data_printable)
+{
+  int i;
+
+  for (i = 0; i < data_n; i++)
+    sprintf (&data_printable[2*i], "%02X", data[i]);
+}
+
+
 
 /* END */

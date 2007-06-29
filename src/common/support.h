@@ -1,5 +1,5 @@
 /* support.h - PAM authentication via OpenPGP smartcards.
-   Copyright (C) 2004, 2005 g10 Code GmbH
+   Copyright (C) 2004, 2005, 2007 g10 Code GmbH
  
    This file is part of Poldi.
   
@@ -24,7 +24,7 @@
 #include <gcrypt.h>
 #include <dirent.h>
 
-#include <card.h>
+#include <scd/scd.h>
 
 /* This function generates a challenge; the challenge will be stored
    in newly allocated memory, which is to be stored in *CHALLENGE;
@@ -57,6 +57,8 @@ gpg_error_t file_to_string (const char *filename, char **string);
    in *SEXP.  Returns proper error code.  */
 gpg_error_t string_to_sexp (gcry_sexp_t *sexp, char *string);
 
+void convert_to_hex (unsigned char *data, size_t data_n, char *data_printable);
+
 /* This functions construct a new C-string containing the absolute
    path for the file, which is to expected to contain the public key
    for the card identified by SERIALNO.  Returns proper error
@@ -87,35 +89,10 @@ typedef enum
 conversation_type_t;
 
 /* A function of this type is passed to authenticate().  */
+/* FIXME: encoding/utf8 - is there a problem? -mo */
 typedef gpg_error_t (*conversation_cb_t) (conversation_type_t type,
 					  void *opaque,
 					  const char *info, char **response);
-
-/* This function implements the core authentication mechanism.
-   CARD_SLOT is the slot ID, which is used for interaction with the
-   smartcard; KEY is the public key; CONV is the conversation function
-   to use for interaction with the user and OPAQUE is the opaque
-   argument to pass to the conversation functions.  Returns proper
-   error code: in case it returns zero, authentication was
-   successful.  */
-gpg_error_t authenticate (int card_slot, gcry_sexp_t key,
-			  conversation_cb_t conv, void *opaque);
-
-/* Wait for insertion of a card in slot specified by SLOT,
-   communication with the user through the PAM conversation function
-   CONV.  If REQUIRE_CARD_SWITCH is TRUE, require a card switch.
-
-   The serial number of the inserted card will be stored in a newly
-   allocated string in **SERIALNO, it's version will be stored in
-   *VERSION and the fingerprint of the signing key on the card will be
-   stored in newly allocated memory in *FINGERPRINT.
-
-   Returns proper error code.  */
-gpg_error_t wait_for_card (int slot, int require_card_switch,
-			   unsigned int timeout, conversation_cb_t conv,
-			   void *opaque, char **serialno,
-			   unsigned int *card_version,
-			   card_key_t type, char **fingerprint);
 
 typedef gpg_error_t (*directory_process_cb_t) (void *opaque,
 					       struct dirent *dirent);
