@@ -38,6 +38,7 @@
 #include <scd-support.h>
 
 #include <common/support.h>
+#include <common/defs.h>
 
 #include <jnlib/stringhelp.h>
 #include <jnlib/xmalloc.h>
@@ -120,7 +121,7 @@ agent_askpin (struct pin_querying_parm *parmx,
         }
 
       rc = (*parmx->conv) (CONVERSATION_ASK_SECRET, parmx->conv_opaque,
-			   "GETPIN", &PIN);
+			   POLDI_PIN2_QUERY_MSG, &PIN);
       if (! rc)
 	{
 	  if (strlen (PIN) >= pininfo->max_length)
@@ -178,8 +179,6 @@ agent_popup_message_start (struct pin_querying_parm *parm,
 void
 agent_popup_message_stop (struct pin_querying_parm *parm)
 {
-  int rc;
-
   /* FIXME: error handling? -mo  */
 
   (*parm->conv) (CONVERSATION_TELL, parm->conv_opaque, "popup message stop", NULL);

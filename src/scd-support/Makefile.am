@@ -10,6 +10,7 @@ AM_CFLAGS = \
 	$(GPG_ERROR_CFLAGS) \
 	$(LIBASSUAN_CFLAGS) \
 	$(LIBGCRYPT_CFLAGS) \
+	-I$(top_builddir)/src \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/scd
