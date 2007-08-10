@@ -1,3 +1,9 @@
+2007-08-10  Moritz  <moritz@euler>
+
+	* poldi-ctrl.c (cmd_test): Call scd_reset.
+	(cmd_dump): Likewise.
+	(cmd_set_key): Likewise.
+
 2007-06-29  Moritz  <moritz@g10code.com>
 
 	* poldi-ctrl.c: Removed includes: <common/card.h>, <libscd/scd.h>,

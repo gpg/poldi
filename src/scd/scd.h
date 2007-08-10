@@ -74,4 +74,8 @@ int scd_readkey (scd_context_t ctx,
 
 int scd_getinfo (scd_context_t ctx, const char *what, char **result);
 
+/* Reset the SCD if it has been used.  */
+int scd_reset (scd_context_t ctx);
+
+
 #endif

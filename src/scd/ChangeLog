@@ -1,3 +1,8 @@
+2007-08-10  Moritz  <moritz@euler>
+
+	* scd.c (scd_reset): New function.
+	* scd.h: Declare it.
+
 2007-06-29  Moritz  <moritz@g10code.com>
 
 	* README, scd.c, scd.h: New files.

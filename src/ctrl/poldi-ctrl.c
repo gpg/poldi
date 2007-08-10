@@ -662,6 +662,8 @@ cmd_test (void)
 
   /* Deallocate resources.  */
 
+  scd_reset (ctx);
+
   if (account != poldi_ctrl_opt.account)
     free (account);
   gcry_sexp_release (key);
@@ -782,6 +784,8 @@ cmd_dump (void)
 	  0, "FIXME");
 
  out:
+
+  scd_reset (ctx);
 
   gcry_sexp_release (key);
   gcry_free (key_s);
@@ -1145,6 +1149,8 @@ cmd_set_key (void)
     }
 
  out:
+
+  scd_reset (ctx);
 
   free (pin);
   free (path);

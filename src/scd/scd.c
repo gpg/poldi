@@ -800,4 +800,18 @@ scd_getinfo (scd_context_t ctx, const char *what, char **result)
   return rc;
 }
 
+/* Reset the SCD if it has been used.  */
+int
+scd_reset (scd_context_t ctx)
+{
+  int rc;
+
+  assuan_transact (ctx->assuan_ctx, "RESTART",
+		   NULL, NULL, NULL, NULL, NULL, NULL);
+
+  return 0;
+}
+
+
+
 /* END */
