@@ -121,7 +121,7 @@ agent_askpin (struct pin_querying_parm *parm,
         }
 
       rc = (*parm->conv) (CONVERSATION_ASK_SECRET, parm->conv_opaque,
-			  "GETPIN", &PIN);
+			  POLDI_PIN2_QUERY_MSG, &PIN);
       if (! rc)
 	{
 	  if (strlen (PIN) >= pininfo->max_length)

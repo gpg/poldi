@@ -84,19 +84,18 @@ static assuan_error_t membuf_data_cb (void *opaque,
 
 
 
+static int scd_serialno_internal (assuan_context_t ctx,
+				  int agent, char **r_serialno);
 
-int
-scd_disconnect (scd_context_t scd_ctx)
-{
-  if (scd_ctx)
-    {
-      assuan_disconnect (scd_ctx->assuan_ctx);
-      xfree (scd_ctx);
-    }
+
 
-  return 0;
-}
+/* Helper function for get_scd_socket_from_agent(), which is used by
+   scd_connect().
 
+   Try to connect to gpg-agent, which is to be found through the
+   info-string contained in AGENT_INFOSTR.  On success, *AGENT_CTX is
+   filled with an assuan context.  Return proper error code or zero on
+   success. */
 static int
 agent_connect_from_infostr (const char *agent_infostr,
 			    assuan_context_t *agent_ctx)
@@ -144,6 +143,12 @@ agent_connect_from_infostr (const char *agent_infostr,
   return rc;
 }
 
+/* Helper function for get_scd_socket_from_agent(), which is used by
+   scd_connect().
+
+   Try to retrieve the SCDaemons socket naem from the gpg-agent
+   context CTX.  On success, *SOCKET_NAME is filled with a copy ot the
+   socket name.  Return proper error code or zero on success. */
 static int
 agent_scd_getinfo_socket_name (assuan_context_t ctx, char **socket_name)
 {
@@ -188,7 +193,10 @@ agent_scd_getinfo_socket_name (assuan_context_t ctx, char **socket_name)
   return rc;
 }
 
-
+/* Retrieve SCDaemons socket name through a running gpg-agent, which
+   is to be found through the info-string AGENT_INFOSTR.  On Success,
+   *SOCKET_NAME contains a copy of the socket name.  Returns proper
+   error code or zero on success.  */
 static int
 get_scd_socket_from_agent (const char *agent_infostr, char **socket_name)
 {
@@ -203,6 +211,10 @@ get_scd_socket_from_agent (const char *agent_infostr, char **socket_name)
   if (rc)
     goto out;
 
+  rc = scd_serialno_internal (ctx, 1, NULL);
+  if (rc)
+    goto out;
+
   rc = agent_scd_getinfo_socket_name (ctx, socket_name);
 
  out:
@@ -213,9 +225,10 @@ get_scd_socket_from_agent (const char *agent_infostr, char **socket_name)
 }
 
 
+
 
 /* Try to connect to the agent via socket or fork it off and work by
-   pipes.  Handle the server's initial greeting */
+   pipes.  Returns proper error code or zero on success.  */
 int
 scd_connect (scd_context_t *scd_ctx,
 	     const char *agent_infostr,
@@ -292,6 +305,8 @@ scd_connect (scd_context_t *scd_ctx,
       xfree (scd_socket);
     }
 
+  
+
   if (rc)
     {
       log_error ("can't connect to the agent: %s\n", gpg_strerror (rc));
@@ -299,7 +314,7 @@ scd_connect (scd_context_t *scd_ctx,
     }
 
   // FIXME: not necessary? -moritz
-  rc = assuan_transact (assuan_ctx, "RESTART", NULL, NULL, NULL, NULL, NULL,NULL);
+  //rc = assuan_transact (assuan_ctx, "RESTART", NULL, NULL, NULL, NULL, NULL,NULL);
 
  out:
 
@@ -319,6 +334,19 @@ scd_connect (scd_context_t *scd_ctx,
     }
 
   return rc;
+}
+
+/* Disconnect from SCDaemon; destroy the context SCD_CTX.  */
+int
+scd_disconnect (scd_context_t scd_ctx)
+{
+  if (scd_ctx)
+    {
+      assuan_disconnect (scd_ctx->assuan_ctx);
+      xfree (scd_ctx);
+    }
+
+  return 0;
 }
 
 
@@ -451,6 +479,8 @@ learn_status_cb (void *opaque, const char *line)
   return 0;
 }
 
+/* Read information from card and fill the cardinfo structure
+   CARDINFO.  Returns proper error code, zero on success.  */
 int
 scd_learn (scd_context_t ctx,
 	   struct scd_cardinfo *cardinfo)
@@ -465,6 +495,8 @@ scd_learn (scd_context_t ctx,
   return rc;
 }
 
+/* Simply release the cardinfo structure INFO.  INFO being NULL is
+   okay.  */
 void
 scd_release_cardinfo (struct scd_cardinfo *info)
 {
@@ -513,30 +545,42 @@ get_serialno_cb (void *opaque, const char *line)
   return 0;
 }
 
-/* Return the serial number of the card or an appropriate error.  The
-   serial number is returned as a hexstring. */
-int
-scd_serialno (scd_context_t ctx, char **r_serialno)
+static int
+scd_serialno_internal (assuan_context_t ctx, int agent, char **r_serialno)
 {
   char *serialno;
   int rc;
 
   serialno = NULL;
 
-  rc = assuan_transact (ctx->assuan_ctx, "SERIALNO",
+  rc = assuan_transact (ctx, agent ? "SCD SERIALNO" : "SERIALNO",
                         NULL, NULL, NULL, NULL,
                         get_serialno_cb, &serialno);
-  *r_serialno = serialno;
-
   if (rc)
+    goto out;
+
+  if (r_serialno)
+    *r_serialno = serialno;
+  else
     xfree (serialno);
 
+ out:
+
   return rc;
+}
+
+/* Return the serial number of the card or an appropriate error.  The
+   serial number is returned as a hexstring. */
+int
+scd_serialno (scd_context_t ctx, char **r_serialno)
+{
+  return scd_serialno_internal (ctx->assuan_ctx, 0, r_serialno);
 }
 
 /* CMD: PKSIGN.  */
 
 
+
 static int
 membuf_data_cb (void *opaque, const void *buffer, size_t length)
 {
@@ -712,9 +756,10 @@ scd_readkey (scd_context_t ctx,
   int rc;
   char line[ASSUAN_LINELENGTH];
   membuf_t data;
-  size_t len, buflen;
+  size_t buflen;
   unsigned char *buffer;
 
+  *key = NULL;
   buffer = NULL;
   init_membuf (&data, 1024);
 
@@ -841,6 +886,9 @@ agent_card_getattr (ctrl_t ctrl, const char *name, char **result)
 
 
 
+/* Sends a GETINFO command for WHAT to the scdaemon through CTX.  The
+   newly allocated result is stored in *RESULT.  Returns proper error
+   code, zero on success.  */
 int
 scd_getinfo (scd_context_t ctx, const char *what, char **result)
 {
@@ -890,14 +938,11 @@ scd_getinfo (scd_context_t ctx, const char *what, char **result)
 int
 scd_reset (scd_context_t ctx)
 {
-  int rc;
-
   assuan_transact (ctx->assuan_ctx, "RESTART",
 		   NULL, NULL, NULL, NULL, NULL, NULL);
 
   return 0;
 }
-
 
 
 /* END */

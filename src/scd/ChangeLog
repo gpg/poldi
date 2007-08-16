@@ -1,10 +1,24 @@
 2007-08-16  Moritz  <moritz@g10code.com>
 
+	* scd.c (scd_serialno_internal): New function, it's basically the
+	old scd_serialno() with a new parameter.
+	(scd_serialno): Ripped; simply call scd_serialno_internal().
+	(get_scd_socket_from_agent): Call scd_serialno_internal in order
+	to select the OpenPGP app on the card.
+	Comments.
+	(scd_reset): Unused variable.
+	(scd_readkey): Likewise; initialize *KEY to NULL.
+	* scd.h: Comments.
+
+2007-08-16  Moritz  <moritz@g10code.com>
+
 	* scd.c (agent_connect_from_infostr): New function.
 	(agent_scd_getinfo_socket_name): New function.
 	(scd_connect): Use above functions for connecting to the agent and
 	receiving scdaemons socket from the agent instead of connecting to
 	the agent directly.
+	(scd_serialno): Allow for R_SERIALNO being NULL so that the
+	serialno is NOT returned to the caller.
 
 2007-08-16  Moritz  <moritz@g10code.com>
 

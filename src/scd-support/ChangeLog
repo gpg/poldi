@@ -2,6 +2,8 @@
 
 	* getpin-callback.c (agent_askpin): Rename parameter "parmx" to
 	"parm".
+	(agent_askpin): Use POLDI_PIN2_QUERY_MSG instead of hardcoded
+	"GETPIN".
 
 2007-08-10  Moritz  <moritz@euler>
 

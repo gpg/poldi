@@ -46,22 +46,31 @@ typedef struct scd_cardinfo scd_cardinfo_t;
 
 #define SCD_FLAG_VERBOSE (1 << 0)
 
+/* Try to connect to the agent via socket or fork it off and work by
+   pipes.  Returns proper error code or zero on success.  */
 int scd_connect (scd_context_t *scd_ctx,
 		 const char *agent_infostr,
 		 const char *scd_path,
 		 unsigned int flags);
 
+/* Disconnect from SCDaemon; destroy the context SCD_CTX.  */
 int scd_disconnect (scd_context_t scd_ctx);
 
+/* Return the serial number of the card or an appropriate error.  The
+   serial number is returned as a hexstring. */
 int scd_serialno (scd_context_t ctx,
 		  char **r_serialno);
 
-
+/* Read information from card and fill the cardinfo structure
+   CARDINFO.  Returns proper error code, zero on success.  */
 int scd_learn (scd_context_t ctx,
 	       struct scd_cardinfo *cardinfo);
 
+/* Simply release the cardinfo structure INFO.  INFO being NULL is
+   okay.  */
 void scd_release_cardinfo (struct scd_cardinfo *cardinfo);
 
+/* Create a signature using the current card */
 int scd_pksign (scd_context_t ctx,
 		const char *keyid,
 		int (*getpin_cb)(void *, const char *, char*, size_t),
@@ -69,9 +78,14 @@ int scd_pksign (scd_context_t ctx,
 		const unsigned char *indata, size_t indatalen,
 		unsigned char **r_buf, size_t *r_buflen);
 
+/* Read a key with ID and return it in an allocate buffer pointed to
+   by r_BUF as a valid S-expression. */
 int scd_readkey (scd_context_t ctx,
 		 const char *id, gcry_sexp_t *key);
 
+/* Sends a GETINFO command for WHAT to the scdaemon through CTX.  The
+   newly allocated result is stored in *RESULT.  Returns proper error
+   code, zero on success.  */
 int scd_getinfo (scd_context_t ctx, const char *what, char **result);
 
 /* Reset the SCD if it has been used.  */
