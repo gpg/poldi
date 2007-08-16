@@ -360,7 +360,13 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   //gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
   gcry_control (GCRYCTL_DISABLE_SECMEM);
 
-  err = scd_connect (&ctx, getenv ("SCDAEMON_INFO"), NULL, 0);
+  err = scd_connect (&ctx, getenv ("GPG_AGENT_INFO"), NULL, 0);
+  if (err)
+    {
+      log_error ("Error: scd_connect() failed: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
 
   /* Parse options.  */
   err = options_parse_conf  (pam_poldi_options_cb, NULL,

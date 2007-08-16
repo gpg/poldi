@@ -1,3 +1,17 @@
+2007-08-16  Moritz  <moritz@g10code.com>
+
+	* scd.c (agent_connect_from_infostr): New function.
+	(agent_scd_getinfo_socket_name): New function.
+	(scd_connect): Use above functions for connecting to the agent and
+	receiving scdaemons socket from the agent instead of connecting to
+	the agent directly.
+
+2007-08-16  Moritz  <moritz@g10code.com>
+
+	* scd.c (scd_connect): Send a RESTART instead of a RESET command
+	to scdaemon.
+
+
 2007-08-10  Moritz  <moritz@euler>
 
 	* scd.c (scd_reset): New function.

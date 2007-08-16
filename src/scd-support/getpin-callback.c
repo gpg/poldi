@@ -75,9 +75,9 @@ all_digitsp( const char *s)
 /* Call the Entry and ask for the PIN.  We do check for a valid PIN
    number here and repeat it as long as we have invalid formed
    numbers. */
-/* FIXME: parmx, pin length, cecks, looping, etc, all... -mo  */
+/* FIXME: pin length, cecks, looping, etc, all... -mo  */
 int
-agent_askpin (struct pin_querying_parm *parmx,
+agent_askpin (struct pin_querying_parm *parm,
               const char *desc_text, const char *prompt_text,
               const char *initial_errtext,
               struct pin_entry_info_s *pininfo)
@@ -112,16 +112,16 @@ agent_askpin (struct pin_querying_parm *parmx,
                     errtext, pininfo->failed_tries+1, pininfo->max_tries);
 	  line[DIM(line)-1] = 0;
 
-	  rc = (*parmx->conv) (CONVERSATION_TELL, parmx->conv_opaque,
-			       line, NULL);
+	  rc = (*parm->conv) (CONVERSATION_TELL, parm->conv_opaque,
+			      line, NULL);
           if (rc)
 	    goto out;
 	  //            return unlock_pinentry (rc);
           errtext = NULL;
         }
 
-      rc = (*parmx->conv) (CONVERSATION_ASK_SECRET, parmx->conv_opaque,
-			   POLDI_PIN2_QUERY_MSG, &PIN);
+      rc = (*parm->conv) (CONVERSATION_ASK_SECRET, parm->conv_opaque,
+			  "GETPIN", &PIN);
       if (! rc)
 	{
 	  if (strlen (PIN) >= pininfo->max_length)

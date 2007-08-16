@@ -1,3 +1,8 @@
+2007-07-13  Moritz  <moritz@g10code.com>
+
+	* pam_poldi.c (pam_sm_authenticate): Lookup GPG_AGENT_INFO, not
+	SCDAEMON_INFO, error checking after scd_connect.
+
 2007-06-30  Moritz  <moritz@g10code.com>
 
 	* pam_poldi.c: Removed includes: <common/options.h>,

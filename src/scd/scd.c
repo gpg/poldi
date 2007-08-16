@@ -97,18 +97,134 @@ scd_disconnect (scd_context_t scd_ctx)
   return 0;
 }
 
+static int
+agent_connect_from_infostr (const char *agent_infostr,
+			    assuan_context_t *agent_ctx)
+{
+  char *infostr;
+  int prot;
+  int pid;
+  int rc;
+  char *p;
+
+  infostr = xstrdup (agent_infostr);
+  *agent_ctx = NULL;
+  rc = 0;
+
+  if ( !(p = strchr (infostr, ':')) || p == infostr)
+    {
+      log_error (_("malformed GPG_AGENT_INFO environment variable\n"));
+      /* moritz: fixme, wrong err code.  */
+      rc = gpg_error (GPG_ERR_ASS_CONNECT_FAILED);
+      goto out;
+    }
+  *p++ = 0;
+  pid = atoi (p);
+  while (*p && *p != ':')
+    p++;
+  prot = *p? atoi (p+1) : 0;
+  if (prot != 1)
+    {
+      log_error (_("agent protocol version %d is not supported\n"),	/* FIXME,
+									   moritz?  */
+		 prot);
+      /* moritz: fixme, wrong err code.  */
+      rc = gpg_error (GPG_ERR_ASS_CONNECT_FAILED);
+      goto out;
+    
+    }
+
+  /* Connect!  */
+  rc = assuan_socket_connect (agent_ctx, infostr, pid);
+
+ out:
+
+  xfree (infostr);
+
+  return rc;
+}
+
+static int
+agent_scd_getinfo_socket_name (assuan_context_t ctx, char **socket_name)
+{
+  unsigned char *databuf;
+  size_t datalen;
+  membuf_t data;
+  char *res;
+  int rc;
+
+  init_membuf (&data, 256);
+  *socket_name = NULL;
+  res = NULL;
+  rc = 0;
+
+  rc = assuan_transact (ctx, "SCD GETINFO socket_name", membuf_data_cb, &data,
+			NULL, NULL, NULL, NULL);
+  if (rc)
+    goto out;
+
+  databuf = get_membuf (&data, &datalen);
+  if (databuf && datalen)
+    {
+      res = xtrymalloc (datalen + 1);
+      if (!res)
+	{
+	  log_error ("warning: can't store getinfo data: %s\n",
+		     strerror (errno));
+	  rc = gpg_error_from_syserror ();
+	}
+      else
+	{
+	  memcpy (res, databuf, datalen);
+	  res[datalen] = 0;
+	  *socket_name = res;
+	}
+    }
+
+ out:
+
+  xfree (get_membuf (&data, &datalen));
+
+  return rc;
+}
+
+
+static int
+get_scd_socket_from_agent (const char *agent_infostr, char **socket_name)
+{
+  assuan_context_t ctx;
+  int rc;
+
+  *socket_name = NULL;
+  ctx = NULL;
+  rc = 0;
+
+  rc = agent_connect_from_infostr (agent_infostr, &ctx);
+  if (rc)
+    goto out;
+
+  rc = agent_scd_getinfo_socket_name (ctx, socket_name);
+
+ out:
+
+  assuan_disconnect (ctx);
+
+  return rc;
+}
+
+
+
 /* Try to connect to the agent via socket or fork it off and work by
    pipes.  Handle the server's initial greeting */
 int
 scd_connect (scd_context_t *scd_ctx,
-	     const char *scd_infostr,
+	     const char *agent_infostr,
 	     const char *scd_path,
 	     unsigned int flags)
 {
-  int rc = 0;
-  char *infostr, *p;
   assuan_context_t assuan_ctx;
   scd_context_t ctx;
+  int rc = 0;
 
   assuan_ctx = NULL;
 
@@ -122,7 +238,7 @@ scd_connect (scd_context_t *scd_ctx,
   ctx->assuan_ctx = NULL;
   ctx->flags = 0;
 
-  if (!scd_infostr || !*scd_infostr)
+  if (!agent_infostr || !*agent_infostr)
     {
       /* Start new scdaemon.  */
 
@@ -164,47 +280,16 @@ scd_connect (scd_context_t *scd_ctx,
     }
   else
     {
-      /* Try to connect to already running scdaemon.  */
+      /* Try to connect to agent and receive scdaemon socket name
+	 through agent.  */
 
-      int prot;
-      int pid;
+      char *scd_socket;
 
-      infostr = xstrdup (scd_infostr);
-      if ( !(p = strchr (infostr, ':')) || p == infostr)
-        {
-          log_error (_("malformed SCDAEMON_INFO environment variable\n"));
-          xfree (infostr);
-	  /* moritz: fixme, wrong err code.  */
-          rc = gpg_error (GPG_ERR_ASS_CONNECT_FAILED);
-	  goto out;
-        }
-      *p++ = 0;
-      pid = atoi (p);
-      while (*p && *p != ':')
-        p++;
-      prot = *p? atoi (p+1) : 0;
-      if (prot != 1)
-        {
-          log_error (_("scdaemon protocol version %d is not supported\n"),
-                     prot);
-          xfree (infostr);
-	  /* moritz: fixme, wrong err code.  */
-          rc = gpg_error (GPG_ERR_ASS_CONNECT_FAILED);
-	  goto out;
-        }
+      rc = get_scd_socket_from_agent (agent_infostr, &scd_socket);
+      if (! rc)
+	rc = assuan_socket_connect (&assuan_ctx, scd_socket, 0);
 
-      rc = assuan_socket_connect (&assuan_ctx, infostr, pid);
-      xfree (infostr);
-#if 0
-      /* moritz: fixme, this might be useful, how to enable thread
-	 safe?  */
-      if (gpg_err_code (rc) == GPG_ERR_ASS_CONNECT_FAILED)
-        {
-          log_info (_("can't connect to the agent - trying fall back\n"));
-          force_pipe_server = 1;
-          return start_agent ();
-        }
-#endif
+      xfree (scd_socket);
     }
 
   if (rc)
@@ -213,7 +298,8 @@ scd_connect (scd_context_t *scd_ctx,
       goto out;
     }
 
-  rc = assuan_transact (assuan_ctx, "RESET", NULL, NULL, NULL, NULL, NULL,NULL);
+  // FIXME: not necessary? -moritz
+  rc = assuan_transact (assuan_ctx, "RESTART", NULL, NULL, NULL, NULL, NULL,NULL);
 
  out:
 

@@ -560,7 +560,7 @@ cmd_test (void)
 
   /* Connect to Scdaemon. */
   err = scd_connect (&ctx,
-		     getenv ("SCDAEMON_INFO"),
+		     getenv ("GPG_AGENT_INFO"),
 		     NULL,
 		     SCD_FLAG_VERBOSE);
   if (err)
@@ -699,7 +699,7 @@ cmd_dump (void)
   /* Connect.  */
 
   err = scd_connect (&ctx,
-		     getenv ("SCDAEMON_INFO"),
+		     getenv ("GPG_AGENT_INFO"),
 		     NULL,
 		     0);
   if (err)
@@ -1037,7 +1037,7 @@ cmd_set_key (void)
   /* Connect.  */
 
   err = scd_connect (&ctx,
-		     getenv ("SCDAEMON_INFO"),
+		     getenv ("GPG_AGENT_INFO"),
 		     NULL,
 		     0);
   if (err)

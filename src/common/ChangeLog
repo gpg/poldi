@@ -1,3 +1,7 @@
+2007-08-16  Moritz  <moritz@g10code.com>
+
+	* defs.h.in: Cosmetics.
+
 2007-06-29  Moritz  <moritz@g10code.com>
 
 	* Makefile.am (libpoldi_common_a_SOURCES): Adjusted.

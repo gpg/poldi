@@ -47,7 +47,7 @@ typedef struct scd_cardinfo scd_cardinfo_t;
 #define SCD_FLAG_VERBOSE (1 << 0)
 
 int scd_connect (scd_context_t *scd_ctx,
-		 const char *scd_infostr,
+		 const char *agent_infostr,
 		 const char *scd_path,
 		 unsigned int flags);
 

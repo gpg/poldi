@@ -1,3 +1,8 @@
+2007-08-16  Moritz  <moritz@g10code.com>
+
+	* getpin-callback.c (agent_askpin): Rename parameter "parmx" to
+	"parm".
+
 2007-08-10  Moritz  <moritz@euler>
 
 	* Makefile.am (AM_CFLAGS): Include $(top_builddir)/src.
