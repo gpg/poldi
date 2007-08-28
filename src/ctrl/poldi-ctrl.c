@@ -55,6 +55,7 @@ struct poldi_ctrl_opt
   char *config_file;
   char *account;
   char *serialno;
+  int serialno_inserted;
   int require_card_switch;
   int cmd_test;
   int cmd_dump;
@@ -108,6 +109,7 @@ enum arg_opt_ids
     arg_list_users  = 'L',
 
     arg_config_file = 'c',
+    arg_serialno_inserted = 'i',
 
     arg_account = 500,
     arg_serialno,
@@ -152,6 +154,8 @@ static ARGPARSE_OPTS arg_opts[] =
       "account",       2, "|NAME|Specify Unix account"         },
     { arg_serialno,
       "serialno",      2, "|NAME|Specify card serial number"   },
+    { arg_serialno_inserted,
+      "serialno-inserted", 256, "Use serial number from currently inserted card"   },
     //    { arg_require_card_switch,
     //      "require-card-switch", 0, "Require re-insertion of card" },
     { arg_wait_timeout,
@@ -177,6 +181,10 @@ my_strusage (int level)
 
     case 13:
       p = VERSION;
+      break;
+
+    case 14:
+      p = "Copyright (C) 2005, 2007 g10 Code GmbH";
       break;
 
     case 19:
@@ -272,6 +280,11 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
     case arg_serialno:
       if (parsing_stage)
 	poldi_ctrl_opt.serialno = xstrdup (parg->r.ret_str);
+      break;
+      
+    case arg_serialno_inserted:
+      if (parsing_stage)
+	poldi_ctrl_opt.serialno_inserted = 1;
       break;
       
     case arg_debug:
@@ -570,7 +583,11 @@ cmd_test (void)
       goto out;
     }
 
-  /* FIXME: WAIT for card?  */
+  err = wait_for_card (ctx,
+		       0,	/* FIXME */
+  		       conversation, NULL);
+  if (err)
+    goto out;
 
   err = scd_learn (ctx, &cardinfo);
   if (err)
@@ -685,7 +702,6 @@ cmd_dump (void)
   char *key_s;
   gpg_error_t err;
   //unsigned int version;
-  unsigned int key_nbits;
   struct scd_cardinfo cardinfo;
   char fpr[41];
   scd_context_t ctx;
@@ -777,11 +793,8 @@ cmd_dump (void)
 
   printf ("Serial number: %s\n"
 	  "Signing key fingerprint: %s\n"
-	  "Key size: %u\n"
 	  "Key:\n%s\n",
-	  cardinfo.serialno, fpr,
-	  /* FIXME */
-	  0, "FIXME");
+	  cardinfo.serialno, fpr, key_s);
 
  out:
 
@@ -789,9 +802,7 @@ cmd_dump (void)
 
   gcry_sexp_release (key);
   gcry_free (key_s);
-  //free (serialno);
   //free (pin);
-  //free (fingerprint);
 
   scd_release_cardinfo (&cardinfo);
   scd_disconnect (ctx);
@@ -816,6 +827,42 @@ cmd_list_users (void)
 
 
 
+/* Return the SERIALNO of the currently inserted smartcard.  */
+static gpg_error_t
+serialno_from_inserted_card (char **serialno)
+{
+  scd_context_t ctx;
+  gpg_error_t err;
+
+  *serialno = NULL;
+  ctx = NULL;
+
+  err = scd_connect (&ctx,
+		     getenv ("GPG_AGENT_INFO"),
+		     NULL,
+		     0);
+  if (err)
+    {
+      log_error ("Error: scd_connect() failed: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  err = scd_serialno (ctx, serialno);
+  if (err)
+    {
+      log_error ("Error: scd_serialno() failed: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+ out:
+
+  scd_disconnect (ctx);
+
+  return err;
+}
+
 /* Implementation of `register-card' command.  */
 /* FIXME: shouldn't register-card simply register the card INSERTED
    instead of requiring a specified serialno on the CLI? -mo  */
@@ -826,15 +873,33 @@ cmd_register_card (void)
   gpg_error_t err;
   char *serialno;
   char *account;
+  int use_inserted;
 
   serialno = poldi_ctrl_opt.serialno;
   account = poldi_ctrl_opt.account;
+  use_inserted = poldi_ctrl_opt.serialno_inserted;
 
   if (! serialno)
     {
-      log_error ("Error: serial number needs to be given\n");
-      err = gcry_error (GPG_ERR_INV_PARAMETER);
-      goto out;
+      if (use_inserted)
+	{
+	  /* Try   to  retrieve   serialno  from   currently  inserted
+	     card.  */
+	  err = serialno_from_inserted_card (&serialno);
+	  if (err)
+	    {
+	      log_error ("Error: failed to retrieve serial "
+			 "number from inserted card: %s\n",
+			 gpg_strerror (err));
+	      goto out;
+	    }
+	}
+      else
+	{
+	  log_error ("Error: serial number needs to be given\n");
+	  err = gcry_error (GPG_ERR_INV_PARAMETER);
+	  goto out;
+	}
     }
 
   if (! account)
@@ -869,6 +934,9 @@ cmd_register_card (void)
 
  out:
 
+  if (serialno != poldi_ctrl_opt.serialno)
+    free (serialno);		/* FIXME, moritz: which free? */
+
   return err;
 }
 
@@ -877,12 +945,33 @@ static gpg_error_t
 cmd_unregister_card (void)
 {
   gpg_error_t err;
+  char *serialno;
+  int use_inserted;
 
-  if (! poldi_ctrl_opt.serialno)
+  serialno = poldi_ctrl_opt.serialno;
+  use_inserted = poldi_ctrl_opt.serialno_inserted;
+
+  if (! serialno)
     {
-      fprintf (stderr, "Error: serial number needs to be given\n");
-      err = gcry_error (GPG_ERR_INV_PARAMETER);
-      goto out;
+      if (use_inserted)
+	{
+	  /* Try   to  retrieve   serialno  from   currently  inserted
+	     card.  */
+	  err = serialno_from_inserted_card (&serialno);
+	  if (err)
+	    {
+	      log_error ("Error: failed to retrieve serial "
+			 "number from inserted card: %s\n",
+			 gpg_strerror (err));
+	      goto out;
+	    }
+	}
+      else
+	{
+	  log_error ("Error: serial number needs to be given\n");
+	  err = gcry_error (GPG_ERR_INV_PARAMETER);
+	  goto out;
+	}
     }
 
   /* FIXME: print warning in case accounts are still connected with
@@ -898,6 +987,9 @@ cmd_unregister_card (void)
     }
 
  out:
+
+  if (serialno != poldi_ctrl_opt.serialno)
+    free (serialno);		/* FIXME, moritz: which free? */
 
   return err;
 }
@@ -937,15 +1029,40 @@ cmd_associate (void)
   gpg_error_t err;
   char *serialno;
   char *account;
+  int use_inserted;
 
   serialno = poldi_ctrl_opt.serialno;
   account = poldi_ctrl_opt.account;
+  use_inserted = poldi_ctrl_opt.serialno_inserted;
 
-  if (! (serialno && account))
+  if (!account)
     {
-      log_error ("Error: serial number and accounts needs to be given\n");
+      log_error ("Error: accounts needs to be given\n");
       err = gcry_error (GPG_ERR_INV_PARAMETER);
       goto out;
+    }
+
+  if (!serialno)
+    {
+      if (use_inserted)
+	{
+	  /* Try   to  retrieve   serialno  from   currently  inserted
+	     card.  */
+	  err = serialno_from_inserted_card (&serialno);
+	  if (err)
+	    {
+	      log_error ("Error: failed to retrieve serial "
+			 "number from inserted card: %s\n",
+			 gpg_strerror (err));
+	      goto out;
+	    }
+	}
+      else
+	{
+	  log_error ("Error: serial number needs to be given\n");
+	  err = gcry_error (GPG_ERR_INV_PARAMETER);
+	  goto out;
+	}
     }
 
   /* Lookup user in password database.  */
@@ -966,7 +1083,13 @@ cmd_associate (void)
       goto out;
     }
 
+  printf ("Associated account `%s' with card `%s'\n",
+	  account, serialno);
+
  out:
+
+  if (serialno != poldi_ctrl_opt.serialno)
+    free (serialno);		/* FIXME, moritz: which free? */
 
   return err;
 }
@@ -975,30 +1098,59 @@ static gpg_error_t
 cmd_disassociate (void)
 {
   gpg_error_t err;
+  char *serialno;
+  char *account;
+  int use_inserted;
 
-  /* Make sure that required information are given (serialno OR
-     account).  */
+  serialno = poldi_ctrl_opt.serialno;
+  account = poldi_ctrl_opt.account;
+  use_inserted = poldi_ctrl_opt.serialno_inserted;
 
-  if (! (poldi_ctrl_opt.serialno || poldi_ctrl_opt.account))
+  if (!account)
     {
-      fprintf (stderr, "Error: account or serial number needs to be given\n");
+      log_error ("Error: accounts needs to be given\n");
       err = gcry_error (GPG_ERR_INV_PARAMETER);
       goto out;
     }
 
+  if (!serialno)
+    {
+      if (use_inserted)
+	{
+	  /* Try   to  retrieve   serialno  from   currently  inserted
+	     card.  */
+	  err = serialno_from_inserted_card (&serialno);
+	  if (err)
+	    {
+	      log_error ("Error: failed to retrieve serial "
+			 "number from inserted card: %s\n",
+			 gpg_strerror (err));
+	      goto out;
+	    }
+	}
+      else
+	{
+	  log_error ("Error: serial number needs to be given\n");
+	  err = gcry_error (GPG_ERR_INV_PARAMETER);
+	  goto out;
+	}
+    }
+
   /* COMMENT.  */
   
-  err = usersdb_remove (poldi_ctrl_opt.account, poldi_ctrl_opt.serialno);
+  err = usersdb_remove (account, serialno);
   if (err)
     {
       log_error ("Error: failed to remove entry for user `%s' "
-		 "or serial number `%s' from user database: %s\n",
-		 poldi_ctrl_opt.account, poldi_ctrl_opt.serialno,
-		 gpg_strerror (err));
+		 "and serial number `%s' from user database: %s\n",
+		 account, serialno, gpg_strerror (err));
       goto out;
     }
 
  out:
+
+  if (serialno != poldi_ctrl_opt.serialno)
+    free (serialno);		/* FIXME, moritz: which free? */
 
   return err;
 }

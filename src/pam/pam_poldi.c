@@ -439,14 +439,11 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
    */
 
   /* Wait for card.  */
-  /* DISABLE because GETINFO status seems to be broken.  */
-#if 0
   err = wait_for_card (ctx,
 		       pam_poldi_opt.wait_timeout,
   		       pam_conversation, &conv_opaque);
   if (err)
     goto out;
-#endif
 
   err = scd_learn (ctx, &cardinfo);
   if (err)

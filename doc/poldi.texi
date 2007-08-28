@@ -23,9 +23,9 @@
 This file documents `Poldi'.
 
 This is Edition @value{EDITION}, last updated @value{UPDATED}, of
-@cite{The `Poldi Reference Manual}, for Version @value{VERSION}.
+@cite{The Poldi Manual}, for Version @value{VERSION}.
 
-Copyright @copyright{} 2004, 2005 g10 Code GmbH.
+Copyright @copyright{} 2004, 2005, 2006, 2007 g10 Code GmbH.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU General Public License as published by the
@@ -35,9 +35,7 @@ section entitled ``Copying''.
 @end ifinfo
 
 @titlepage
-@center @titlefont{The `Poldi'}
-@sp 1
-@center @titlefont{Reference Manual}
+@center @titlefont{The Poldi Manual}
 @sp 6
 @center Edition @value{EDITION}
 @sp 1
@@ -46,7 +44,7 @@ section entitled ``Copying''.
 @center for version @value{VERSION}
 @page
 @vskip 0pt plus 1filll
-Copyright @copyright{} 2004, 2005 g10 Code GmbH.
+Copyright @copyright{} 2004, 2005, 2006, 2007 g10 Code GmbH.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU General Public License as published by the
@@ -62,10 +60,10 @@ section entitled ``Copying''.
 @node Top
 @top Main Menu
 This is Edition @value{EDITION}, last updated @value{UPDATED}, of
-@cite{The `Poldi Reference Manual}, for Version
+@cite{The Poldi Manual}, for Version
 @value{VERSION} of Poldi.
 
-Copyright @copyright{} 2004, 2005 g10 Code GmbH.
+Copyright @copyright{} 2004, 2005, 2006, 2007 g10 Code GmbH.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU General Public License as published by the
@@ -105,25 +103,30 @@ Introduction
 @section Overview
 
 Poldi is package consisting of a PAM module (pam_poldi) and a CLI
-program (poldi-ctrl) , which implement authentication via OpenPGP
+program (poldi-ctrl), which implement authentication via OpenPGP
 smartcards (http://www.g10code.de/p-card.html).
+
+Poldi uses SCDaemon for accessing smartcards.
 
 @node Building
 @section Building
 
 Building Poldi should be pretty straightforward; Poldi depends on the
-following packages: Libgcrypt, Libgpg-error.
+following packages: Libassuan, Libgcrypt, Libgpg-error.
 
-Details on the build procedure can be found in the file ``INSTALL''.  At
-least one configure switch should be set:
+Details on the building procedure can be found in the file
+``INSTALL''.  At least one configure switch should be set:
 @code{--with-pam-module-directory}, which specifies the installation
-directory for PAM modules.
+directory for PAM modules.  When not specifying the directory for PAM
+modules this way, one probably needs to install the PAM module (named
+``pam_poldi.so'') manually.
 
 @node Installing
 @section Installing
 
-Installing Poldi should not require more than an invocation of the
-``install'' make target.
+Installing Poldi works by invoking the ``install'' make target.  As
+noted before, special care must be taken so that the PAM module end up
+in the correct place.
 
 Poldi requires some directories beneath `SYSCONFDIR/poldi', which is
 usually equal to `PREFIX/etc/poldi'.
@@ -139,7 +142,6 @@ and Usage of Poldi.
 
 @menu
 * Configuration::               Configuring Poldi
-* Access control::              How to setup Poldi for authentication
 * Example::                     Example
 * Testing::                     Testing basic functionality
 @end menu
@@ -159,34 +161,21 @@ seperated by a whitespace - one such configuration item per line.
 Poldi supports the following options:
 
 @table @code
-@item ctapi-driver <driver name>
-@item pcsc-driver <driver name>
-@item reader-port <reader port>
-@item disable-ccid
-@item disable-opensc
-@item debug-ccid-driver
 @item logfile
 @end table
 
-The semantics used by Poldi in respect to choosing a default card
-driver and handling of the card driver specific options should match
-those of scdaemon.
-
-@node Access control
-@section Access control
-
 In order for a user to be able to authenticate himself through Poldi,
-several preconditions must be satisfied:
+the following preconditions must be satisfied:
 
 @table @asis
-@item the smartcard in question needs to be introduced to Poldi
-@item the smartcard's key must be installed
+@item the smartcard must be registered
+@item the smartcards key must be installed on the computer
 @item the user must be associated with the smartcard
 @end table
 
 @table @asis
 
-@item Smartcard management:
+@item Registering the smartcard
 
 Poldi manages a list of ``registered'' smartcards.  Each registered
 smartcard is associated with exactly one key.
@@ -201,10 +190,11 @@ It might be desired to allow a user who is not the system administrator
 to install or update the key of his smartcard.  In this case, the
 appropriate user needs to be specified during card registration.
 
-@item Key setup:
+@item Key setup
 
-After a smartcard has been registered, it's key needs to be installed in
-order to allow authentication with the given card.
+After a smartcard has been registered, it's key needs to be installed
+on the computer side.  This is necessary for the function of
+challenge-response mechanisms.
 
 @item Associating a user with a card:
 
@@ -241,11 +231,16 @@ First, the system administrator has to register the new card for Poldi:
 $ poldi-ctrl --register-card --serialno D2760001240101000001000000CF0000
 @end example
 
+Alternatively, the admin could insert the card and use:
+@example
+$ poldi-ctrl --register-card --serialno-inserted
+@end example
+
 If bender should be able to install or update his card's key himself,
 the following can be used:
 
 @example
-$ poldi-ctrl --register-card --account bender --serialno D2760001240101000001000000CF0000
+$ poldi-ctrl --register-card --serialno-inserted --account bender
 @end example
 
 Now, after the card has been registered, a mapping needs to be
@@ -254,6 +249,9 @@ established between the user ``bender'' and the smartcard he owns:
 @example
 $ poldi-ctrl --associate --account bender --serialno D2760001240101000001000000CF0000
 @end example
+
+Again, the --serialno-inserted switch could have been used instead of
+specifying the serial number explicitely.
 
 Now, bender has to write the public key of his OpenPGP card into the
 appropriate key file:

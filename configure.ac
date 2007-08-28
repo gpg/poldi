@@ -125,7 +125,7 @@ AC_CHECK_LIB(usb, usb_bulk_write,
              ])
 AC_SUBST(LIBUSB_LIBS)
 AC_CHECK_FUNCS(usb_get_busses memicmp stpcpy strlwr strtoul memmove stricmp)
-AC_CHECK_FUNCS(fopencookie funopen)
+AC_CHECK_FUNCS(fopencookie funopen nanosleep)
 
 # Checks for header files.
 AC_HEADER_STDC

@@ -1,4 +1,4 @@
-/* support.c - PAM authentication via OpenPGP smartcards.
+/* wait-for-card.c - Implement waiting for smartcard insertion for Poldi
    Copyright (C) 2004, 2005, 2007 g10 Code GmbH
  
    This file is part of Poldi.
@@ -21,32 +21,11 @@
 #include <config.h>
 
 #include <gpg-error.h>
-
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <assert.h>
-//#include <unistd.h>
-//#include <fcntl.h>
-//#include <sys/stat.h>
-//#include <errno.h>
-//#include <stdarg.h>
-//#include <pwd.h>
-//#include <dirent.h>
 #include <time.h>
-
-//#include <gcrypt.h>
-
-#include "support.h"
-
+#include "scd-support.h"
 #include <scd/scd.h>
 
-//#include <jnlib/stringhelp.h>
-//#include <jnlib/xmalloc.h>
-//#include <jnlib/logging.h>
-
-//#include <agent/call-agent.h>
-//#include <i18n.h>
-//#include "util.h"
+
 
 /* Wait for insertion of a card in slot specified by SLOT,
    communication with the user through the PAM conversation function
@@ -60,8 +39,6 @@ wait_for_card (scd_context_t ctx,
   gpg_error_t err;		/* <- rc?  */
   time_t t0;
   time_t t;
-  char *getinfo_result;
-  int card_usable;
 
   if (timeout)
     time (&t0);
@@ -73,52 +50,47 @@ wait_for_card (scd_context_t ctx,
 
   while (1)
     {
-      /* FIXME? */
-      err = scd_getinfo (ctx, "status", &getinfo_result);
-      //err = agent_learn (&cardinfo);
-      //if (! err)
-      //	{
-      //	  if (serialno)
-      //	    *serialno = xstrdup (cardinfo.serialno);
-      //	  if (fingerprint)
-      //	    *fingerprint = xstrdup (cardinfo.fpr3);
-      //	  if (card_version)
-      //	    *card_version = 0;	/* FIXME!! */
-      //	  agent_release_card_info (&cardinfo);
-      //	  break;
-      //	}
-      if (err)
-	break;
+      err = scd_serialno (ctx, NULL);
 
-      card_usable = (getinfo_result[0] == 'u');
-      free (getinfo_result);	/* FIXME, i guess we need xfree?
-				   check! */
-
-      if (card_usable)
+      if (err == 0)
+	/* Card present!  */
 	break;
-      
-      
+      else if (gpg_err_code (err) == GPG_ERR_CARD_NOT_PRESENT)
+
+	{
+	  /* Card not present.  */
+
+	  /* FIXME: are there error codes besides
+	     GPG_ERR_CARD_NOT_PRESENT, which can be thrown in case a
+	     smartcard is not currently inserted?  */
+
 #ifdef HAVE_NANOSLEEP      
-      {
-        struct timespec t;
+	  {
+	    /* Wait 500ms.  */
+	    struct timespec augenblick;
 
-        t.tv_sec = 0;
-        t.tv_nsec = 300000000;
-        nanosleep (&t, NULL);  /* Wait 300ms.  */
-      }
+	    augenblick.tv_sec = 0;
+	    augenblick.tv_nsec = 500000000;
+	    nanosleep (&augenblick, NULL);
+	  }
 #else
-      sleep (1);
+	  sleep (1);
 #endif
 
-      if (timeout)
-	{
-	  time (&t);
-	  if ((t - t0) > timeout)
+	  if (timeout)
 	    {
-	      err = GPG_ERR_CARD_NOT_PRESENT;
-	      break;
+	      time (&t);
+	      if ((t - t0) > timeout)
+		{
+		  err = GPG_ERR_CARD_NOT_PRESENT;
+		  break;
+		}
 	    }
 	}
+      else
+	/* Unexpected different error -> stop waiting and propagate
+	   error upwards.  */
+	break;
     }
 
  out:
