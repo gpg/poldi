@@ -35,8 +35,6 @@
 
 #include <gcrypt.h>
 
-#include <scd-support.h>
-
 #include <common/support.h>
 #include <common/defs.h>
 
@@ -47,6 +45,9 @@
 #include <assuan.h>
 #include <i18n.h>
 #include "util.h"
+
+#include "common/poldi-ctx.h"
+#include "conv.h"
 
 
 
@@ -77,7 +78,7 @@ all_digitsp( const char *s)
    numbers. */
 /* FIXME: pin length, cecks, looping, etc, all... -mo  */
 int
-agent_askpin (struct pin_querying_parm *parm,
+agent_askpin (poldi_ctx_t ctx,
               const char *desc_text, const char *prompt_text,
               const char *initial_errtext,
               struct pin_entry_info_s *pininfo)
@@ -112,16 +113,14 @@ agent_askpin (struct pin_querying_parm *parm,
                     errtext, pininfo->failed_tries+1, pininfo->max_tries);
 	  line[DIM(line)-1] = 0;
 
-	  rc = (*parm->conv) (CONVERSATION_TELL, parm->conv_opaque,
-			      line, NULL);
+	  rc = conv_tell (ctx, line);
           if (rc)
 	    goto out;
 	  //            return unlock_pinentry (rc);
           errtext = NULL;
         }
 
-      rc = (*parm->conv) (CONVERSATION_ASK_SECRET, parm->conv_opaque,
-			  POLDI_PIN2_QUERY_MSG, &PIN);
+      rc = conv_ask (ctx, 1, &PIN, POLDI_PIN2_QUERY_MSG);
       if (! rc)
 	{
 	  if (strlen (PIN) >= pininfo->max_length)
@@ -165,23 +164,24 @@ agent_askpin (struct pin_querying_parm *parm,
    system modal and all other attempts to use the pinentry will fail
    (after a timeout). */
 int 
-agent_popup_message_start (struct pin_querying_parm *parm,
+agent_popup_message_start (poldi_ctx_t ctx,
 			   const char *desc, const char *ok_btn)
 {
   int rc;
 
-  rc = (*parm->conv) (CONVERSATION_TELL, parm->conv_opaque, desc, NULL);
+  rc = conv_tell (ctx, desc);
 
   return rc;
 }
 
 /* Close a popup window. */
 void
-agent_popup_message_stop (struct pin_querying_parm *parm)
+agent_popup_message_stop (poldi_ctx_t ctx)
 {
   /* FIXME: error handling? -mo  */
 
-  (*parm->conv) (CONVERSATION_TELL, parm->conv_opaque, "popup message stop", NULL);
+  conv_tell (ctx, "popup message stop");
+
 }
 
 
@@ -215,7 +215,7 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
 {
   struct pin_entry_info_s *pi;
   int rc;
-  struct pin_querying_parm *parm = opaque;
+  poldi_ctx_t ctx = opaque;
   const char *ends, *s;
   int any_flags = 0;
   int newpin = 0;
@@ -247,12 +247,12 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
     {
       if (maxbuf == 0) /* Close the pinentry. */
         {
-          agent_popup_message_stop (parm);
+          agent_popup_message_stop (ctx);
           rc = 0;
         }
       else if (maxbuf == 1)  /* Open the pinentry. */
         {
-          rc = agent_popup_message_start (parm, info, NULL);
+          rc = agent_popup_message_start (ctx, info, NULL);
         }
       else
         rc = gpg_error (GPG_ERR_INV_VALUE);
@@ -273,7 +273,7 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
 
   if (any_flags)
     {
-      rc = agent_askpin (parm, info, prompt, again_text, pi);
+      rc = agent_askpin (ctx, info, prompt, again_text, pi);
       again_text = NULL;
       if (!rc && newpin)
         {
@@ -289,7 +289,7 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
           pi2->min_digits = 0;
           pi2->max_digits = 8;
           pi2->max_tries = 1;
-          rc = agent_askpin (parm, _("Repeat this PIN"), prompt, NULL, pi2);
+          rc = agent_askpin (ctx, _("Repeat this PIN"), prompt, NULL, pi2);
           if (!rc && strcmp (pi->pin, pi2->pin))
             {
               again_text = N_("PIN not correctly repeated; try again");
@@ -309,7 +309,7 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
                      info? info:"",
                      info? "')":"") < 0)
         desc = NULL;
-      rc = agent_askpin (parm, desc?desc:info, prompt, NULL, pi);
+      rc = agent_askpin (ctx, desc?desc:info, prompt, NULL, pi);
       free (desc);
     }
 

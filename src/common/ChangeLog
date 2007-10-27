@@ -1,3 +1,9 @@
+2007-10-27  Moritz  <moritz@g10code.com>
+
+	* poldi-ctx.h, poldi-ctx-opaque.h: New files.
+	* Makefile.am (libpoldi_common_a_SOURCES): Added: poldi-ctx.h,
+	poldi-ctx-opaque.h.
+
 2007-08-16  Moritz  <moritz@g10code.com>
 
 	* defs.h.in: Cosmetics.

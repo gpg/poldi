@@ -1,3 +1,39 @@
+2007-10-27  Moritz  <moritz@g10code.com>
+
+	* pam_poldi.c (poldi_ctx_NULL): New static variable.
+	(pam_poldi_opt): Removed static structure.
+	(enum arg_opt_ids): Removed all args except arg_logfile,
+	arg_wait_timeout.  Note: debug/verbose option handling will
+	be reintegrated soon.
+	(arg_opts): See above.
+	(pam_poldi_options_cb): See above.
+	
+	(pam_sm_authenticate): Removed scd_context_t ctx.  New variable:
+	poldi_ctx_t ctx; allocate and initialize.  Use poldi_scd_*
+	functions instead of scd_*.  Use new conv_tell/conv_ask functions
+	instead of old tell_user/ask_user.  Removed old conv_opaque
+	struct.  Simplified PAM conv calling, no idea why it was written
+	the way it was written before.
+
+	(parse_argv): Made a dummy function for now, proper argument
+	parsing will be integrated soon.
+
+	* Makefile.am (pam_poldi.so): Include conv.o, wait-for-card.o,
+	getpin-cb.o.  Removed libscd-support.
+	* Makefile.am: Added new implicit rule for compiling .c objects.
+	(CLEANFILES): Added new object files.
+
+	* conv.c, conv.h: New files, contains slightly modified PAM
+	conversation functions formerly contained in pam_poldi.c.  Uses
+	new poldi_ctx_t.
+	
+	* getpin-cb.c, getpin-cb.h: New files, contain slightly modified
+	code formerly contained in ../common.  Uses new poldi_ctx_t.
+	
+	* wait-for-card.c, wait-for-card.h: New files, contain slightly
+	modified code formerly contained in ../common.  Uses new
+	poldi_ctx_t.
+
 2007-08-17  Moritz  <moritz@g10code.com>
 
 	* pam_poldi.c (pam_sm_authenticate): Call wait_for_card().

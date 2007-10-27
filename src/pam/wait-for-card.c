@@ -22,8 +22,10 @@
 
 #include <gpg-error.h>
 #include <time.h>
-#include "scd-support.h"
-#include <scd/scd.h>
+
+#include "scd/poldi-scd.h"
+#include "common/poldi-ctx-opaque.h"
+#include "conv.h"
 
 
 
@@ -33,8 +35,7 @@
 
    Returns proper error code.  */
 gpg_error_t
-wait_for_card (scd_context_t ctx,
-	       unsigned int timeout, conversation_cb_t conv, void *opaque)
+wait_for_card (poldi_ctx_t ctx, unsigned int timeout)
 {
   gpg_error_t err;		/* <- rc?  */
   time_t t0;
@@ -43,14 +44,14 @@ wait_for_card (scd_context_t ctx,
   if (timeout)
     time (&t0);
 
-  err = (*conv) (CONVERSATION_TELL, opaque, "Insert card ...", NULL);
+  err = conv_tell (ctx, "Insert card...", NULL);
   if (err)
     /* FIXME.  <- ? */
     goto out;
 
   while (1)
     {
-      err = scd_serialno (ctx, NULL);
+      err = poldi_scd_serialno (ctx, NULL);
 
       if (err == 0)
 	/* Card present!  */

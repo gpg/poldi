@@ -17,6 +17,6 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
-SUBDIRS = jnlib common scd scd-support ctrl pam
+SUBDIRS = jnlib common scd ctrl pam
 
 EXTRA_DIST = README

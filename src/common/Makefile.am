@@ -28,7 +28,8 @@ libpoldi_common_a_SOURCES = \
 	optparse.c optparse.h \
 	usersdb.c usersdb.h \
 	membuf.c membuf.h \
-	util.h i18n.h
+	util.h i18n.h \
+	poldi-ctx.h poldi-ctx-opaque.h
 
 libpoldi_common_a_CFLAGS = \
 	-Wall -I$(top_builddir)/src/include \

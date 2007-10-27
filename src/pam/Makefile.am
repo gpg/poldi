@@ -31,14 +31,14 @@ AM_CFLAGS = \
 	-Wall -fPIC \
 	 $(LIBGCRYPT_CFLAGS) $(GPG_ERROR_CFLAGS)
 
-pam_poldi.o: pam_poldi.c
-	$(CC) $(AM_CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pam_poldi.o $(top_srcdir)/src/pam/pam_poldi.c
+%.o : %.c
+	$(CC) -c $(CFLAGS) $(AM_CFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) $< -o $@
 
-pam_poldi.so: pam_poldi.o ../scd-support/libscd-support.a ../scd/libscd.a \
+pam_poldi.so: pam_poldi.o conv.o wait-for-card.o getpin-cb.o ../scd-support/libscd-support.a ../scd/libscd.a \
 		../common/libpoldi-common.a ../jnlib/libjnlib.a
 	$(LD) --shared -x \
-	      -o $@ pam_poldi.o \
-		../scd-support/libscd-support.a ../scd/libscd.a \
+	      -o $@ pam_poldi.o wait-for-card.o getpin-cb.o conv.o \
+		../scd/libscd.a \
 		../common/libpoldi-common.a ../jnlib/libjnlib.a \
 	     $(LIBGCRYPT_LDFLAGS) $(LIBGCRYPT_LIBS) $(LIBASSUAN_LIBS) -lc
 
@@ -55,4 +55,4 @@ uninstall-local:
 
 EXTRA_DIST = pam_poldi.c
 
-CLEANFILES = pam_poldi.o pam_poldi.so
+CLEANFILES = pam_poldi.o pam_poldi.so getpin-cb.o wait-for-card.o conv.o

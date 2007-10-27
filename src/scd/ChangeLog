@@ -1,3 +1,8 @@
+2007-10-27  Moritz  <moritz@g10code.com>
+
+	* poldi-scd.c, poldi-scd.h: New files.  Layer on top of scd.c.
+	* Makefile.am (libscd_a_SOURCES): Added poldi-scd.c, poldi-scd.h.
+
 2007-08-16  Moritz  <moritz@g10code.com>
 
 	* scd.c (scd_serialno_internal): New function, it's basically the

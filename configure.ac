@@ -231,7 +231,6 @@ AC_CONFIG_FILES([Makefile
 		 src/Makefile
 		 src/jnlib/Makefile
 		 src/common/Makefile
-		 src/scd-support/Makefile
 		 src/scd/Makefile
 		 src/pam/Makefile
 		 src/ctrl/Makefile

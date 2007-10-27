@@ -14,4 +14,5 @@ AM_CFLAGS = \
 	-I$(top_srcdir)/src/common
 
 libscd_a_SOURCES = \
-	scd.c scd.h
+ scd.c scd.h \
+ poldi-scd.c poldi-scd.h
