@@ -1,3 +1,14 @@
+2007-10-27  Moritz  <moritz@g10code.com>
+
+	* poldi-ctrl.c: Removed "test" command completely.  It's rationale
+	was to test authentication through Poldi.  But since poldi-ctrl
+	didn't use the PAM module (instead it duplicated some
+	authentication code), it's not suitable for testing Poldi through
+	*PAM*.  Removing this command simplifies the Poldi package. There
+	are more reliable ways of testing authentication through Poldi:
+	e.g. the "pamtester" program (not included in PAM Poldi), which
+	uses the PAM API.
+
 2007-08-25  Moritz  <moritz@g10code.com>
 
 	* poldi-ctrl.c (my_strusage): Handle copyright line.

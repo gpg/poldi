@@ -57,7 +57,6 @@ struct poldi_ctrl_opt
   char *serialno;
   int serialno_inserted;
   int require_card_switch;
-  int cmd_test;
   int cmd_dump;
   int cmd_register_card;
   int cmd_unregister_card;
@@ -94,7 +93,6 @@ struct poldi_ctrl_opt poldi_ctrl_opt =
 
 enum arg_opt_ids
   {
-    arg_test = 't',
     arg_dump = 'd',
 
     arg_register_card = 'r',
@@ -123,8 +121,6 @@ static ARGPARSE_OPTS arg_opts[] =
     /* Commands:  */
 
     { 300, NULL, 0, "@Commands:\n " },
-    { arg_test,
-      "test",        256, "Test authentication"                },
     { arg_dump,
       "dump",        256, "Dump certain card information"      },
     { arg_register_card,
@@ -220,11 +216,6 @@ poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
     case arg_config_file:
       if (! parsing_stage)
 	poldi_ctrl_opt.config_file = xstrdup (parg->r.ret_str);
-      break;
-
-    case arg_test:
-      if (parsing_stage)
-	poldi_ctrl_opt.cmd_test = 1;
       break;
 
     case arg_set_key:
@@ -542,155 +533,6 @@ conversation (conversation_type_t type, void *opaque,
 }
 
 static struct scd_cardinfo cardinfo_NULL;
-
-/* Implementation of `test' command; test authentication
-   mechanism.  */
-static gpg_error_t
-cmd_test (void)
-{
-  unsigned char *challenge;
-  unsigned char *response;
-  size_t challenge_n;
-  size_t response_n;
-  gpg_error_t err;
-  char *account;
-  gcry_sexp_t key;
-  unsigned int version;
-  struct scd_cardinfo cardinfo;
-  scd_context_t ctx;
-  struct pin_querying_parm parm;
-
-  parm.conv = conversation;
-  parm.conv_opaque = NULL;
-
-  challenge = NULL;
-  response = NULL;
-  ctx = NULL;
-  cardinfo = cardinfo_NULL;
-  key = NULL;
-  account = NULL;
-  version = 0;
-
-  /* Connect to Scdaemon. */
-  err = scd_connect (&ctx,
-		     getenv ("GPG_AGENT_INFO"),
-		     NULL,
-		     SCD_FLAG_VERBOSE);
-  if (err)
-    {
-      log_error ("Error: scd_connect() failed: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  err = wait_for_card (ctx,
-		       0,	/* FIXME */
-  		       conversation, NULL);
-  if (err)
-    goto out;
-
-  err = scd_learn (ctx, &cardinfo);
-  if (err)
-    {
-      log_error ("Error: scd_learn() failed: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  printf ("Serial No: %s\n"
-	  "Card holder: %s\n"
-	  "Card version: %u\n",
-	  cardinfo.serialno,
-	  cardinfo.disp_name,
-	  0); /* FIXME: card version */
-
-  if (poldi_ctrl_opt.account)
-    account = poldi_ctrl_opt.account;
-  else
-    {
-      err = usersdb_lookup_by_serialno (cardinfo.serialno,
-					&account);
-      if (gcry_err_code (err) == GPG_ERR_AMBIGUOUS_NAME)
-	err = ask_user ("Need to know the username", &account);
-
-      if (err)
-	goto out;
-    }
-
-  printf ("Trying authentication as `%s'...\n", account);
-
-  /* Check if the given account is associated with the serial
-     number.  */
-  err = usersdb_check (cardinfo.serialno, account);
-  if (err)
-    {
-      fprintf (stderr, "Serial no %s is not associated with %s\n",
-	       cardinfo.serialno, account);
-      err = gcry_error (GPG_ERR_INV_NAME);
-      goto out;
-    }
-
-  /* Retrieve key belonging to card.  */
-  err = key_lookup_by_serialno (cardinfo.serialno, &key);
-  if (err)
-    goto out;
-
-  parm.conv = conversation;
-  parm.conv_opaque = NULL;
-
-  /* Generate challenge.  */
-  err = challenge_generate (&challenge, &challenge_n);
-  if (err)
-    {
-      log_error ("Error: failed to generate challenge: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-
-  /* Let card sign the challenge.  */
-  err = scd_pksign (ctx, "OPENPGP.3",
-		    getpin_cb, &parm,
-		    challenge, challenge_n,
-		    &response, &response_n);
-  if (err)
-    {
-      log_error ("Error: failed to retrieve challenge signature "
-		 "from card: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  /* Verify response.  */
-  err = challenge_verify (key, challenge, challenge_n, response, response_n);
-  if (err)
-    {
-      log_error ("Error: failed to verify challenge\n");
-      goto out;
-    }
-
- out:
-
-  if (err)
-    printf ("Authentication failed (%s)\n", gpg_strerror (err));
-  else
-    printf ("Authentication succeeded as user `%s'\n",
-	    account);
-
-  /* Deallocate resources.  */
-
-  scd_reset (ctx);
-
-  if (account != poldi_ctrl_opt.account)
-    free (account);
-  gcry_sexp_release (key);
-  scd_release_cardinfo (&cardinfo);
-  scd_disconnect (ctx);
-  free (challenge);
-  free (response);
-
-  return err;
-}
 
 
 
@@ -1483,7 +1325,6 @@ main (int argc, char **argv)
     }
 
   ncommands = (0
-	       + poldi_ctrl_opt.cmd_test
 	       + poldi_ctrl_opt.cmd_set_key
 	       + poldi_ctrl_opt.cmd_associate
 	       + poldi_ctrl_opt.cmd_disassociate
@@ -1504,9 +1345,7 @@ main (int argc, char **argv)
       exit (EXIT_FAILURE);
     }
 
-  if (poldi_ctrl_opt.cmd_test)
-    err = cmd_test ();
-  else if (poldi_ctrl_opt.cmd_dump)
+  if (poldi_ctrl_opt.cmd_dump)
     err = cmd_dump ();
   else if (poldi_ctrl_opt.cmd_set_key)
     err = cmd_set_key ();
