@@ -17,7 +17,9 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
-SUBDIRS = src doc conf am
+ACLOCAL_AMFLAGS = -I m4
+
+SUBDIRS = src doc conf am m4
 
 install-conf-skeleton:
 	$(MAKE) -C conf install-conf-skeleton

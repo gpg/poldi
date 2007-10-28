@@ -1,3 +1,8 @@
+2007-10-28  Moritz  <moritz@g10code.com>
+
+	* Makefile.am (pam_poldi.so): Removed reference to
+	libscd-support.a.
+
 2007-10-27  Moritz  <moritz@g10code.com>
 
 	* pam_poldi.c (poldi_ctx_NULL): New static variable.

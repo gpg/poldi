@@ -1,5 +1,12 @@
 2007-10-28  Moritz  <moritz@g10code.com>
 
+	* Makefile.am (ACLOCAL_AMFLAGS): New.
+	(SUBDIRS): Added: m4.
+
+	* configure.ac (AC_CONFIG_FILES): Added src/dirmngr/Makefile.
+
+2007-10-28  Moritz  <moritz@g10code.com>
+
 	* configure.ac: Integrated KSBA support; call AM_PATH_KSBA.  Use
 	POLDI_ENABLE_FEATURE macro for --enable-x509-auth and
 	--enable-simpledb-auth arguments.  AC_DEFINE_UNQUOTED the symbols

@@ -31,7 +31,7 @@ poldi_ctrl_CFLAGS = \
 	$(GPG_ERROR_CFLAGS)
 
 poldi_ctrl_LDADD = \
-	../scd-support/libscd-support.a ../scd/libscd.a ../common/libpoldi-common.a ../jnlib/libjnlib.a \
+	../scd/libscd.a ../common/libpoldi-common.a ../jnlib/libjnlib.a \
 	$(LIBGCRYPT_LDFLAGS) \
 	$(LIBGCRYPT_LIBS) \
 	$(GPG_ERROR_LIBS) \

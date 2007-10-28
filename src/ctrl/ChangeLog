@@ -1,3 +1,10 @@
+2007-10-28  Moritz  <moritz@g10code.com>
+
+	* poldi-ctrl.c: Do not include scd-support.h; include
+	common/support.h.
+	* Makefile.am (poldi_ctrl_LDADD): Removed reference to
+	libscd-support.a
+
 2007-10-27  Moritz  <moritz@g10code.com>
 
 	* poldi-ctrl.c: Removed "test" command completely.  It's rationale

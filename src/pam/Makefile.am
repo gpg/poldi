@@ -34,7 +34,7 @@ AM_CFLAGS = \
 %.o : %.c
 	$(CC) -c $(CFLAGS) $(AM_CFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) $< -o $@
 
-pam_poldi.so: pam_poldi.o conv.o wait-for-card.o getpin-cb.o ../scd-support/libscd-support.a ../scd/libscd.a \
+pam_poldi.so: pam_poldi.o conv.o wait-for-card.o getpin-cb.o ../scd/libscd.a \
 		../common/libpoldi-common.a ../jnlib/libjnlib.a
 	$(LD) --shared -x \
 	      -o $@ pam_poldi.o wait-for-card.o getpin-cb.o conv.o \

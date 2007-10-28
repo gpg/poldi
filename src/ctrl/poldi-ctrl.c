@@ -36,9 +36,9 @@
 #include <common/support.h>
 #include <common/usersdb.h>
 #include <common/defs.h>
+#include "common/support.h"
 
 #include <scd/scd.h>
-#include <scd-support/scd-support.h>
 
 
 
