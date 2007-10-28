@@ -35,6 +35,8 @@ NEED_GPG_ERROR_VERSION=0.7
 NEED_LIBASSUAN_API=1
 NEED_LIBASSUAN_VERSION=0.9.3
 
+NEED_KSBA_API=1
+NEED_KSBA_VERSION=1.0.2
 
 	
 AC_CONFIG_SRCDIR(src/pam/pam_poldi.c)
@@ -56,12 +58,13 @@ AC_SUBST(PAM_MODULE_DIRECTORY)
 
 AC_GNU_SOURCE
 
-# Some status variables to give feedback at the end of a configure run
-#have_gpg_error=no
-#have_libgcrypt=no 
+have_gpg_error=no
+have_libgcrypt=no 
+have_libassuan=no
+have_ksba=no
 
-
-#have_libassuan=no
+POLDI_ENABLE_FEATURE(enable_auth_x509, yes, x509-auth, support for X509 authentication)
+POLDI_ENABLE_FEATURE(enable_auth_simpledb, yes, simpledb-auth, support for simple-db authentication)
 
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
@@ -69,6 +72,10 @@ AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
 AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
 AC_DEFINE_UNQUOTED(PACKAGE_BUGREPORT, "$PACKAGE_BUGREPORT",
                                         [Bug report address])
+AC_DEFINE_UNQUOTED(NEED_LIBGCRYPT_VERSION, "$NEED_LIBGCRYPT_VERSION",
+                                       [Required version of Libgcrypt])
+AC_DEFINE_UNQUOTED(NEED_KSBA_VERSION, "$NEED_KSBA_VERSION",
+                                       [Required version of Libksba])
 
 
 AH_BOTTOM([
@@ -102,17 +109,13 @@ AC_SYS_LARGEFILE
 # Checks for libraries.
 #
 
-have_libgcrypt=no
 AM_PATH_LIBGCRYPT("$NEED_LIBGCRYPT_VERSION",
                   have_libgcrypt=yes,have_libgcrypt=no)
-
-have_gpg_error=no
 AM_PATH_GPG_ERROR("$NEED_GPG_ERROR_VERSION",
                   have_gpg_error=yes,have_gpg_error=no)
-
-have_libassuan=no
 AM_PATH_LIBASSUAN("$NEED_LIBASSUAN_API:$NEED_LIBASSUAN_VERSION",
                   have_libassuan=yes,have_libassuan=no)
+AM_PATH_KSBA("$NEED_KSBA_API:$NEED_KSBA_VERSION",have_ksba=yes,have_ksba=no)
 
 #
 # libusb allows us to use the integrated CCID smartcard reader driver.
@@ -182,6 +185,16 @@ AC_DEFINE(HAVE_JNLIB_LOGGING, 1,
          [Defined if jnlib style logging fucntions are available])
 
 #
+# Decide what to build
+#
+
+if test $have_ksba = no; then
+  enable_auth_x509=no
+fi
+AM_CONDITIONAL(AUTH_METHOD_X509, test "$enable_auth_x509" = "yes")
+AM_CONDITIONAL(AUTH_METHOD_SIMPLEDB, test "$enable_auth_simpledb" = "yes")
+
+#
 # Print errors here so that they are visible all
 # together and the user can acquire them all together.
 #
@@ -216,6 +229,15 @@ if test "$have_libassuan" = "no"; then
 *** (at least version $NEED_LIBASSUAN_VERSION (API $NEED_LIBASSUAN_API) is required).
 ***]])
 fi
+if test "$have_ksba" = "no"; then
+   AC_MSG_NOTICE([[
+***
+*** libksba not found, building with X.509 authentication support.
+*** libksba can be retrieved from:
+***   URL FIXME
+*** (at least version $NEED_KSBA_VERSION (API $NEED_KSBA_API) is required).
+***]])
+fi
 if test "$die" = "yes"; then
     AC_MSG_ERROR([[
 ***
@@ -247,3 +269,13 @@ if test "$PAM_MODULE_DIRECTORY" = "$DEFAULT_PAM_MODULE_DIRECTORY"; then
 else
   AC_MSG_NOTICE([PAM module installation directory: $PAM_MODULE_DIRECTORY])
 fi
+
+echo "
+        Poldi v${VERSION} has been configured as follows:
+
+        installation directory for PAM module: $PAM_MODULE_DIRECTORY
+        
+             X509 authentication: $enable_auth_x509
+        simple-db authentication: $enable_auth_simpledb
+
+"

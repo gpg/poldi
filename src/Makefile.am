@@ -17,6 +17,12 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
-SUBDIRS = jnlib common scd ctrl pam
+if AUTH_METHOD_X509
+  dirmngr = dirmngr
+else
+  dirmngr =
+endif
+
+SUBDIRS = jnlib common scd ${dirmngr} ctrl pam
 
 EXTRA_DIST = README

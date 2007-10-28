@@ -1,3 +1,8 @@
+2007-10-28  Moritz  <moritz@g10code.com>
+
+	* Makefile.am (dirmngr): Depending on conditional
+	AUTH_METHOD_X509, add directory dirmngr to SUBDIRS.
+
 2007-10-27  Moritz  <moritz@g10code.com>
 
 	* scd-support: Removed directory.
