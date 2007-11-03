@@ -29,6 +29,8 @@ libpoldi_common_a_SOURCES = \
 	usersdb.c usersdb.h \
 	membuf.c membuf.h \
 	util.h i18n.h \
+	sexputil.c sexp-parse.h \
+	convert.c \
 	poldi-ctx.h poldi-ctx-opaque.h
 
 libpoldi_common_a_CFLAGS = \

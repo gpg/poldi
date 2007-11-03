@@ -194,6 +194,10 @@ fi
 AM_CONDITIONAL(AUTH_METHOD_X509, test "$enable_auth_x509" = "yes")
 AM_CONDITIONAL(AUTH_METHOD_SIMPLEDB, test "$enable_auth_simpledb" = "yes")
 
+if test "$enable_auth_x509" = "yes"; then
+   AC_DEFINE(ENABLE_AUTH_METHOD_X509, 1, [Enable X509 authentication method])
+fi
+
 #
 # Print errors here so that they are visible all
 # together and the user can acquire them all together.

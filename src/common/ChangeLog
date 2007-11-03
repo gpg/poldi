@@ -1,3 +1,13 @@
+2007-11-03  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctx.h: Include config.h.  In case ENABLE_AUTH_METHOD_X509
+	is defined: include dirmngr.h, define dirmngr_ctx_t member in
+	struct poldi_ctx_s.
+	* sexputil.c: New file, taken from GnuPG.
+	* sexp-parse.h: Likewise.
+	* convert.c: Likewise.
+	* Makefile.am (libpoldi_common_a_SOURCES): Added new files.
+
 2007-10-27  Moritz  <moritz@g10code.com>
 
 	* poldi-ctx.h, poldi-ctx-opaque.h: New files.

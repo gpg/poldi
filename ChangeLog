@@ -1,3 +1,8 @@
+2007-11-03  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: AC_DEFINE ENABLE_AUTH_METHOD_X509 if x509
+	authentication is enabled.
+
 2007-10-28  Moritz  <moritz@g10code.com>
 
 	* Makefile.am (ACLOCAL_AMFLAGS): New.

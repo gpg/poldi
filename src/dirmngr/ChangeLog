@@ -1,0 +1,6 @@
+2007-11-03  Moritz Schulte  <moritz@g10code.com>
+
+	* dirmngr.c, dirmngr.h, poldi-dirmngr.c, poldi-dirmngr.h: New files.
+	* fingerprint.c: New file, merged from GnuPG.
+	* fingerprint.h: New file.
+	* Makefile.am (libdirmngr_a_SOURCES): Added new files.
