@@ -28,6 +28,8 @@
 #include "../jnlib/argparse.h"
 #include "../jnlib/xmalloc.h"
 
+#include "support.h"
+
 #include "optparse.h"
 
 #include <defs.h>
@@ -36,21 +38,35 @@
 
 gpg_error_t
 options_parse_argv (options_callback_t callback, void *opaque,
-		    ARGPARSE_OPTS *arg_opts, int argc, char **argv)
+		    ARGPARSE_OPTS *arg_opts, int argc, const char **argv,
+		    unsigned int flags)
 {
   ARGPARSE_ARGS pargs;
   gpg_error_t err;
+  char **argv_cp;
 
+  argv_cp = NULL;
   err = 0;
+
+  err = char_vector_dup (argc, argv, &argv_cp);
+  if (err)
+    goto out;
+
   pargs.argc = &argc;
-  pargs.argv = &argv;
+  pargs.argv = &argv_cp;
   pargs.flags = 1;
+  if (flags & OPTPARSE_FLAG_DONT_SKIP_FIRST)
+    pargs.flags |= (1 << 4);
   while (arg_parse (&pargs, arg_opts))
     {
       err = (*callback) (&pargs, opaque);
       if (err)
 	break;
-      }
+    }
+
+ out:
+
+  char_vector_free (argv_cp);
 
   return err;
 }

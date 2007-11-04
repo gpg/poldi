@@ -1,3 +1,31 @@
+2007-11-04  Moritz  <moritz@g10code.com>
+
+	* Makefile.am: Changed the way the pam module gets built.  No, a
+	static library libpam_poldi.a is built.  Based on conditionals,
+	decide which auth-*.c files shall be built.
+
+	* auth-x509.c: New file.
+	* auth-test.c: New file.
+	* auth-simpledb.c (auth_method_simpledb): New file.  Basically
+	contains the former pam_sm_authenticate().
+
+	* auth-methods.h: New file.
+
+	* pam_poldi.c (parse_argv): Removed function.
+	(pam_sm_authenticate): Call options_parse_argv instead of
+	parse_argv.
+	Include auth-methods.h.
+	Added declarations for authentication method functions.
+	(struct auth_method): New.
+	(auth_methods): New array.
+	(struct pam_poldi_opt): Removed.
+	(enum arg_opt_ids): New: arg_auth_method, arg_debug.
+	(arg_opts): New entries for new args.
+	(auth_method_lookup): New function.
+	(pam_poldi_options_cb): Handle new arguments.
+	(pam_sm_authenticate): Heavily stripped.  Calls authentication
+	method.
+
 2007-10-28  Moritz  <moritz@g10code.com>
 
 	* Makefile.am (pam_poldi.so): Removed reference to

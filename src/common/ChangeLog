@@ -1,3 +1,17 @@
+2007-11-04  Moritz  <moritz@g10code.com>
+
+	* poldi-ctx.h (struct poldi_ctx_s): New members: auth_method,
+	debug.
+
+	* optparse.c (options_parse_argv): New parameter: flags; declare
+	argv parameter const.  New local variable: argv_cp; use
+	char_vector_dup/char_vector_free to create temporary non-const
+	argv.  Include "support.h".
+	* optparse.h (OPTPARSE_FLAG_DONT_SKIP_FIRST): New symbol.
+	(options_parse_argv): Adjust declaration.
+	* support.c (char_vector_dup, char_vector_free): New functions.
+	* support.h: Declare new functions.
+
 2007-11-03  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi-ctx.h: Include config.h.  In case ENABLE_AUTH_METHOD_X509

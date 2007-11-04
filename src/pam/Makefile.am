@@ -31,16 +31,36 @@ AM_CFLAGS = \
 	-Wall -fPIC \
 	 $(LIBGCRYPT_CFLAGS) $(GPG_ERROR_CFLAGS)
 
-%.o : %.c
-	$(CC) -c $(CFLAGS) $(AM_CFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) $< -o $@
+if AUTH_METHOD_SIMPLEDB
+  simpledb = auth-simpledb.c
+else
+  simpledb =
+endif
 
-pam_poldi.so: pam_poldi.o conv.o wait-for-card.o getpin-cb.o ../scd/libscd.a \
-		../common/libpoldi-common.a ../jnlib/libjnlib.a
-	$(LD) --shared -x \
-	      -o $@ pam_poldi.o wait-for-card.o getpin-cb.o conv.o \
-		../scd/libscd.a \
-		../common/libpoldi-common.a ../jnlib/libjnlib.a \
-	     $(LIBGCRYPT_LDFLAGS) $(LIBGCRYPT_LIBS) $(LIBASSUAN_LIBS) -lc
+if AUTH_METHOD_X509
+  x509 = auth-x509.c
+else
+  x509 =
+endif
+
+if AUTH_METHOD_TEST
+  test = auth-test.c
+else
+  test =
+endif
+
+noinst_LIBRARIES = libpam_poldi.a
+
+libpam_poldi_a_SOURCES = \
+ pam_poldi.c conv.c wait-for-card.c getpin-cb.c \
+ ${simpledb} ${x509} ${test}
+
+pam_poldi.so: libpam_poldi.a
+	$(LD) \
+		-u pam_sm_authenticate -u pam_sm_setcred \
+		--shared -x -o pam_poldi.so libpam_poldi.a \
+		../scd/libscd.a ../common/libpoldi-common.a ../jnlib/libjnlib.a \
+		$(LIBGCRYPT_LDFLAGS) $(LIBGCRYPT_LIBS) $(LIBASSUAN_LIBS) -lc
 
 all-local: pam_poldi.so
 
@@ -51,8 +71,4 @@ install-exec-local:
 uninstall-local:
 	rm -f $(DESTDIR)$(PAM_MODULE_DIRECTORY)/pam_poldi.so
 
-# FIXME, moritz, this seems wrong, doesn't it?
-
-EXTRA_DIST = pam_poldi.c
-
-CLEANFILES = pam_poldi.o pam_poldi.so getpin-cb.o wait-for-card.o conv.o
+CLEANFILES = pam_poldi.so

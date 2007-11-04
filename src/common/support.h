@@ -77,6 +77,10 @@ gpg_error_t lookup_own_username (const char **username);
    proper error code.  */
 gpg_error_t key_lookup_by_serialno (const char *serialno, gcry_sexp_t *key);
 
+gpg_error_t char_vector_dup (const char **a, char ***b);
+
+void char_vector_free (char **a);
+
 /* List of ``conversations types''; these are passed to functions of
    type ``conversation_cb_t''.  */
 typedef enum

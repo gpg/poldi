@@ -65,7 +65,7 @@ have_ksba=no
 
 POLDI_ENABLE_FEATURE(enable_auth_x509, yes, x509-auth, support for X509 authentication)
 POLDI_ENABLE_FEATURE(enable_auth_simpledb, yes, simpledb-auth, support for simple-db authentication)
-
+POLDI_ENABLE_FEATURE(enable_auth_test, no, test-auth, support for test authentication - INSECURE)
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
 AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
@@ -193,9 +193,16 @@ if test $have_ksba = no; then
 fi
 AM_CONDITIONAL(AUTH_METHOD_X509, test "$enable_auth_x509" = "yes")
 AM_CONDITIONAL(AUTH_METHOD_SIMPLEDB, test "$enable_auth_simpledb" = "yes")
+AM_CONDITIONAL(AUTH_METHOD_TEST, test "$enable_auth_test" = "yes")
 
 if test "$enable_auth_x509" = "yes"; then
    AC_DEFINE(ENABLE_AUTH_METHOD_X509, 1, [Enable X509 authentication method])
+fi
+if test "$enable_auth_simpledb" = "yes"; then
+   AC_DEFINE(ENABLE_AUTH_METHOD_SIMPLEDB, 1, [Enable simpledb authentication method])
+fi
+if test "$enable_auth_test" = "yes"; then
+   AC_DEFINE(ENABLE_AUTH_METHOD_TEST, 1, [Enable test authentication method])
 fi
 
 #
@@ -282,5 +289,6 @@ echo "
         
              X509 authentication: $enable_auth_x509
         simple-db authentication: $enable_auth_simpledb
+             test authentication: $enable_auth_test
 
 "

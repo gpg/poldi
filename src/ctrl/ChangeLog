@@ -1,3 +1,7 @@
+2007-11-04  Moritz  <moritz@g10code.com>
+
+	* poldi-ctrl.c (main): Adjust to new options_parse_argv API.
+
 2007-10-28  Moritz  <moritz@g10code.com>
 
 	* poldi-ctrl.c: Do not include scd-support.h; include

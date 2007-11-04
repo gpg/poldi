@@ -27,8 +27,11 @@
 
 typedef gpg_error_t (*options_callback_t) (ARGPARSE_ARGS *parg, void *opaque);
 
+#define OPTPARSE_FLAG_DONT_SKIP_FIRST (1 << 0)
+
 gpg_error_t options_parse_argv (options_callback_t callback, void *opaque,
-				ARGPARSE_OPTS *arg_opts, int argc, char **argv);
+				ARGPARSE_OPTS *arg_opts, int argc, const char **argv,
+				unsigned int flags);
 
 gpg_error_t options_parse_conf (options_callback_t callback, void *opaque,
 				ARGPARSE_OPTS *arg_opts, const char *filename);

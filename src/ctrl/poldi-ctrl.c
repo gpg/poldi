@@ -1292,7 +1292,7 @@ main (int argc, char **argv)
   parsing_stage = 0;
 
   err = options_parse_argv (poldi_ctrl_options_cb, &parsing_stage,
-			    arg_opts, argc, argv);
+			    arg_opts, argc, argv, 0);
   if (err)
     {
       log_error ("Error: parsing argument vector (stage: %u) failed: %s\n",
@@ -1316,7 +1316,7 @@ main (int argc, char **argv)
      file.  */
   parsing_stage++;
   err = options_parse_argv (poldi_ctrl_options_cb, &parsing_stage,
-			    arg_opts, argc, argv);
+			    arg_opts, argc, argv, 0);
   if (err)
     {
       log_error ("Error: parsing argument vector (stage: %u) failed: %s\n",

@@ -16,7 +16,9 @@ struct poldi_ctx_s
 {
   /* Options. */
   const char *logfile;
+  unsigned int auth_method;
   unsigned int wait_timeout;
+  int debug;
 
   /* Scdaemon. */
   scd_context_t scd;

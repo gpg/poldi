@@ -410,6 +410,68 @@ convert_to_hex (unsigned char *data, size_t data_n, char *data_printable)
     sprintf (&data_printable[2*i], "%02X", data[i]);
 }
 
+gpg_error_t
+char_vector_dup (int len, const char **a, char ***b)
+{
+  char **c;
+  char *s;
+  gpg_error_t err;
+  int i;
+
+  c = NULL;
+  err = 0;
+
+  c = malloc (sizeof (*c) * (len + 1));
+  if (!c)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  for (i = 0; i < len + 1; i++)
+    c[i] = NULL;
+
+  for (i = 0; i < len; i++)
+    {
+      c[i] = strdup (a[i]);
+      if (!c[i])
+	{
+	  err = gpg_error_from_errno (errno);
+	  goto out;
+	}
+    }
+  c[i] = a[i];
+
+ out:
+
+  if (err)
+    {
+      if (c)
+	{
+	  for (i = 0; c[i]; i++)
+	    free (c[i]);
+	  free (c);
+	}
+      *b = NULL;
+    }
+  else
+    *b = c;
+
+  return err;
+}
+
+void
+char_vector_free (char **a)
+{
+  int i;
+
+  if (a)
+    {
+      for (i = 0; a[i]; i++)
+	free (a[i]);
+      free (a);
+    }
+}
 
 
 /* END */

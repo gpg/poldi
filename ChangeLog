@@ -1,3 +1,9 @@
+2007-11-04  Moritz  <moritz@g10code.com>
+
+	* configure.ac: AC_DEFINE ENABLE_AUTH_METHOD_SIMPLEDB if simpledb
+	authentication is enabled.  Same for the new "test" authentication
+	method.
+
 2007-11-03  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac: AC_DEFINE ENABLE_AUTH_METHOD_X509 if x509
