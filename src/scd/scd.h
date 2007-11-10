@@ -33,7 +33,8 @@ struct scd_cardinfo
 {
   char *serialno;    /* malloced hex string. */
   char *disp_name;   /* malloced. */
-  char *login_data;
+  char *pubkey_url;  /* malloced. */
+  char *login_data;  /* malloced. */
   char fpr1valid;
   char fpr2valid;
   char fpr3valid;

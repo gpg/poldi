@@ -38,10 +38,34 @@
 
 gpg_error_t
 options_parse_argv (options_callback_t callback, void *opaque,
-		    ARGPARSE_OPTS *arg_opts, int argc, const char **argv,
+		    ARGPARSE_OPTS *arg_opts, int argc, char **argv,
 		    unsigned int flags)
 {
   ARGPARSE_ARGS pargs;
+  gpg_error_t err;
+
+  err = 0;
+
+  pargs.argc = &argc;
+  pargs.argv = &argv;
+  pargs.flags = 1;
+  if (flags & OPTPARSE_FLAG_DONT_SKIP_FIRST)
+    pargs.flags |= (1 << 4);
+  while (arg_parse (&pargs, arg_opts))
+    {
+      err = (*callback) (&pargs, opaque);
+      if (err)
+	break;
+    }
+
+  return err;
+}
+
+gpg_error_t
+options_parse_argv_const (options_callback_t callback, void *opaque,
+			  ARGPARSE_OPTS *arg_opts, int argc, const char **argv,
+			  unsigned int flags)
+{
   gpg_error_t err;
   char **argv_cp;
 
@@ -52,17 +76,7 @@ options_parse_argv (options_callback_t callback, void *opaque,
   if (err)
     goto out;
 
-  pargs.argc = &argc;
-  pargs.argv = &argv_cp;
-  pargs.flags = 1;
-  if (flags & OPTPARSE_FLAG_DONT_SKIP_FIRST)
-    pargs.flags |= (1 << 4);
-  while (arg_parse (&pargs, arg_opts))
-    {
-      err = (*callback) (&pargs, opaque);
-      if (err)
-	break;
-    }
+  err = options_parse_argv (callback, opaque, arg_opts, argc, argv_cp, flags);
 
  out:
 

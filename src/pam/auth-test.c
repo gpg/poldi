@@ -1,5 +1,5 @@
-/* dirmngr.h - communication with dirmngr 
- *	Copyright (C) 2007 Free Software Foundation, Inc.
+/* auth-test.c - dummy authentication backend for Poldi.
+ * Copyright (C) 2007 g10 Code GmbH
  *
  * This file is part of Poldi.
  *
@@ -17,19 +17,30 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DIRMNGR_H
-#define DIRMNGR_H
-
 #include <gpg-error.h>
-#include <stdio.h>
-#include <ksba.h>
 
-typedef struct dirmngr_ctx_s *dirmngr_ctx_t;
+#include "poldi-ctx.h"
+#include "conv.h"
 
-gpg_error_t dirmngr_connect (dirmngr_ctx_t *ctx, unsigned int flags);
-void dirmngr_disconnect (dirmngr_ctx_t ctx);
-gpg_error_t dirmngr_lookup_url (dirmngr_ctx_t ctx,
-				const char *url, ksba_cert_t *cert);
-gpg_error_t dirmngr_isvalid (dirmngr_ctx_t ctx, ksba_cert_t cert);
+int
+auth_method_test (poldi_ctx_t ctx)
+{
+  gpg_error_t err;
+  char *answer;
+  int ret;
 
-#endif
+  ret = 0;			/* AUTH FAIL.  */
+
+  /* FIXME: quiet?  */
+  err = conv_ask (ctx, 0, &answer, "Complete the sequence 'foo': ");
+  if (err)
+    goto out;
+
+  if (strcmp (answer, "bar") == 0)
+    /* Success! */
+    ret = 1;
+
+ out:
+
+  return ret;
+}

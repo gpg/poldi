@@ -1,3 +1,21 @@
+2007-11-10  Moritz  <moritz@g10code.com>
+
+	* auth-simpledb.c (auth_method_simpledb): Uuuh: return !err,
+	instead of !!err.  Currently the semantics for the auth_method_*
+	functions are: they return TRUE for success and FALSE for failure.
+
+	* Makefile.am (AM_CFLAGS): Added: KSBA_CFLAGS.
+	(pam_poldi.so): Added: KSBA_LIBS.
+
+	* pam_poldi.c (pam_sm_authenticate): Connect/disconnect to/from
+	scdaemon.
+
+	* auth-simpledb.c: Added plenty of missing includes.
+	(cardinfo_null): New static variable.
+
+	* pam_poldi.c (pam_sm_authenticate): Use options_parse_argv_const
+	instead of options_parse_argv.
+
 2007-11-04  Moritz  <moritz@g10code.com>
 
 	* Makefile.am: Changed the way the pam module gets built.  No, a

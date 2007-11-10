@@ -1,4 +1,4 @@
-/* pam_poldi.c - PAM authentication via OpenPGP smartcards.
+/* conv.c - PAM conversation abstraction for Poldi.
    Copyright (C) 2004, 2005, 2007 g10 Code GmbH
  
    This file is part of Poldi.

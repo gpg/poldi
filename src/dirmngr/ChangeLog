@@ -1,3 +1,7 @@
+2007-11-10  Moritz  <moritz@g10code.com>
+
+	* poldi-dirmngr.h: use POLDI_DIRMNGR_H symbol, not DIRMNGR_H.
+
 2007-11-03  Moritz Schulte  <moritz@g10code.com>
 
 	* dirmngr.c, dirmngr.h, poldi-dirmngr.c, poldi-dirmngr.h: New files.

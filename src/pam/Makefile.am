@@ -29,7 +29,7 @@ PAM_MODULE_DIRECTORY = @PAM_MODULE_DIRECTORY@
 
 AM_CFLAGS = \
 	-Wall -fPIC \
-	 $(LIBGCRYPT_CFLAGS) $(GPG_ERROR_CFLAGS)
+	 $(LIBGCRYPT_CFLAGS) $(GPG_ERROR_CFLAGS) $(KSBA_CFLAGS)
 
 if AUTH_METHOD_SIMPLEDB
   simpledb = auth-simpledb.c
@@ -59,8 +59,8 @@ pam_poldi.so: libpam_poldi.a
 	$(LD) \
 		-u pam_sm_authenticate -u pam_sm_setcred \
 		--shared -x -o pam_poldi.so libpam_poldi.a \
-		../scd/libscd.a ../common/libpoldi-common.a ../jnlib/libjnlib.a \
-		$(LIBGCRYPT_LDFLAGS) $(LIBGCRYPT_LIBS) $(LIBASSUAN_LIBS) -lc
+		../scd/libscd.a ../dirmngr/libdirmngr.a ../common/libpoldi-common.a ../jnlib/libjnlib.a \
+		$(LIBGCRYPT_LDFLAGS) $(LIBGCRYPT_LIBS) $(LIBASSUAN_LIBS) $(KSBA_LIBS) -lc
 
 all-local: pam_poldi.so
 

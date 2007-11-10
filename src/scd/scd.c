@@ -211,6 +211,7 @@ get_scd_socket_from_agent (const char *agent_infostr, char **socket_name)
   if (rc)
     goto out;
 
+  /* FIXME, what is this? -mo */
   rc = scd_serialno_internal (ctx, 1, NULL);
   if (rc)
     goto out;
@@ -455,6 +456,11 @@ learn_status_cb (void *opaque, const char *line)
     {
       xfree (parm->disp_name);
       parm->disp_name = unescape_status_string (line);
+    }
+  else if (keywordlen == 10 && !memcmp (keyword, "PUBKEY-URL", keywordlen))
+    {
+      xfree (parm->pubkey_url);
+      parm->pubkey_url = unescape_status_string (line);
     }
   else if (keywordlen == 10 && !memcmp (keyword, "LOGIN-DATA", keywordlen))
     {

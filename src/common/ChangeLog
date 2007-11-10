@@ -1,3 +1,16 @@
+2007-11-10  Moritz  <moritz@g10code.com>
+
+	* optparse.c (options_parse_argv): Removed const qualifier from
+	argv.  Removed argv_cp related snippets.
+	(options_parse_argv_const): New function, wrapper for
+	options_parse_argv, using char_vector_dup.
+	* optparse.h (options_parse_argv, options_parse_argv, const):
+	Adjusted declarations.
+
+	* support.c (char_vector_dup): Removed unused variable s. Set c[i]
+	to NULL, not to a[i] (which is also NULL), because of const
+	qualifier.
+
 2007-11-04  Moritz  <moritz@g10code.com>
 
 	* poldi-ctx.h (struct poldi_ctx_s): New members: auth_method,

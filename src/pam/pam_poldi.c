@@ -231,8 +231,9 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   /* ... from argument vector provided by PAM. */
   if (argc)
     {
-      err = options_parse_argv (pam_poldi_options_cb,
-				ctx, arg_opts, argc, argv, OPTPARSE_FLAG_DONT_SKIP_FIRST);
+      err = options_parse_argv_const (pam_poldi_options_cb,
+				      ctx, arg_opts, argc, argv,
+				      OPTPARSE_FLAG_DONT_SKIP_FIRST);
       if (err)
 	{
 	  log_error ("Error: failed to parse PAM argument vector: %s\n",
@@ -276,6 +277,12 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
     }
   ctx->pam_conv = conv_void;
 
+  /*** Connect to Scdaemon. ***/
+
+  err = poldi_scd_connect (ctx, getenv ("GPG_AGENT_INFO"), NULL, 0);
+  if (err)
+    goto out;
+
   /*** Call authentication method. ***/
 
   if (ctx->auth_method == AUTH_METHOD_NONE)
@@ -303,6 +310,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   log_close ();
 
   /* Deallocate main context.  */
+  poldi_scd_disconnect (ctx);
   free (ctx);
 
   /* Return to PAM.  */

@@ -203,7 +203,7 @@ my_strusage (int level)
   return p;
 }
 
-/* Option parser callback by options_parse_argv() and
+/* Option parser callback for options_parse_argv() and
    options_parse_conf(), which are jnlib wrappers.  */
 static gpg_error_t
 poldi_ctrl_options_cb (ARGPARSE_ARGS *parg, void *opaque)
@@ -492,45 +492,6 @@ key_file_remove (const char *serialno)
  * Command functions.
  */
 
-static gpg_error_t
-conversation (conversation_type_t type, void *opaque,
-	      const char *info, char **response)
-{
-  gpg_error_t err;
-
-  assert ((type == CONVERSATION_TELL)
-	  || (type == CONVERSATION_ASK_SECRET));
-
-  err = 0;
-  switch (type)
-    {
-    case CONVERSATION_TELL:
-      printf ("%s\n", info);
-      err = 0;
-      break;
-
-    case CONVERSATION_ASK_SECRET:
-      {
-	char *secret;
-
-	secret = getpass (info);
-	if (! secret)
-	  {
-	    err = gpg_error_from_errno (errno);
-	    log_error ("Error: getpass() returned NULL: %s\n",
-		       gpg_strerror (err));
-	  }
-	else
-	  {
-	    *response = secret;
-	    err = 0;
-	  }
-      }
-      break;
-    }
-
-  return err;
-}
 
 static struct scd_cardinfo cardinfo_NULL;
 

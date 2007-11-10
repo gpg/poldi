@@ -1,5 +1,5 @@
-/* dirmngr.h - communication with dirmngr 
- *	Copyright (C) 2007 Free Software Foundation, Inc.
+/* auth-methods.h - Auth method related definitions for Poldi.
+ * Copyright (C) 2007 g10 Code GmbH
  *
  * This file is part of Poldi.
  *
@@ -17,19 +17,23 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DIRMNGR_H
-#define DIRMNGR_H
+#ifndef AUTH_METHODS_H
+#define AUTH_METHODS_H
 
-#include <gpg-error.h>
-#include <stdio.h>
-#include <ksba.h>
+enum
+  {
+#ifdef ENABLE_AUTH_METHOD_SIMPLEDB
+    AUTH_METHOD_SIMPLEDB,
+#endif
+#ifdef ENABLE_AUTH_METHOD_X509
+    AUTH_METHOD_X509,
+#endif
+#ifdef ENABLE_AUTH_METHOD_TEST
+    AUTH_METHOD_TEST,
+#endif
+    AUTH_METHOD_NONE,
+  };
 
-typedef struct dirmngr_ctx_s *dirmngr_ctx_t;
-
-gpg_error_t dirmngr_connect (dirmngr_ctx_t *ctx, unsigned int flags);
-void dirmngr_disconnect (dirmngr_ctx_t ctx);
-gpg_error_t dirmngr_lookup_url (dirmngr_ctx_t ctx,
-				const char *url, ksba_cert_t *cert);
-gpg_error_t dirmngr_isvalid (dirmngr_ctx_t ctx, ksba_cert_t cert);
+typedef int (*auth_method_func_t) (poldi_ctx_t ctx);
 
 #endif

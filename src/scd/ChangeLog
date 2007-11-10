@@ -1,3 +1,7 @@
+2007-11-10  Moritz  <moritz@g10code.com>
+
+	* scd.c (learn_status_cb): Handle PUBKEY_URL.
+
 2007-10-27  Moritz  <moritz@g10code.com>
 
 	* poldi-scd.c, poldi-scd.h: New files.  Layer on top of scd.c.

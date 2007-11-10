@@ -414,7 +414,6 @@ gpg_error_t
 char_vector_dup (int len, const char **a, char ***b)
 {
   char **c;
-  char *s;
   gpg_error_t err;
   int i;
 
@@ -440,7 +439,7 @@ char_vector_dup (int len, const char **a, char ***b)
 	  goto out;
 	}
     }
-  c[i] = a[i];
+  c[i] = NULL;
 
  out:
 
