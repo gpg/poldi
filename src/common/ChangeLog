@@ -1,3 +1,7 @@
+2007-11-11  Moritz  <moritz@g10code.com>
+
+	* util.h: Cleanup: removed plenty of unnecessary declarations.
+
 2007-11-10  Moritz  <moritz@g10code.com>
 
 	* optparse.c (options_parse_argv): Removed const qualifier from
