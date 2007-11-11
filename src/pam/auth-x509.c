@@ -42,9 +42,78 @@
 
 static struct scd_cardinfo cardinfo_null;
 
+static gpg_error_t
+extract_public_key_from_cert (poldi_ctx_t ctx, ksba_cert_t cert,
+			      gcry_sexp_t *public_key)
+{
+  gcry_sexp_t pubkey;
+  gpg_error_t err;
+  size_t sexp_len;
+  ksba_sexp_t ksba_sexp;
+
+  pubkey = NULL;
+  ksba_sexp = NULL;
+  err = 0;
+
+  ksba_sexp = ksba_cert_get_public_key (cert);
+  sexp_len = gcry_sexp_canon_len (ksba_sexp, 0, NULL, NULL);
+  if (!sexp_len)
+    {
+      log_error ("libksba did not return a proper S-Exp\n");
+      err = GPG_ERR_BUG;
+      goto out;
+    }
+
+  err = gcry_sexp_sscan (&pubkey, NULL, (char *) ksba_sexp, sexp_len);
+  if (err)
+    {
+      log_error ("gcry_sexp_scan failed: %s\n", gpg_strerror (err));
+      goto out;
+    }
+
+  *public_key = pubkey;
+
+ out:
+
+  ksba_free (ksba_sexp);
+
+  return err;
+}
+
+static gpg_error_t
+verify_challenge_sig (poldi_ctx_t ctx, ksba_cert_t cert,
+		      void *challenge, size_t challenge_n,
+		      void *response, size_t response_n)
+{
+  gcry_sexp_t pubkey;
+  gpg_error_t err;
+
+  pubkey = NULL;
+
+  err = extract_public_key_from_cert (ctx, cert, &pubkey);
+  if (err)
+    goto out;
+
+  /* FIXME: probably we need to pass some flags to challenge_verify
+     for x509 verification, no? */
+  err = challenge_verify (pubkey, challenge, challenge_n,
+			  response, response_n);
+
+ out:
+
+  gcry_sexp_release (pubkey);
+
+  return err;
+}
+
+
 int
 auth_method_x509 (poldi_ctx_t ctx)
 {
+  unsigned char *challenge;
+  unsigned char *response;
+  size_t challenge_n;
+  size_t response_n;
   gpg_error_t err;
   const void *username_void;
   const char *username;
@@ -53,12 +122,14 @@ auth_method_x509 (poldi_ctx_t ctx)
   ksba_cert_t cert;
 
   cardinfo = cardinfo_null;
+  challenge = NULL;
+  response = NULL;
   username = NULL;
   cert = NULL;
 
   /*** Connect to Dirmngr. ***/
 
-  err = poldi_dirmngr_connect (ctx);
+  err = poldi_dirmngr_connect (ctx, getenv ("DIRMNGR_INFO"), NULL, 0);
   if (err)
     goto out;
 
@@ -79,6 +150,14 @@ auth_method_x509 (poldi_ctx_t ctx)
   err = poldi_scd_learn (ctx, &cardinfo);
   if (err)
     goto out;
+
+  if (ctx->debug)
+    {
+      conv_tell (ctx, "NOTE: debug mode activated, overwriting pubkey url!\n");
+
+      xfree (cardinfo.pubkey_url);
+      cardinfo.pubkey_url = xstrdup ("ldap://...");
+    }
 
   conv_tell (ctx,
 	     "SERIALNO: %s\n"
@@ -102,6 +181,47 @@ auth_method_x509 (poldi_ctx_t ctx)
       conv_tell (ctx, "failed! dirmngr said: %s\n", gpg_strerror (err));
       goto out;
     }
+
+  /*** Valide cert. ***/
+
+  /* FIXME: specify issuer? */
+
+  err = poldi_dirmngr_isvalid (ctx, cert);
+  if (err)
+    goto out;
+
+  /* Generate challenge.  */
+  err = challenge_generate (&challenge, &challenge_n);
+  if (err)
+    {
+      log_error ("Error: failed to generate challenge: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  /* Let card sign the challenge.  */
+  err = poldi_scd_pksign (ctx, "OPENPGP.3",
+			  getpin_cb, ctx,
+			  challenge, challenge_n,
+			  &response, &response_n);
+  if (err)
+    {
+      log_error ("Error: failed to retrieve challenge signature "
+		 "from card: %s\n",
+		 gpg_strerror (err));
+      goto out;
+    }
+
+  err = verify_challenge_sig (ctx, cert,
+			      challenge, challenge_n,
+			      response, response_n);
+  if (err)
+    {
+      log_error ("Error: failed to verify challenge\n");
+      goto out;
+    }
+
+  /* FIXME: how to handle username?  */
 
   conv_tell (ctx, "FIXME: authentication not implemented yet\n");
   err = GPG_ERR_NOT_IMPLEMENTED;

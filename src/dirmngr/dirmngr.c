@@ -133,17 +133,84 @@ extract_socket_from_infostr (const char *infostr, char **socketname)
   return err;
 }
 
-gpg_error_t
-dirmngr_connect (dirmngr_ctx_t *ctx, unsigned int flags)
+static gpg_error_t
+connect_socket (dirmngr_ctx_t ctx, const char *infostr)
 {
   assuan_context_t assuan_ctx;
-  dirmngr_ctx_t context;
-  char *infostr;
   char *socketname;
   gpg_error_t err;
 
-  socketname = NULL;
   assuan_ctx = NULL;
+  socketname = NULL;
+
+  err = extract_socket_from_infostr (infostr, &socketname);
+  if (err)
+    goto out;
+
+  err = assuan_socket_connect (&assuan_ctx, socketname, -1);
+  if (err)
+    goto out;
+
+  ctx->assuan = assuan_ctx;
+
+ out:
+
+  xfree (socketname);
+
+  return err;
+}
+
+static gpg_error_t
+connect_pipe (dirmngr_ctx_t ctx, const char *path)
+{
+  assuan_context_t assuan_ctx;
+  gpg_error_t err;
+  const char *argv[3];
+  const char *pgmname;
+  int no_close_list[3];
+  int i;
+
+  assuan_ctx = NULL;
+  err = 0;
+
+  if ((!path) || (!*path))
+    path = GNUPG_DEFAULT_DIRMNGR;
+  pgmname = strrchr (path, '/');
+  if (!pgmname)
+    pgmname = path;
+  else
+    pgmname++;
+
+  argv[0] = pgmname;
+  argv[1] = "--server";
+  argv[2] = NULL;
+
+  i=0;
+  if (log_get_fd () != -1)
+    no_close_list[i++] = log_get_fd ();
+  no_close_list[i++] = fileno (stderr);
+  no_close_list[i] = -1;
+
+  err = assuan_pipe_connect (&assuan_ctx, path, argv, no_close_list);
+  if (err)
+    goto out;
+
+  ctx->assuan = assuan_ctx;
+
+ out:
+
+  return err;
+}
+
+gpg_error_t
+dirmngr_connect (dirmngr_ctx_t *ctx,
+		 const char *infostr,
+		 const char *path,
+		 unsigned int flags)
+{
+  dirmngr_ctx_t context;
+  gpg_error_t err;
+
   context = NULL;
 
   context = xtrymalloc (sizeof (*context));
@@ -155,27 +222,17 @@ dirmngr_connect (dirmngr_ctx_t *ctx, unsigned int flags)
 
   context->assuan = NULL;
 
-  infostr = getenv ("DIRMNGR_INFO");
-  if (!infostr)
-    {
-      err = gpg_error (GPG_ERR_NO_DIRMNGR);
-      goto out;
-    }
+  if (infostr)
+    err = connect_socket (context, infostr);
+  else
+    err = connect_pipe (context, path);
 
-  err = extract_socket_from_infostr (infostr, &socketname);
   if (err)
     goto out;
 
-  err = assuan_socket_connect (&assuan_ctx, socketname, -1);
-  if (err)
-    goto out;
-
-  context->assuan = assuan_ctx;
   *ctx = context;
 
  out:
-
-  xfree (socketname);
 
   if (err)
     xfree (context);

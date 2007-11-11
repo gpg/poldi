@@ -27,7 +27,10 @@
 
 #include "common/poldi-ctx-opaque.h"
 
-gpg_error_t poldi_dirmngr_connect (poldi_ctx_t ctx);
+gpg_error_t poldi_dirmngr_connect (poldi_ctx_t ctx,
+				   const char *infostr,
+				   const char *path,
+				   unsigned int flags);
 
 gpg_error_t poldi_dirmngr_lookup_url (poldi_ctx_t ctx,
 				      const char *url,

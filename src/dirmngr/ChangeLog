@@ -1,3 +1,12 @@
+2007-11-11  Moritz  <moritz@g10code.com>
+
+	* dirmngr.c (connect_socket, connect_pipe): New functions...
+	(dirmngr_connect): ... use here.  New parameters: infostr, path.
+	* dirmngr.h: Adjust declaration.
+	* poldi-dirmngr.c (poldi_dirmngr_connect): New parameters:
+	infostr, path; pass to dirmngr_connect.
+	* poldi-dirmngr.h: Adjust declaration.
+
 2007-11-10  Moritz  <moritz@g10code.com>
 
 	* poldi-dirmngr.h: use POLDI_DIRMNGR_H symbol, not DIRMNGR_H.

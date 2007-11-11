@@ -1,3 +1,10 @@
+2007-11-11  Moritz  <moritz@g10code.com>
+
+	* auth-x509.c (auth_method_x509): adjust call to
+	poldi_dirmngr_connect; pass return value from getenv.
+	(extract_public_key_from_cert, verify_challenge_sig): New
+	functions.
+
 2007-11-10  Moritz  <moritz@g10code.com>
 
 	* auth-simpledb.c (auth_method_simpledb): Uuuh: return !err,

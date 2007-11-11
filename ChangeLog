@@ -1,3 +1,7 @@
+2007-11-11  Moritz  <moritz@g10code.com>
+
+	* configure.ac: Add hardwired dirmngr path to AH_BOTTOM call.
+
 2007-11-04  Moritz  <moritz@g10code.com>
 
 	* configure.ac: AC_DEFINE ENABLE_AUTH_METHOD_SIMPLEDB if simpledb

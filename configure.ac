@@ -83,6 +83,9 @@ AH_BOTTOM([
 #ifndef GNUPG_DEFAULT_SCD
 #define GNUPG_DEFAULT_SCD    ( GNUPG_BINDIR "/scdaemon" )
 #endif
+#ifndef GNUPG_DEFAULT_DIRMNGR
+#define GNUPG_DEFAULT_DIRMNGR    ( GNUPG_BINDIR "/dirmngr" )
+#endif
 ])
 
 AM_MAINTAINER_MODE

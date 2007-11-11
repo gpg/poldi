@@ -26,7 +26,10 @@
 
 typedef struct dirmngr_ctx_s *dirmngr_ctx_t;
 
-gpg_error_t dirmngr_connect (dirmngr_ctx_t *ctx, unsigned int flags);
+gpg_error_t dirmngr_connect (dirmngr_ctx_t *ctx,
+			     const char *infostr,
+			     const char *path,
+			     unsigned int flags);
 void dirmngr_disconnect (dirmngr_ctx_t ctx);
 gpg_error_t dirmngr_lookup_url (dirmngr_ctx_t ctx,
 				const char *url, ksba_cert_t *cert);

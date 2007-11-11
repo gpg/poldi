@@ -26,9 +26,12 @@
 /* Try to connect to the agent via socket or fork it off and work by
    pipes.  Returns proper error code or zero on success.  */
 gpg_error_t
-poldi_dirmngr_connect (poldi_ctx_t ctx, unsigned int flags)
+poldi_dirmngr_connect (poldi_ctx_t ctx,
+		       const char *infostr,
+		       const char *path,
+		       unsigned int flags)
 {
-  return dirmngr_connect (&ctx->dirmngr, flags);
+  return dirmngr_connect (&ctx->dirmngr, infostr, path, flags);
 }
 
 /* Disconnect from SCDaemon; destroy the context SCD_CTX.  */
