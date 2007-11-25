@@ -205,17 +205,20 @@ string_to_sexp (gcry_sexp_t *sexp, char *string)
 
 /* This function retrieves the content from the file specified by
    FILENAMED and writes it into a newly allocated chunk of memory,
-   which is then stored in *STRING.  Returns proper error code.  */
-gpg_error_t
-file_to_string (const char *filename, char **string)
+   which is then stored in *DATA and *DATALEN.  This functions adds a
+   NUL termination to the actual file data but does not include that
+   additional NUL character in DATALEN!  Returns proper error
+   code.  */
+static gpg_error_t
+file_to_string_internal (const char *filename, void **data, size_t *datalen)
 {
   struct stat statbuf;
-  char *string_new;
+  unsigned char *data_new;
   gpg_error_t err;
   FILE *fp;
   int ret;
 
-  string_new = NULL;
+  data_new = NULL;
   fp = NULL;
 
   /* Retrieve file size.  */
@@ -234,23 +237,25 @@ file_to_string (const char *filename, char **string)
 	  err = gpg_error_from_errno (errno);
 	  goto out;
 	}
-      string_new = malloc (statbuf.st_size + 1);
-      if (! string_new)
+      data_new = malloc (statbuf.st_size + 1);
+      if (!data_new)
 	{
 	  err = gpg_error_from_errno (errno);
 	  goto out;
 	}
-      ret = fread (string_new, statbuf.st_size, 1, fp);
+      ret = fread (data_new, statbuf.st_size, 1, fp);
       if (ret != 1)
 	{
 	  err = gpg_error_from_errno (errno);
 	  goto out;
 	}
-      string_new[statbuf.st_size] = 0;
+      data_new[statbuf.st_size] = 0;
     }
 
   err = 0;
-  *string = string_new;
+  *data = data_new;
+  if (datalen)
+    *datalen = statbuf.st_size;
 
  out:
 
@@ -258,7 +263,38 @@ file_to_string (const char *filename, char **string)
     fclose (fp);
 
   if (err)
-    free (string_new);
+    free (data_new);
+
+  return err;
+}
+
+
+/* This function retrieves the content from the file specified by
+   FILENAMED and writes it into a newly allocated chunk of memory,
+   which is then stored in *DATA and *DATALEN.  Returns proper error
+   code.  */
+gpg_error_t
+file_to_binstring (const char *filename, void **data, size_t *datalen)
+{
+  return file_to_string_internal (filename, data, datalen);
+}
+
+/* This function retrieves the content from the file specified by
+   FILENAMED and writes it into a newly allocated C-string, which is
+   then stored in *STRING.  Returns proper error code.  */
+gpg_error_t
+file_to_string (const char *filename, char **string)
+{
+  gpg_error_t err;
+  void *data;
+
+  err = file_to_string_internal (filename, &data, NULL);
+  if (err)
+    goto out;
+
+  *string = data;
+
+ out:
 
   return err;
 }

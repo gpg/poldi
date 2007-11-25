@@ -1,5 +1,5 @@
-/* dirmngr.h - communication with dirmngr 
- *	Copyright (C) 2007 Free Software Foundation, Inc.
+/* pam-util.c - PAM util functions for Poldi.
+ * Copyright (C) 2007 g10 Code GmbH
  *
  * This file is part of Poldi.
  *
@@ -17,22 +17,14 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DIRMNGR_H
-#define DIRMNGR_H
-
 #include <gpg-error.h>
-#include <stdio.h>
-#include <ksba.h>
 
-typedef struct dirmngr_ctx_s *dirmngr_ctx_t;
+#include "poldi-ctx-opaque.h"
 
-gpg_error_t dirmngr_connect (dirmngr_ctx_t *ctx,
-			     const char *infostr,
-			     const char *path,
-			     unsigned int flags);
-void dirmngr_disconnect (dirmngr_ctx_t ctx);
-gpg_error_t dirmngr_lookup_url (dirmngr_ctx_t ctx,
-				const char *url, ksba_cert_t *cert);
-gpg_error_t dirmngr_validate (dirmngr_ctx_t ctx, ksba_cert_t cert);
+/* Retrieve the username through the PAM handle contained in CTX and
+   store it in *USERNAME.  Returns proper error code.  */
+gpg_error_t retrieve_username_from_pam (poldi_ctx_t ctx, const char **username);
 
-#endif
+/* Make USERNAME available to the application through the PAM handle
+   contained in CTX.  Returns proper error code.  */
+gpg_error_t send_username_to_pam (poldi_ctx_t ctx, const char *username);

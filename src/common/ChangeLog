@@ -1,3 +1,13 @@
+2007-11-25  Moritz  <moritz@g10code.com>
+
+	* support.h: Declare function file_to_binstring.
+	* support.c (file_to_string_internal): New function, based in
+	former function file_to_string.
+	(file_to_string): is now a wrapper on top of
+	file_to_string_internal.
+	(file_to_binstring): New function, wrapper on top of
+	file_to_string_internal.
+
 2007-11-11  Moritz  <moritz@g10code.com>
 
 	* util.h: Cleanup: removed plenty of unnecessary declarations.

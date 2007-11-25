@@ -52,6 +52,12 @@ gpg_error_t sexp_to_string (gcry_sexp_t sexp, char **sexp_string);
    which is then stored in *STRING.  Returns proper error code.  */
 gpg_error_t file_to_string (const char *filename, char **string);
 
+/* This function retrieves the content from the file specified by
+   FILENAMED and writes it into a newly allocated chunk of memory,
+   which is then stored in *DATA and *DATALEN.  Returns proper error
+   code.  */
+gpg_error_t file_to_binstring (const char *filename, void **data, size_t *datalen);
+
 /* This functions converts the given string-representation of an
    S-Expression into a new S-Expression object, which is to be stored
    in *SEXP.  Returns proper error code.  */

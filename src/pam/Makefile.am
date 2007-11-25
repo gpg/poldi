@@ -52,7 +52,11 @@ endif
 noinst_LIBRARIES = libpam_poldi.a
 
 libpam_poldi_a_SOURCES = \
- pam_poldi.c conv.c wait-for-card.c getpin-cb.c \
+ pam_poldi.c \
+ conv.c conv.h \
+ wait-for-card.c wait-for-card.h \
+ getpin-cb.c getpin-cb.h \
+ pam-util.c pam-util.h \
  ${simpledb} ${x509} ${test}
 
 pam_poldi.so: libpam_poldi.a

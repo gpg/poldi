@@ -40,8 +40,13 @@
 #include "wait-for-card.h"
 #include "conv.h"
 
+#include "pam-util.h"
+
 static struct scd_cardinfo cardinfo_null;
 
+/* This functions extracts the raw public key from the certificate
+   CERT und returns it as a newly allocated S-Expressions in
+   *PUBLIC_KEY.  Returns error code.  */
 static gpg_error_t
 extract_public_key_from_cert (poldi_ctx_t ctx, ksba_cert_t cert,
 			      gcry_sexp_t *public_key)
@@ -80,6 +85,10 @@ extract_public_key_from_cert (poldi_ctx_t ctx, ksba_cert_t cert,
   return err;
 }
 
+/* This functions checks if RESPONSE/RESPONSE_N contains a valid
+   signature for the data CHALLENGE/CHALLENGE_N, created by the
+   private key belonging to the certificate CERT.  Returns zero if the
+   signature verification succeeded, an error code otherwise. */
 static gpg_error_t
 verify_challenge_sig (poldi_ctx_t ctx, ksba_cert_t cert,
 		      void *challenge, size_t challenge_n,
@@ -106,7 +115,59 @@ verify_challenge_sig (poldi_ctx_t ctx, ksba_cert_t cert,
   return err;
 }
 
+static gpg_error_t
+lookup_cert_from_file (poldi_ctx_t ctx, const char *filename, ksba_cert_t *certificate)
+{
+  gpg_error_t err;
+  ksba_cert_t cert;
+  void *data;
+  size_t datalen;
 
+  cert = NULL;
+  data = NULL;
+  err = 0;
+
+  err = ksba_cert_new (&cert);
+  if (err)
+    goto out;
+
+  err = file_to_binstring (filename, &data, &datalen);
+  if (err)
+    goto out;
+
+  err = ksba_cert_init_from_mem (cert, data, datalen);
+  if (err)
+    goto out;
+
+  *certificate = cert;
+
+ out:
+
+  if (err)
+    ksba_cert_release (cert);
+  free (data);			/* FIXME:  which free  to use  here? -
+				   having   several   memory   manager
+				   always confuses me... */
+
+  return err;
+}
+
+static gpg_error_t
+extract_username_from_cert (ksba_cert_t cert, char **username)
+{
+  gpg_error_t err;
+
+  /* FIXME: not implemented yet.  */
+
+  *username = xstrdup ("moritz");
+  err = 0;
+
+  return err;
+}
+
+
+/* Entry point for the x509 authentication method. Returns TRUE (1) if
+   authentication succeeded and FALSE (0) otherwise. */
 int
 auth_method_x509 (poldi_ctx_t ctx)
 {
@@ -115,17 +176,18 @@ auth_method_x509 (poldi_ctx_t ctx)
   size_t challenge_n;
   size_t response_n;
   gpg_error_t err;
-  const void *username_void;
-  const char *username;
-  int ret;
+  const char *pam_username;
+  char *card_username;
   struct scd_cardinfo cardinfo;
   ksba_cert_t cert;
 
   cardinfo = cardinfo_null;
   challenge = NULL;
   response = NULL;
-  username = NULL;
+  card_username = NULL;
+  pam_username = NULL;
   cert = NULL;
+  err = 0;
 
   /*** Connect to Dirmngr. ***/
 
@@ -135,17 +197,11 @@ auth_method_x509 (poldi_ctx_t ctx)
 
   /*** Ask PAM for username. ***/
 
-  ret = pam_get_item (ctx->pam_handle, PAM_USER, &username_void);
-  if (ret != PAM_SUCCESS)
-    {
-      err = gpg_error (GPG_ERR_INTERNAL);
-      goto out;
-    }
-  username = username_void;
+  err = retrieve_username_from_pam (ctx, &pam_username);
+  if (err)
+    goto out;
 
-  /*
-   * Receive card info.
-   */
+  /*** Receive card info. ***/
 
   err = poldi_scd_learn (ctx, &cardinfo);
   if (err)
@@ -156,7 +212,7 @@ auth_method_x509 (poldi_ctx_t ctx)
       conv_tell (ctx, "NOTE: debug mode activated, overwriting pubkey url!\n");
 
       xfree (cardinfo.pubkey_url);
-      cardinfo.pubkey_url = xstrdup ("ldap://...");
+      cardinfo.pubkey_url = xstrdup ("file:///home/moritz/moritz.der");
     }
 
   conv_tell (ctx,
@@ -166,19 +222,26 @@ auth_method_x509 (poldi_ctx_t ctx)
 
   /*** Fetch certificate. ***/
 
-  if ((!cardinfo.pubkey_url) || (strncmp (cardinfo.pubkey_url, "ldap://", 7) != 0))
+  if (! (cardinfo.pubkey_url && ((strncmp (cardinfo.pubkey_url, "ldap://", 7) == 0)
+				 || (strncmp (cardinfo.pubkey_url, "file://", 7) == 0))))
     {
       conv_tell (ctx, "`%s' is no valid ldap url...\n", cardinfo.pubkey_url);
-      err = GPG_ERR_GENERAL;	/* FIXME!! NO_CERT or something? */
+      err = GPG_ERR_INV_CARD;
       goto out;
     }
 
-  conv_tell (ctx, "Looking up `%s' through dirmngr...\n", cardinfo.pubkey_url);
+  conv_tell (ctx, "Looking up certificate `%s'...\n", cardinfo.pubkey_url);
 
-  err = poldi_dirmngr_lookup_url (ctx, cardinfo.pubkey_url, &cert);
+  if (strncmp (cardinfo.pubkey_url, "ldap://", 7) == 0)
+    err = poldi_dirmngr_lookup_url (ctx, cardinfo.pubkey_url, &cert);
+  else if (strncmp (cardinfo.pubkey_url, "file://", 7) == 0)
+    err = lookup_cert_from_file (ctx, cardinfo.pubkey_url + 7, &cert);
+  else
+    abort ();
   if (err)
     {
-      conv_tell (ctx, "failed! dirmngr said: %s\n", gpg_strerror (err));
+      conv_tell (ctx, "failed to look up certificate `%s': %s\n",
+		 cardinfo.pubkey_url, gpg_strerror (err));
       goto out;
     }
 
@@ -186,11 +249,33 @@ auth_method_x509 (poldi_ctx_t ctx)
 
   /* FIXME: specify issuer? */
 
-  err = poldi_dirmngr_isvalid (ctx, cert);
+  err = poldi_dirmngr_validate (ctx, cert);
   if (err)
     goto out;
 
-  /* Generate challenge.  */
+  /*** Check username. ***/
+
+  err = extract_username_from_cert (cert, &card_username);
+  if (err)
+    goto out;
+
+  if (pam_username)
+    {
+      /* Application wants us to authenticate the user as
+	 PAM_USERNAME.  */
+      if (strcmp (pam_username, card_username) != 0)
+	{
+	  /* Current card's cert is not setup for authentication as
+	     PAM_USERNAME.  */
+	  log_error ("FIXME\n");
+	  err = GPG_ERR_INV_USER_ID; /* FIXME, I guess we need a
+					better err code. -mo */
+	  goto out;
+	}
+    }
+
+  /*** Generate challenge. ***/
+
   err = challenge_generate (&challenge, &challenge_n);
   if (err)
     {
@@ -199,7 +284,8 @@ auth_method_x509 (poldi_ctx_t ctx)
       goto out;
     }
 
-  /* Let card sign the challenge.  */
+  /*** Let card sign the challenge. ***/
+
   err = poldi_scd_pksign (ctx, "OPENPGP.3",
 			  getpin_cb, ctx,
 			  challenge, challenge_n,
@@ -212,6 +298,8 @@ auth_method_x509 (poldi_ctx_t ctx)
       goto out;
     }
 
+  /*** Verify challenge signature against certificate. ***/
+
   err = verify_challenge_sig (ctx, cert,
 			      challenge, challenge_n,
 			      response, response_n);
@@ -221,15 +309,21 @@ auth_method_x509 (poldi_ctx_t ctx)
       goto out;
     }
 
-  /* FIXME: how to handle username?  */
+  if (!pam_username)
+    {
+      err = send_username_to_pam (ctx, card_username);
+      if (err)
+	goto out;
+    }
 
-  conv_tell (ctx, "FIXME: authentication not implemented yet\n");
-  err = GPG_ERR_NOT_IMPLEMENTED;
+  /* Auth succeeded.  */
 
  out:
 
   /* Release resources.  */
   poldi_scd_release_cardinfo (&cardinfo);
+  ksba_cert_release (cert);
+  xfree (card_username);	/* FIXME: which free?  */
 
   /* Log result.  */
   if (err)

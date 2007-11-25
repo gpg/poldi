@@ -47,9 +47,16 @@ poldi_dirmngr_lookup_url (poldi_ctx_t ctx, const char *url, ksba_cert_t *cert)
   return dirmngr_lookup_url (ctx->dirmngr, url, cert);
 }
 
-
+#if 0
 gpg_error_t
 poldi_dirmngr_isvalid (poldi_ctx_t ctx, ksba_cert_t cert)
 {
   return dirmngr_isvalid (ctx->dirmngr, cert);
+}
+#endif
+
+gpg_error_t
+poldi_dirmngr_validate (poldi_ctx_t ctx, ksba_cert_t cert)
+{
+  return dirmngr_validate (ctx->dirmngr, cert);
 }

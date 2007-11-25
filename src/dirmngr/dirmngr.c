@@ -52,6 +52,7 @@ struct dirmngr_ctx_s
   assuan_context_t assuan;
 };
 
+#if 0
 struct inq_certificate_parm_s {
   assuan_context_t ctx;
   ksba_cert_t cert;
@@ -63,6 +64,7 @@ struct isvalid_status_parm_s {
   int seen;
   unsigned char fpr[20];
 };
+#endif
 
 struct lookup_parm_s {
   /* FIXME? */
@@ -74,7 +76,6 @@ struct lookup_parm_s {
 };
 
 #if 0
-
 struct run_command_parm_s {
   assuan_context_t ctx;
 };
@@ -254,6 +255,7 @@ dirmngr_disconnect (dirmngr_ctx_t ctx)
 
 
 
+#if 0
 /* Handle a SENDCERT inquiry. */
 static int
 inq_certificate (void *opaque, const char *line)
@@ -330,6 +332,7 @@ inq_certificate (void *opaque, const char *line)
   xfree (ski);
   return rc; 
 }
+#endif
 
 /* Take a 20 byte hexencoded string and put it into the the provided
    20 byte buffer FPR in binary format. */
@@ -349,6 +352,7 @@ unhexify_fpr (const char *hexstr, unsigned char *fpr)
   return 1; /* okay */
 }
 
+#if 0
 static assuan_error_t
 isvalid_status_cb (void *opaque, const char *line)
 {
@@ -363,9 +367,102 @@ isvalid_status_cb (void *opaque, const char *line)
     }
   return 0;
 }
+#endif
 
 
 
+
+/* Communication structure for the certificate inquire callback. */
+struct inq_cert_parm_s
+{
+  assuan_context_t ctx;
+  const unsigned char *cert;
+  size_t certlen;
+};
+
+/* Callback for the inquire fiunction to send back the certificate.  */
+static int
+inq_cert (void *opaque, const char *line)
+{
+  struct inq_cert_parm_s *parm = opaque;
+  gpg_error_t err;
+
+  if (!strncmp (line, "TARGETCERT", 10) && (line[10] == ' ' || !line[10]))
+    {
+      err = assuan_send_data (parm->ctx, parm->cert, parm->certlen);
+    }
+#if 1
+  /* FIXME: do we really need this or is this code not necessary
+     anymore?  -moritz */
+  else if (!strncmp (line, "SENDCERT", 8) && (line[8] == ' ' || !line[8]))
+    {
+      /* We don't support this but dirmngr might ask for it.  So
+         simply ignore it by sending back and empty value. */
+      err = assuan_send_data (parm->ctx, NULL, 0);
+    }
+  else if (!strncmp (line, "SENDCERT_SKI", 12)
+           && (line[12]==' ' || !line[12]))
+    {
+      /* We don't support this but dirmngr might ask for it.  So
+         simply ignore it by sending back an empty value. */
+      err = assuan_send_data (parm->ctx, NULL, 0);
+    }
+  else if (!strncmp (line, "SENDISSUERCERT", 14)
+           && (line[14] == ' ' || !line[14]))
+    {
+      /* We don't support this but dirmngr might ask for it.  So
+         simply ignore it by sending back an empty value. */
+      err = assuan_send_data (parm->ctx, NULL, 0);
+    }
+#endif
+  else
+    {
+      log_info (_("unsupported inquiry `%s'\n"), line);
+      err = gpg_error (GPG_ERR_ASS_UNKNOWN_INQUIRE);
+      /* Note that this error will let assuan_transact terminate
+         immediately instead of return the error to the caller.  It is
+         not clear whether this is the desired behaviour - it may
+         change in future. */
+    }
+
+  return err;
+}
+
+gpg_error_t
+dirmngr_validate (dirmngr_ctx_t ctx, ksba_cert_t cert)
+{
+  struct inq_cert_parm_s parm;
+  const unsigned char *image;
+  size_t imagelen;
+  gpg_error_t err;
+
+  err = 0;
+
+  image = ksba_cert_get_image (cert, &imagelen);
+  if (!image)
+    {
+      err = GPG_ERR_INTERNAL;	/* FIXME: what error code? */
+      goto out;
+    }
+
+  /* Setup PARM structure.  */
+  parm.ctx = ctx->assuan;
+  parm.cert = image;
+  parm.certlen = imagelen;
+
+  err = assuan_transact (ctx->assuan, "VALIDATE", NULL, NULL,
+			 inq_cert, &parm,
+			 NULL, NULL);
+  /* FIXME: logging? */
+
+ out:
+
+  return err;
+
+}
+
+
+#if 0
 /* Call the directory manager to check whether the certificate is valid
    Returns 0 for valid or usually one of the errors:
 
@@ -513,6 +610,7 @@ dirmngr_isvalid (dirmngr_ctx_t ctx, ksba_cert_t cert)
     }
   return rc;
 }
+#endif
 
 
 

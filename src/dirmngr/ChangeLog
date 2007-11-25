@@ -1,3 +1,18 @@
+2007-11-25  Moritz  <moritz@g10code.com>
+
+	* dirmngr.c (dirmngr_isvalid): Disabled function.
+	(isvalid_status_cb): Likewise.
+	(inq_certificate): Likewise.
+	(struct inq_certificate_parm_s): Disable struct.
+	(struct isvalid_status_parm_s): Likewise.
+
+	* poldi-dirmngr.h: Renamed poldi_dirmngr_isvalid to
+	poldi_dirmngr_validate.
+	* dirmngr.h: Likewise.
+
+	* poldi-dirmngr.c (poldi_dirmngr_isvalid): Disabled function.
+	(poldi_dirmngr_validate): New function.
+
 2007-11-11  Moritz  <moritz@g10code.com>
 
 	* dirmngr.c (connect_socket, connect_pipe): New functions...

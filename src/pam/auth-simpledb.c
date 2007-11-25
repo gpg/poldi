@@ -36,6 +36,8 @@
 #include "wait-for-card.h"
 #include "conv.h"
 
+#include "pam-util.h"
+
 static struct scd_cardinfo cardinfo_null;
 
 int
@@ -47,7 +49,6 @@ auth_method_simpledb (poldi_ctx_t ctx)
   size_t response_n;
   gcry_sexp_t key;
   gpg_error_t err;
-  const void *username_void;
   const char *username;
   char *account;
   int ret;
@@ -62,13 +63,7 @@ auth_method_simpledb (poldi_ctx_t ctx)
 
   /*** Ask PAM for username. ***/
 
-  ret = pam_get_item (ctx->pam_handle, PAM_USER, &username_void);
-  if (ret != PAM_SUCCESS)
-    {
-      err = gpg_error (GPG_ERR_INTERNAL);
-      goto out;
-    }
-  username = username_void;
+  err = retrieve_username_from_pam (ctx, &username);
 
   /*
    * Process authentication request.
@@ -158,15 +153,12 @@ auth_method_simpledb (poldi_ctx_t ctx)
       goto out;
     }
 
+  
   if (username == account)
     {
-      /* Make username available to application.  */
-      ret = pam_set_item (ctx->pam_handle, PAM_USER, username);
-      if (ret != PAM_SUCCESS)
-	{
-	  err = gpg_error (GPG_ERR_INTERNAL);
-	  goto out;
-	}
+      err = send_username_to_pam (ctx, username);
+      if (err)
+	goto out;
     }
 
   /* Done.  */

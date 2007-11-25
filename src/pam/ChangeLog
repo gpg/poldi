@@ -1,3 +1,34 @@
+2007-11-25  Moritz  <moritz@g10code.com>
+
+	* Makefile.am (libpam_poldi_a_SOURCES): Added files: conv.h,
+	wait-for-card.h, getpin-cb.h, pam-util.c, pam-util.h.
+
+	* auth-simpledb.c (auth_method_simpledb): Removed local variable
+	username_void.  Use retrieve_username_from_pam instead of
+	pam_get_item directly.  Use send_username_to_pam instead of
+	pam_set_item.
+
+	* pam-util.h, pam-util.c: New file.
+	* auth-x509.c, auth-simpledb.c: Include "pam-util.h" and use
+	functions contained in pam-util.c for retrieving username from PAM
+	and sending username to PAM.
+	(extract_username_from_cert): New DUMMY(!) function.
+	(lookup_cert_from_file): New function.
+
+	(auth_method_x509): Some cleanups; use retrieve_username_from_pam,
+	allow pubkey_url to be prefixed with "file://" using
+	looking_cert_from_file in that case.  Use poldi_dirmngr_validate
+	instead of poldi_dirmngr_isvalid.  Handle username.
+
+	* auth-x509.c (auth_method_x509): Call poldi_dirmngr_validate
+	instead of poldi_dirmngr_isvalid.
+
+007-11-18  Moritz  <moritz@g10code.com>
+
+	* auth-x509.c (auth_method_x509): In case of a invalid pubkey_url,
+	return GPG_ERR_INV_CARD, not GPG_ERR_GENERAL.
+	(auth_method_x509): Don't forget to release CERT.
+
 2007-11-11  Moritz  <moritz@g10code.com>
 
 	* auth-x509.c (auth_method_x509): adjust call to

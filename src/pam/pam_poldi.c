@@ -287,7 +287,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
   if (ctx->auth_method == AUTH_METHOD_NONE)
     {
-      err = GPG_ERR_GENERAL;	/* FIXME!! */
+      log_error ("no authentication method specified\n");
+      err = GPG_ERR_CONFIGURATION;
       goto out;
     }
   else
