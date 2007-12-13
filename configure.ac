@@ -271,6 +271,7 @@ AC_CONFIG_FILES([Makefile
 		 src/dirmngr/Makefile
 		 src/pam/Makefile
 		 src/ctrl/Makefile
+		 src/test/Makefile
 		 conf/Makefile])
 AC_OUTPUT
 

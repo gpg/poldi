@@ -1,3 +1,8 @@
+2007-12-13  Moritz Schulte  <moritz@g10code.com>
+
+	* test: New directory.
+	* Makefile.am (SUBDIRS): Added test.
+
 2007-10-28  Moritz  <moritz@g10code.com>
 
 	* Makefile.am (dirmngr): Depending on conditional
