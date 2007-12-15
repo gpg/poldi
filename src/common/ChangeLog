@@ -1,3 +1,18 @@
+2007-12-15  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctx.h (struct poldi_ctx_s): Remove const attribute from
+	member: logfile. New member: dirmngr_socket.
+	Added copyright notice.
+
+	* util.h: Removed unused replacement dummy function for ttyname().
+
+	* sexputil.c (cmp_simple_canon_sexp): Removed unused function.
+	(make_simple_sexp_from_hexstr): Likewise.
+
+	* util.h (xmalloc_secure_clear, xmalloc_clear): Removed these
+	compat macro for gpg 1.4.
+	* util.h: Removed declaration for cmp_simple_canon_sexp.
+
 2007-11-25  Moritz  <moritz@g10code.com>
 
 	* support.h: Declare function file_to_binstring.

@@ -1,3 +1,21 @@
+2007-12-15  Moritz Schulte  <moritz@g10code.com>
+
+	* dirmngr.c (unhexify_fpr): Removed unused function.
+
+	* poldi-dirmngr.h: Declare poldi_dirmngr_disconnect void.
+
+	* poldi-dirmngr.c: Include poldi-dirmngr.h.
+
+	* dirmngr.c (inq_certificate): Removed unused function.
+	(struct run_command_parm_s): Removed unused struct.
+	(extract_socket_from_infostr): Use free instead of xfree.
+	(connect_socket): Likewise.
+	(dirmngr_connect): Use malloc/free instead of xtrymalloc/xfree.
+	(dirmngr_disconnect): Use free instead of xfree.
+	(isvalid_status_cb): Removed disabled/unused function.
+	(inq_cert): Simplify code: merge several "else if" branches into one.
+	(dirmngr_isvalid): Removed disabled/unused function.
+
 2007-11-25  Moritz  <moritz@g10code.com>
 
 	* dirmngr.c (dirmngr_isvalid): Disabled function.

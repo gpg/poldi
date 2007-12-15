@@ -19,9 +19,12 @@
  * 02110-1301, USA.
  */
 
+#include "poldi-dirmngr.h"
+
 #include "dirmngr.h"
 
 #include "common/poldi-ctx.h"
+
 
 /* Try to connect to the agent via socket or fork it off and work by
    pipes.  Returns proper error code or zero on success.  */

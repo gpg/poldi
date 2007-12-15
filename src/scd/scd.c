@@ -106,7 +106,7 @@ agent_connect_from_infostr (const char *agent_infostr,
   int rc;
   char *p;
 
-  infostr = xstrdup (agent_infostr);
+  infostr = strdup (agent_infostr);
   *agent_ctx = NULL;
   rc = 0;
 
@@ -138,7 +138,7 @@ agent_connect_from_infostr (const char *agent_infostr,
 
  out:
 
-  xfree (infostr);
+  free (infostr);
 
   return rc;
 }
@@ -242,7 +242,7 @@ scd_connect (scd_context_t *scd_ctx,
 
   assuan_ctx = NULL;
 
-  ctx = xtrymalloc (sizeof (*ctx));
+  ctx = malloc (sizeof (*ctx));
   if (! ctx)
     {
       rc = gpg_error_from_syserror ();
@@ -313,9 +313,6 @@ scd_connect (scd_context_t *scd_ctx,
       log_error ("can't connect to the agent: %s\n", gpg_strerror (rc));
       goto out;
     }
-
-  // FIXME: not necessary? -moritz
-  //rc = assuan_transact (assuan_ctx, "RESTART", NULL, NULL, NULL, NULL, NULL,NULL);
 
  out:
 
@@ -512,6 +509,7 @@ scd_release_cardinfo (struct scd_cardinfo *info)
   xfree (info->serialno); info->serialno = NULL;
   xfree (info->disp_name); info->disp_name = NULL;
   xfree (info->login_data); info->login_data = NULL;
+  xfree (info->pubkey_url); info->pubkey_url = NULL;
   info->fpr1valid = info->fpr2valid = info->fpr3valid = 0;
 }
 
@@ -613,7 +611,7 @@ inq_needpin (void *opaque, const char *line)
         line++;
       
       pinlen = 90;
-      pin = gcry_malloc_secure (pinlen);
+      pin = xtrymalloc_secure (pinlen);
       if (!pin)
         return out_of_core ();
 
@@ -723,8 +721,7 @@ scd_pksign (scd_context_t ctx,
   p += sigbuflen;
   strcpy (p, ")))");
 #else
-  /* Create an S-expression from it which is formatted like this:
-     "(7:sig-val(3:rsa(1:sSIGBUFLEN:SIGBUF)))" */
+  /* No S-expression.  */
   *r_buflen = sigbuflen;
   p = xtrymalloc (*r_buflen);
   *r_buf = (unsigned char*)p;
@@ -801,94 +798,6 @@ scd_readkey (scd_context_t ctx,
   return rc;
 }
 
-
-#if 0
-
-/* FIXME, moritz, might be useful for Poldi.  */
-
-/* Type used with the card_getattr_cb.  */
-struct card_getattr_parm_s {
-  const char *keyword;  /* Keyword to look for.  */
-  size_t keywordlen;    /* strlen of KEYWORD.  */
-  char *data;           /* Malloced and unescaped data.  */
-  int error;            /* ERRNO value or 0 on success. */
-};
-
-/* Callback function for agent_card_getattr.  */
-static assuan_error_t
-card_getattr_cb (void *opaque, const char *line)
-{
-  struct card_getattr_parm_s *parm = opaque;
-  const char *keyword = line;
-  int keywordlen;
-
-  if (parm->data)
-    return 0; /* We want only the first occurrence.  */
-
-  for (keywordlen=0; *line && !spacep (line); line++, keywordlen++)
-    ;
-  while (spacep (line))
-    line++;
-
-  if (keywordlen == parm->keywordlen
-      && !memcmp (keyword, parm->keyword, keywordlen))
-    {
-      parm->data = unescape_status_string ((const unsigned char*)line);
-      if (!parm->data)
-        parm->error = errno;
-    }
-  
-  return 0;
-}
-
-
-/* Call the agent to retrieve a single line data object. On success
-   the object is malloced and stored at RESULT; it is guaranteed that
-   NULL is never stored in this case.  On error an error code is
-   returned and NULL stored at RESULT. */
-gpg_error_t
-agent_card_getattr (ctrl_t ctrl, const char *name, char **result)
-{
-  int err;
-  struct card_getattr_parm_s parm;
-  char line[ASSUAN_LINELENGTH];
-
-  *result = NULL;
-
-  if (!*name)
-    return gpg_error (GPG_ERR_INV_VALUE);
-
-  memset (&parm, 0, sizeof parm);
-  parm.keyword = name;
-  parm.keywordlen = strlen (name);
-
-  /* We assume that NAME does not need escaping. */
-  if (8 + strlen (name) > DIM(line)-1)
-    return gpg_error (GPG_ERR_TOO_LARGE);
-  stpcpy (stpcpy (line, "GETATTR "), name); 
-
-  err = start_scd (ctrl);
-  if (err)
-    return err;
-
-  err = assuan_transact (ctrl->scd_local->ctx, line,
-                         NULL, NULL, NULL, NULL,
-                         card_getattr_cb, &parm);
-  if (!err && parm.error)
-    err = gpg_error_from_errno (parm.error);
-  
-  if (!err && !parm.data)
-    err = gpg_error (GPG_ERR_NO_DATA);
-  
-  if (!err)
-    *result = parm.data;
-  else
-    xfree (parm.data);
-
-  return unlock_scd (ctrl, err);
-}
-
-#endif
 
 
 

@@ -1,5 +1,5 @@
 /* util.h - Utility functions for GnuPG
- * Copyright (C) 2001, 2002, 2003, 2004 Free Software Foundation, Inc.
+ * Copyright (C) 2001, 2002, 2003, 2004, 2007 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
  *
@@ -67,10 +67,6 @@
 #define xrealloc(a,b)    gcry_xrealloc ((a),(b))
 #define xstrdup(a)       gcry_xstrdup ((a))
 
-/* For compatibility with gpg 1.4 we also define these: */
-#define xmalloc_clear(a) gcry_xcalloc (1, (a))
-#define xmalloc_secure_clear(a) gcry_xcalloc_secure (1, (a))
-
 /* Convenience function to return a gpg-error code for memory
    allocation failures.  This function makes sure that an error will
    be returned even if accidently ERRNO is not set.  */
@@ -80,12 +76,14 @@ out_of_core (void)
   return gpg_error_from_syserror ();
 }
 
+#if 0
+/* FIXME: unused? -mo  */
 /*-- sexputil.c */
 gpg_error_t keygrip_from_canon_sexp (const unsigned char *key, size_t keylen,
                                      unsigned char *grip);
-int cmp_simple_canon_sexp (const unsigned char *a, const unsigned char *b);
 unsigned char *make_simple_sexp_from_hexstr (const char *line,
                                              size_t *nscanned);
+#endif
 
 /*-- convert.c --*/
 int hex2bin (const char *string, void *buffer, size_t length);
@@ -102,22 +100,6 @@ char *xasprintf (const char *fmt, ...) JNLIB_GCC_A_PRINTF(1,2);
    freed using xfree.  This function returns NULL on memory failure and
    sets errno. */
 char *xtryasprintf (const char *fmt, ...) JNLIB_GCC_A_PRINTF(1,2);
-
-#if 0
-/* FIXME, moritz, weird error and maybe simply not necessary for
-   Poldi... (?).  */
-
-/*-- Simple replacement functions. */
-#ifndef HAVE_TTYNAME
-/* Systems without ttyname (W32) will merely return NULL. */
-static inline char *
-ttyname (int fd) 
-{
-  return NULL
-};
-#endif /* !HAVE_TTYNAME */
-
-#endif
 
 
 /*-- Macros to replace ctype ones to avoid locale problems. --*/

@@ -17,9 +17,10 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <config.h>
+
 #include <stdlib.h>
 
-// FIXME, define required?
 #define PAM_SM_AUTH
 #include <security/pam_modules.h>
 
@@ -42,7 +43,12 @@
 
 #include "pam-util.h"
 
+
+
+/* Used for resetting instances of struct scd_cardinfo.  */
 static struct scd_cardinfo cardinfo_null;
+
+
 
 /* This functions extracts the raw public key from the certificate
    CERT und returns it as a newly allocated S-Expressions in
@@ -115,6 +121,8 @@ verify_challenge_sig (poldi_ctx_t ctx, ksba_cert_t cert,
   return err;
 }
 
+/* Extract the certificate contained in the file FILENAME, store it in
+   *CERTIFICATE.  Return proper error code.  */
 static gpg_error_t
 lookup_cert_from_file (poldi_ctx_t ctx, const char *filename, ksba_cert_t *certificate)
 {
@@ -145,9 +153,7 @@ lookup_cert_from_file (poldi_ctx_t ctx, const char *filename, ksba_cert_t *certi
 
   if (err)
     ksba_cert_release (cert);
-  free (data);			/* FIXME:  which free  to use  here? -
-				   having   several   memory   manager
-				   always confuses me... */
+  free (data);
 
   return err;
 }
@@ -207,30 +213,28 @@ auth_method_x509 (poldi_ctx_t ctx)
   if (err)
     goto out;
 
+  err = conv_tell (ctx, "[Poldi] connected to card, serial number is: %s",
+		   cardinfo.serialno);
+  if (err)
+    goto out;
+
   if (ctx->debug)
     {
-      conv_tell (ctx, "NOTE: debug mode activated, overwriting pubkey url!\n");
-
-      xfree (cardinfo.pubkey_url);
-      cardinfo.pubkey_url = xstrdup ("file:///home/moritz/moritz.der");
+      err = conv_tell (ctx,
+		       "[Poldi] public key url is: %s", cardinfo.pubkey_url);
+      if (err)
+	goto out;
     }
-
-  conv_tell (ctx,
-	     "SERIALNO: %s\n"
-	     "PUBKEY-URL: %s\n",
-	     cardinfo.serialno, cardinfo.pubkey_url);
 
   /*** Fetch certificate. ***/
 
   if (! (cardinfo.pubkey_url && ((strncmp (cardinfo.pubkey_url, "ldap://", 7) == 0)
 				 || (strncmp (cardinfo.pubkey_url, "file://", 7) == 0))))
     {
-      conv_tell (ctx, "`%s' is no valid ldap url...\n", cardinfo.pubkey_url);
+      conv_tell (ctx, "[Poldi] `%s' is no valid ldap/file url...", cardinfo.pubkey_url);
       err = GPG_ERR_INV_CARD;
       goto out;
     }
-
-  conv_tell (ctx, "Looking up certificate `%s'...\n", cardinfo.pubkey_url);
 
   if (strncmp (cardinfo.pubkey_url, "ldap://", 7) == 0)
     err = poldi_dirmngr_lookup_url (ctx, cardinfo.pubkey_url, &cert);
@@ -240,7 +244,7 @@ auth_method_x509 (poldi_ctx_t ctx)
     abort ();
   if (err)
     {
-      conv_tell (ctx, "failed to look up certificate `%s': %s\n",
+      conv_tell (ctx, "[Poldi] failed to look up certificate `%s': %s",
 		 cardinfo.pubkey_url, gpg_strerror (err));
       goto out;
     }
@@ -267,6 +271,8 @@ auth_method_x509 (poldi_ctx_t ctx)
 	{
 	  /* Current card's cert is not setup for authentication as
 	     PAM_USERNAME.  */
+
+	  
 	  log_error ("FIXME\n");
 	  err = GPG_ERR_INV_USER_ID; /* FIXME, I guess we need a
 					better err code. -mo */
@@ -324,6 +330,8 @@ auth_method_x509 (poldi_ctx_t ctx)
   poldi_scd_release_cardinfo (&cardinfo);
   ksba_cert_release (cert);
   xfree (card_username);	/* FIXME: which free?  */
+
+  poldi_dirmngr_disconnect (ctx);
 
   /* Log result.  */
   if (err)

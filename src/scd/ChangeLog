@@ -1,3 +1,13 @@
+2007-12-15  Moritz Schulte  <moritz@g10code.com>
+
+	* scd.c (scd_release_cardinfo): Don't forget to release
+	PUBKEY_URL.
+	(inq_needpin): Use xtrymalloc_secure instead of gcry_malloc_secure
+	directly (it's more consistent this way, I think).
+	Removed disabled getattr related code.
+	(agent_connect_from_infostr): Use strdup/free instead of
+	xstrdup/xfree.
+
 2007-11-10  Moritz  <moritz@g10code.com>
 
 	* scd.c (learn_status_cb): Handle PUBKEY_URL.

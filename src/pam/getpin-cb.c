@@ -39,7 +39,6 @@
 #include <common/defs.h>
 
 #include <jnlib/stringhelp.h>
-#include <jnlib/xmalloc.h>
 #include <jnlib/logging.h>
 
 #include <assuan.h>
@@ -163,25 +162,25 @@ agent_askpin (poldi_ctx_t ctx,
    as the message is not anymore required because the message is
    system modal and all other attempts to use the pinentry will fail
    (after a timeout). */
-int 
-agent_popup_message_start (poldi_ctx_t ctx,
-			   const char *desc, const char *ok_btn)
+static int
+agent_popup_message_start (poldi_ctx_t ctx)
 {
   int rc;
 
-  rc = conv_tell (ctx, desc);
+  rc = conv_tell (ctx, "popup message start");
 
   return rc;
 }
 
 /* Close a popup window. */
-void
+static int
 agent_popup_message_stop (poldi_ctx_t ctx)
 {
-  /* FIXME: error handling? -mo  */
+  int rc;
 
-  conv_tell (ctx, "popup message stop");
+  rc = conv_tell (ctx, "popup message stop");
 
+  return rc;
 }
 
 
@@ -252,7 +251,7 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
         }
       else if (maxbuf == 1)  /* Open the pinentry. */
         {
-          rc = agent_popup_message_start (ctx, info, NULL);
+          rc = agent_popup_message_start (ctx);
         }
       else
         rc = gpg_error (GPG_ERR_INV_VALUE);
@@ -282,7 +281,7 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
           if (!pi2)
             {
               rc = gpg_error_from_syserror ();
-              xfree (pi);
+              gcry_free (pi);
               return rc;
             }
           pi2->max_length = maxbuf-1;
@@ -293,11 +292,11 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
           if (!rc && strcmp (pi->pin, pi2->pin))
             {
               again_text = N_("PIN not correctly repeated; try again");
-              xfree (pi2);
-              xfree (pi);
+	      gcry_free (pi2);
+	      gcry_free (pi);
               goto again;
             }
-          xfree (pi2);
+          gcry_free (pi2);
         }
     }
   else
@@ -318,7 +317,7 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
       strncpy (buf, pi->pin, maxbuf-1);
       buf[maxbuf-1] = 0;
     }
-  xfree (pi);
+  gcry_free (pi);
   return rc;
 }
 

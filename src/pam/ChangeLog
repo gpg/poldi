@@ -1,3 +1,22 @@
+2007-12-15  Moritz Schulte  <moritz@g10code.com>
+
+	* pam_poldi.c (enum arg_opt_ids): New entry for arg_dirmngr_socket.
+	(arg_opts): Likewise.
+	(pam_poldi_options_cb): Handle arg_dirmngr_socket.  Use strdup
+	instead of xstrdup.
+	(destroy_context, create_context): New functions ...
+	(pam_sm_authenticate): ... use them here.
+
+	* auth-x509.c: Include <config.h>.
+	(auth_method_x509): Removed pubkey url overwriting debug code.
+	(auth_method_x509): modified conv_tell interaction with application.
+
+	* getpin-cb.c (getpin_cb): Use gcry_free instead of xfree.
+	(agent_popup_message_start, agent_popup_message_stop): Declare static.
+	(agent_popup_message_start): Removed extra args.
+	(agent_popup_message_stop): Return error code.
+	Do not include jnlib/xmalloc.h.
+
 2007-11-25  Moritz  <moritz@g10code.com>
 
 	* Makefile.am (libpam_poldi_a_SOURCES): Added files: conv.h,

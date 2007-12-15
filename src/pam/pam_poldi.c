@@ -105,6 +105,7 @@ enum arg_opt_ids
     arg_logfile = 500,
     arg_auth_method,
     arg_wait_timeout,
+    arg_dirmngr_socket,
     arg_debug
   };
 
@@ -117,11 +118,14 @@ static ARGPARSE_OPTS arg_opts[] =
       "auth-method", 2, "|NAME|Specify authentication method" },
     { arg_wait_timeout,
       "wait-timeout", 1, "|SEC|Specify timeout for waiting" },
+    { arg_dirmngr_socket,
+      "dirmngr-socket", 2, "|SOCKET|Specify socket for system Dirmngr" },
     { arg_debug,
       "debug", 256, "Enable debugging messages" },
     { 0 }
   };
 
+/* Lookup an auth_method struct by it's NAME.  */
 static struct auth_method
 auth_method_lookup (const char *name)
 {
@@ -144,7 +148,7 @@ pam_poldi_options_cb (ARGPARSE_ARGS *parg, void *opaque)
   switch (parg->r_opt)
     {
     case arg_logfile:
-      ctx->logfile = xstrdup (parg->r.ret_str);
+      ctx->logfile = strdup (parg->r.ret_str);
       break;
 
     case arg_auth_method:
@@ -165,12 +169,53 @@ pam_poldi_options_cb (ARGPARSE_ARGS *parg, void *opaque)
       ctx->wait_timeout = parg->r.ret_int;
       break;
 
+    case arg_dirmngr_socket:
+      ctx->dirmngr_socket = strdup (parg->r.ret_str);
+      break;
+
     default:
       err = GPG_ERR_INTERNAL;	/* FIXME?  */
       break;
     }
 
   return gpg_error (err);
+}
+
+
+
+static gpg_error_t
+create_context (poldi_ctx_t *context)
+{
+  gpg_error_t err;
+  poldi_ctx_t ctx;
+
+  err = 0;
+
+  ctx = malloc (sizeof (*ctx));
+  if (!ctx)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  *ctx = poldi_ctx_NULL;
+  *context = ctx;
+
+ out:
+
+  return err;
+}
+
+static void
+destroy_context (poldi_ctx_t ctx)
+{
+  if (ctx)
+    {
+      poldi_scd_disconnect (ctx);
+      free (ctx->logfile);
+      free (ctx->dirmngr_socket);
+      free (ctx);
+    }
 }
 
 
@@ -204,16 +249,10 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
   /*** Setup main context.  ***/
 
-  ctx = malloc (sizeof (*ctx));
-  if (!ctx)
-    {
-      err = gpg_error_from_errno (errno);
-      goto out;
-    }
+  err = create_context (&ctx);
+  if (err)
+    goto out;
 
-  *ctx = poldi_ctx_NULL;
-
-  ctx->auth_method = AUTH_METHOD_NONE;
   ctx->pam_handle = pam_handle;
 
   /*** Parse options.  ***/
@@ -311,8 +350,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   log_close ();
 
   /* Deallocate main context.  */
-  poldi_scd_disconnect (ctx);
-  free (ctx);
+  destroy_context (ctx);
 
   /* Return to PAM.  */
 

@@ -1,3 +1,7 @@
+2007-12-15  Moritz Schulte  <moritz@g10code.com>
+
+	* pam-test.c: Slightly polished, uses getopt now.
+
 2007-12-13  Moritz Schulte  <moritz@g10code.com>
 
 	* pam-test.c, Makefile.am: New files.

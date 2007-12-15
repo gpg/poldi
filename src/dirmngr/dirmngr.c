@@ -75,12 +75,6 @@ struct lookup_parm_s {
   gpg_error_t err;
 };
 
-#if 0
-struct run_command_parm_s {
-  assuan_context_t ctx;
-};
-#endif
-
 
 
 static gpg_error_t
@@ -129,7 +123,7 @@ extract_socket_from_infostr (const char *infostr, char **socketname)
  out:
 
   if (err)
-    xfree (infostr_cp);
+    free (infostr_cp);
 
   return err;
 }
@@ -156,7 +150,7 @@ connect_socket (dirmngr_ctx_t ctx, const char *infostr)
 
  out:
 
-  xfree (socketname);
+  free (socketname);
 
   return err;
 }
@@ -214,7 +208,7 @@ dirmngr_connect (dirmngr_ctx_t *ctx,
 
   context = NULL;
 
-  context = xtrymalloc (sizeof (*context));
+  context = malloc (sizeof (*context));
   if (!context)
     {
       err = gpg_error_from_errno (errno);
@@ -236,7 +230,7 @@ dirmngr_connect (dirmngr_ctx_t *ctx,
  out:
 
   if (err)
-    xfree (context);
+    free (context);
 
   return err;
 }
@@ -248,126 +242,9 @@ dirmngr_disconnect (dirmngr_ctx_t ctx)
     {
       if (ctx->assuan)
 	assuan_disconnect (ctx->assuan);
-      xfree (ctx);
+      free (ctx);
     }
 }
-
-
-
-
-#if 0
-/* Handle a SENDCERT inquiry. */
-static int
-inq_certificate (void *opaque, const char *line)
-{
-  struct inq_certificate_parm_s *parm = opaque;
-  int rc;
-  const unsigned char *der;
-  size_t derlen;
-  ksba_sexp_t ski = NULL;
-
-  if (!strncmp (line, "SENDCERT", 8) && (line[8] == ' ' || !line[8]))
-    {
-      line += 8;
-    }
-  else if (!strncmp (line, "SENDCERT_SKI", 12) && (line[12]==' ' || !line[12]))
-    {
-      size_t n;
-
-      /* Send a certificate where a sourceKeyIdentifier is included. */
-      line += 12;
-      while (*line == ' ')
-        line++;
-      ski = make_simple_sexp_from_hexstr (line, &n);
-      line += n;
-      while (*line == ' ')
-        line++;
-    }
-  else
-    {
-      /* Note: we do not support SENDISSUERCERT.  */
-      log_error ("unsupported inquiry `%s'\n", line);
-      return gpg_error (GPG_ERR_ASS_UNKNOWN_INQUIRE);
-    }
-
-  if (!*line)
-    { /* Send the current certificate. */
-#if 0
-      der = ksba_cert_get_image (issuer_mode? parm->issuer_cert : parm->cert,
-                                 &derlen);
-#else
-      der = ksba_cert_get_image (parm->cert, &derlen);
-#endif
-      if (!der)
-        rc = gpg_error (GPG_ERR_INV_CERT_OBJ);
-      else
-        rc = assuan_send_data (parm->ctx, der, derlen);
-    }
-  else 
-    {
-      /* Send the given certificate. */
-#if 0
-      int err;
-      ksba_cert_t cert;
-      err = gpgsm_find_cert (line, ski, &cert);
-      if (err)
-        {
-          log_error ("certificate not found: %s\n", gpg_strerror (err));
-          rc = gpg_error (GPG_ERR_NOT_FOUND);
-        }
-      else
-        {
-          der = ksba_cert_get_image (cert, &derlen);
-          if (!der)
-            rc = gpg_error (GPG_ERR_INV_CERT_OBJ);
-          else
-            rc = assuan_send_data (parm->ctx, der, derlen);
-          ksba_cert_release (cert);
-        }
-#else
-      rc = gpg_error (GPG_ERR_NOT_FOUND);
-#endif
-    }
-
-  xfree (ski);
-  return rc; 
-}
-#endif
-
-/* Take a 20 byte hexencoded string and put it into the the provided
-   20 byte buffer FPR in binary format. */
-static int
-unhexify_fpr (const char *hexstr, unsigned char *fpr)
-{
-  const char *s;
-  int n;
-
-  for (s=hexstr, n=0; hexdigitp (s); s++, n++)
-    ;
-  if (*s || (n != 40))
-    return 0; /* no fingerprint (invalid or wrong length). */
-  n /= 2;
-  for (s=hexstr, n=0; *s; s += 2, n++)
-    fpr[n] = xtoi_2 (s);
-  return 1; /* okay */
-}
-
-#if 0
-static assuan_error_t
-isvalid_status_cb (void *opaque, const char *line)
-{
-  struct isvalid_status_parm_s *parm = opaque;
-
-  if (!strncmp (line, "ONLY_VALID_IF_CERT_VALID", 24)
-      && (line[24]==' ' || !line[24]))
-    {
-      parm->seen++;
-      if (!line[24] || !unhexify_fpr (line+25, parm->fpr))
-        parm->seen++; /* Bumb it to indicate an error. */
-    }
-  return 0;
-}
-#endif
 
 
 
@@ -391,30 +268,15 @@ inq_cert (void *opaque, const char *line)
     {
       err = assuan_send_data (parm->ctx, parm->cert, parm->certlen);
     }
-#if 1
-  /* FIXME: do we really need this or is this code not necessary
-     anymore?  -moritz */
-  else if (!strncmp (line, "SENDCERT", 8) && (line[8] == ' ' || !line[8]))
+  else if ((!strncmp (line, "SENDCERT", 8) && (line[8] == ' ' || !line[8]))
+	   || (!strncmp (line, "SENDCERT_SKI", 12) && (line[12]==' ' || !line[12]))
+	   || (!strncmp (line, "SENDISSUERCERT", 14) && (line[14] == ' ' || !line[14])))
+    
     {
       /* We don't support this but dirmngr might ask for it.  So
          simply ignore it by sending back and empty value. */
       err = assuan_send_data (parm->ctx, NULL, 0);
     }
-  else if (!strncmp (line, "SENDCERT_SKI", 12)
-           && (line[12]==' ' || !line[12]))
-    {
-      /* We don't support this but dirmngr might ask for it.  So
-         simply ignore it by sending back an empty value. */
-      err = assuan_send_data (parm->ctx, NULL, 0);
-    }
-  else if (!strncmp (line, "SENDISSUERCERT", 14)
-           && (line[14] == ' ' || !line[14]))
-    {
-      /* We don't support this but dirmngr might ask for it.  So
-         simply ignore it by sending back an empty value. */
-      err = assuan_send_data (parm->ctx, NULL, 0);
-    }
-#endif
   else
     {
       log_info (_("unsupported inquiry `%s'\n"), line);
@@ -460,157 +322,6 @@ dirmngr_validate (dirmngr_ctx_t ctx, ksba_cert_t cert)
   return err;
 
 }
-
-
-#if 0
-/* Call the directory manager to check whether the certificate is valid
-   Returns 0 for valid or usually one of the errors:
-
-  GPG_ERR_CERTIFICATE_REVOKED
-  GPG_ERR_NO_CRL_KNOWN
-  GPG_ERR_CRL_TOO_OLD
-
-  Values for USE_OCSP:
-     0 = Do CRL check.
-     1 = Do an OCSP check.
-     2 = Do an OCSP check using only the default responder.
- */
-gpg_error_t
-dirmngr_isvalid (dirmngr_ctx_t ctx, ksba_cert_t cert)
-{
-  /* FIXME: use_ocsp flag - integrate in CTX? */
-  int use_ocsp = 1;
-  gpg_error_t rc;
-  char *certid;
-  char line[ASSUAN_LINELENGTH];
-  struct inq_certificate_parm_s parm;
-  struct isvalid_status_parm_s stparm;
-
-  if (use_ocsp)
-    {
-      certid = gpgsm_get_fingerprint_hexstring (cert, GCRY_MD_SHA1);
-    }
-  else
-    {
-      certid = gpgsm_get_certid (cert);
-      if (!certid)
-        {
-          log_error ("error getting the certificate ID\n");
-          return gpg_error (GPG_ERR_GENERAL);
-        }
-    }
-
-  /* FIXME: integrate verbose opt in CTX.  */
-  //if (opt.verbose > 1)
-  if (1)
-    {
-      char *fpr = gpgsm_get_fingerprint_string (cert, GCRY_MD_SHA1);
-      log_info ("asking dirmngr about %s%s\n", fpr,
-                use_ocsp? " (using OCSP)":"");
-      xfree (fpr);
-    }
-
-  parm.ctx = ctx->assuan;
-  parm.cert = cert;
-  //FIXME?
-  //parm.issuer_cert = issuer_cert;
-
-  //stparm.ctrl = ctrl;
-  stparm.seen = 0;
-  memset (stparm.fpr, 0, 20);
-
-  /* FIXME: If --disable-crl-checks has been set, we should pass an
-     option to dirmngr, so that no fallback CRL check is done after an
-     ocsp check.  It is not a problem right now as dirmngr does not
-     fallback to CRL checking.  */
-
-  /* It is sufficient to send the options only once because we have
-     one connection per process only. */
-  /* FIXME: integrate DID_OPTIONS flag in CTX?  */
-#if 0
-  if (!did_options)
-    {
-      if (opt.force_crl_refresh)
-        assuan_transact (dirmngr_ctx, "OPTION force-crl-refresh=1",
-                         NULL, NULL, NULL, NULL, NULL, NULL);
-      did_options = 1;
-    }
-#endif
-
-  snprintf (line, DIM(line)-1, "ISVALID%s %s", 
-            use_ocsp == 2? " --only-ocsp --force-default-responder":"",
-            certid);
-  line[DIM(line)-1] = 0;
-  xfree (certid);
-
-  rc = assuan_transact (ctx->assuan, line, NULL, NULL,
-                        inq_certificate, &parm,
-                        isvalid_status_cb, &stparm);
-  /* FIXME: integrate verbose otp in CTX.  */
-  //if (opt.verbose > 1)
-  if (1)
-    log_info ("response of dirmngr: %s\n", rc? gpg_strerror (rc): "okay");
-  rc = rc;
-
-  if (!rc && stparm.seen)
-    {
-      /* Need to also check the certificate validity. */
-      if (stparm.seen != 1)
-        {
-          log_error ("communication problem with dirmngr detected\n");
-          rc = gpg_error (GPG_ERR_INV_CRL);
-        }
-      else
-        {
-#if 0
-          KEYDB_HANDLE kh;
-          ksba_cert_t rspcert = NULL;
-
-          /* Fixme: First try to get the certificate from the
-             dirmngr's cache - it should be there. */
-          kh = keydb_new (0);
-          if (!kh)
-            rc = gpg_error (GPG_ERR_ENOMEM);
-          if (!rc)
-            rc = keydb_search_fpr (kh, stparm.fpr);
-          if (!rc)
-            rc = keydb_get_cert (kh, &rspcert);
-          if (rc)
-            {
-              log_error ("unable to find the certificate used "
-                         "by the dirmngr: %s\n", gpg_strerror (rc));
-              rc = gpg_error (GPG_ERR_INV_CRL);
-            }
-          keydb_release (kh);
-
-          if (!rc)
-            {
-              rc = gpgsm_cert_use_ocsp_p (rspcert);
-              if (rc)
-                rc = gpg_error (GPG_ERR_INV_CRL);
-              else
-                {
-                  /* Note the no_dirmngr flag: This avoids checking
-                     this certificate over and over again. */
-                  rc = gpgsm_validate_chain (ctrl, rspcert, "", NULL, 0, NULL, 
-                                             VALIDATE_FLAG_NO_DIRMNGR, NULL);
-                  if (rc)
-                    {
-                      log_error ("invalid certificate used for CRL/OCSP: %s\n",
-                                 gpg_strerror (rc));
-                      rc = gpg_error (GPG_ERR_INV_CRL);
-                    }
-                }
-            }
-          ksba_cert_release (rspcert);
-#else
-	  rc = gpg_error (GPG_ERR_GENERAL);
-#endif
-        }
-    }
-  return rc;
-}
-#endif
 
 
 

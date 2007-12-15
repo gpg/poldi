@@ -22,22 +22,15 @@
 #include <stdlib.h>
 #include <security/pam_appl.h>
 #include <security/pam_misc.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <getopt.h>
+#include <errno.h>
+#include <string.h>
 
 
 
-/* Return the value of the environment variable NAME if that is set.
-   Return DEFAULT_VAL in case it is unset.  */
-static const char *
-get_value (const char *name, const char *default_val)
-{
-  char *env;
-
-  env = getenv (name);
-  if (env)
-    return env;
-  else
-    return default_val;
-}
+#define PROGRAM_NAME "pam-test"
 
 /* Use the standard conversation function from libpam-misc. */
 static struct pam_conv conv =
@@ -46,22 +39,37 @@ static struct pam_conv conv =
     NULL
   };
 
-/* This is a simple test program for PAM authentication.  */
-int
-main (int argc, char **argv)
+static void
+print_help (void)
 {
+  printf ("\
+Usage: %s [options] <service name>\n\
+Test PAM authentication.\n\
+\n\
+Options:\n\
+ -h, --help      print help information\n\
+ -v, --version   print version information\n\
+ -u, --username  specify username for authentication\n\
+\n\
+Report bugs to <moritz@gnu.org>.\n", PROGRAM_NAME);
+}
+
+static void
+print_version (void)
+{
+  printf ("pam-test 0.1\n");
+}
+
+static void
+test_auth (const char *servicename, const char *username)
+{
+  const void *user_opaque;
+  const char *user;
   pam_handle_t *handle;
   int rc;
-  const char *service;
-  const char *user;
-  const void *user_opaque;
-
-  /* Lookup service name and user name.  */
-  service = get_value ("PAM_TEST_SERVICE", "");
-  user = get_value ("PAM_TEST_USER", NULL);
 
   /* Connect to PAM.  */
-  rc = pam_start (service, user, &conv, &handle);
+  rc = pam_start (servicename, username, &conv, &handle);
   if (rc != PAM_SUCCESS)
     {
       fprintf (stderr, "error: %s\n", pam_strerror (handle, rc));
@@ -72,6 +80,7 @@ main (int argc, char **argv)
   rc = pam_authenticate (handle, 0);
   if (rc != PAM_SUCCESS)
     {
+      printf ("Authentication failed\n");
       fprintf (stderr, "error: %s\n", pam_strerror (handle, rc));
       goto out;
     }
@@ -95,7 +104,77 @@ main (int argc, char **argv)
 
  out:
 
-  return !!rc;
+  return;
+}
+
+/* This is a simple test program for PAM authentication.  */
+int
+main (int argc, char **argv)
+{
+  const char *servicename;
+  const char *username;
+  int c;
+
+  servicename = username = NULL;
+
+  while (1)
+    {
+      static struct option long_options[] =
+	{
+	  { "version", no_argument, 0, 'v' },
+	  { "help", no_argument, 0, 'h' },
+	  { "user", required_argument, 0, 'u' },
+	  { 0, 0, 0, 0 }
+	};
+      int option_index = 0;
+
+      c = getopt_long (argc, argv, "vhu:",
+		       long_options, &option_index);
+
+      /* Detect the end of the options. */
+      if (c == -1)
+	break;
+
+      switch (c)
+	{
+	case 'u':
+	  username = strdup (optarg);
+	  if (!username)
+	    {
+	      fprintf (stderr, "failed to duplicate username: %s", strerror (errno));
+	      exit (1);
+	    }
+	  break;
+
+	case 'h':
+	  print_help ();
+	  exit (0);
+	  break;
+
+	case 'v':
+	  print_version ();
+	  exit (0);
+	  break;
+
+	case '?':
+	  /* `getopt_long' already printed an error message. */
+	  break;
+
+	default:
+	  abort ();
+	}
+    }
+
+  if (argc - optind != 1)
+    {
+      print_help ();
+      exit (1);
+    }
+
+  servicename = argv[optind];
+  test_auth (servicename, username);
+
+  return 0;
 }
 
 /* end */

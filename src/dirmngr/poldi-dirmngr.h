@@ -39,6 +39,6 @@ gpg_error_t poldi_dirmngr_lookup_url (poldi_ctx_t ctx,
 gpg_error_t poldi_dirmngr_validate (poldi_ctx_t ctx,
 				    ksba_cert_t cert);
 
-gpg_error_t poldi_dirmngr_disconnect (poldi_ctx_t ctx);
+void poldi_dirmngr_disconnect (poldi_ctx_t ctx);
 
 #endif
