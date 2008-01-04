@@ -113,7 +113,7 @@ enum arg_opt_ids
 static ARGPARSE_OPTS arg_opts[] =
   {
     { arg_logfile,
-      "log-file", 2, "Specify file to use for logging" },
+      "log-file", 2, "|FILENAME|Specify file to use for logging" },
     { arg_auth_method,
       "auth-method", 2, "|NAME|Specify authentication method" },
     { arg_wait_timeout,

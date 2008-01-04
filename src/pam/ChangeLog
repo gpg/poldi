@@ -1,3 +1,8 @@
+2008-01-04  Moritz Schulte  <moritz@gnu.org>
+
+	* pam_poldi.c (arg_opts): Cosmetic change in description of
+	logfile option.
+
 2007-12-15  Moritz Schulte  <moritz@g10code.com>
 
 	* pam_poldi.c (enum arg_opt_ids): New entry for arg_dirmngr_socket.
