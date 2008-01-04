@@ -1,3 +1,7 @@
+2008-01-04  Moritz Schulte  <moritz@gnu.org>
+
+	* poldi.texi: Started with a major reorganization of this manual.
+
 2006-01-09  Moritz Schulte  <moritz@g10code.com>
 
 	* poldi.texi: Mention kdm.

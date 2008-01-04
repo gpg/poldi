@@ -1,5 +1,5 @@
 \input texinfo                  @c -*- Texinfo -*-
-@c Copyright (C) 2000, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+@c Copyright (C) 2000, 2002, 2003, 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
 @c 
 @c This file is part of Poldi.
 @c
@@ -25,7 +25,7 @@ This file documents `Poldi'.
 This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 @cite{The Poldi Manual}, for Version @value{VERSION}.
 
-Copyright @copyright{} 2004, 2005, 2006, 2007 g10 Code GmbH.
+Copyright @copyright{} 2004, 2005, 2006, 2007, 2008 g10 Code GmbH.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU General Public License as published by the
@@ -44,7 +44,7 @@ section entitled ``Copying''.
 @center for version @value{VERSION}
 @page
 @vskip 0pt plus 1filll
-Copyright @copyright{} 2004, 2005, 2006, 2007 g10 Code GmbH.
+Copyright @copyright{} 2004, 2005, 2006, 2007, 2008 g10 Code GmbH.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU General Public License as published by the
@@ -63,7 +63,7 @@ This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 @cite{The Poldi Manual}, for Version
 @value{VERSION} of Poldi.
 
-Copyright @copyright{} 2004, 2005, 2006, 2007 g10 Code GmbH.
+Copyright @copyright{} 2004, 2005, 2006, 2007, 2008 g10 Code GmbH.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU General Public License as published by the
@@ -74,58 +74,89 @@ section entitled ``Copying''.
 @end ifnottex
 
 @menu
-* Introduction::                 What is Poldi
-* Using Poldi::                  Using Poldi
-* Applications::                 Notes on applications
+* Overview::
+* Installation from Source::
+* Configuration::
+* Configuration Example::
+* Testing::
+* Notes on Applications::
 
 Appendices
 * Copying::                     The GNU General Public License
 
-@detailmenu
- --- The Detailed Node Listing ---
-Introduction
-* Overview::                    Overview
-* Building::                    Building Poldi
-@end detailmenu
+@c @detailmenu
+@c  --- The Detailed Node Listing ---
+@c * Overview::                    Overview
+@c * Building::                    Building Poldi
+@c @end detailmenu
 
-@end menu
-
-@node Introduction
-@chapter Introduction
-
-@menu
-* Overview::                    Overview
-* Building::                    Building Poldi
-* Installing::                  Installing Poldi
 @end menu
 
 @node Overview
-@section Overview
+@chapter Overview
 
-Poldi is package consisting of a PAM module (pam_poldi) and a CLI
-program (poldi-ctrl), which implement authentication via OpenPGP
-smartcards (http://www.g10code.de/p-card.html).
+Poldi is a PAM module implementing challenge/response based
+authentication through the OpenPGP smartcard
+(http://www.g10code.de/p-card.html).  It makes use of several GnuPG
+components (Libgcrypt, Assuan, Scdaemon, Dirmngr) and currently supports two
+authentication methods:
 
-Poldi uses SCDaemon for accessing smartcards.
+@table @asis
+@item ``trivial database'' authentication method
 
-@node Building
-@section Building
+This method establishs the mapping between user accounts and
+smartcards through a locally administered database.
 
-Building Poldi should be pretty straightforward; Poldi depends on the
-following packages: Libassuan, Libgcrypt, Libgpg-error.
+@item ``X509'' authentication
+
+This method uses the PKI infrastructure provided by Dirmngr for
+associating X509 certificates with smartcards; information about the
+user account name is contained in the certificate itself.
+
+@end table
+
+@node Installation from Source
+@chapter Installation from Source
+
+Building and installating Poldi from souce should be pretty
+straightforward, since it uses the GNU autotools.  Build time
+dependencies vary with the choices for authentication methods.
+
+In any case, Poldi depends on Libgpg-error, Libgcrypt, Libassuan,
+Scdaemon and of course Libpam.
+
+The ``X509'' authentication method additionaly requires Dirmngr.  The
+``trivial database'' authentication method has no additional
+requirements.
 
 Details on the building procedure can be found in the file
-``INSTALL''.  At least one configure switch should be set:
+``INSTALL''.
+
+@menu
+* Configuring::
+* Building::
+* Installing::
+@end menu
+
+@node Configuring
+@section Configuring
+
+At least one configure switch should be set:
 @code{--with-pam-module-directory}, which specifies the installation
 directory for PAM modules.  When not specifying the directory for PAM
 modules this way, one probably needs to install the PAM module (named
 ``pam_poldi.so'') manually.
 
+@node Building
+@section Building
+
+For building the Poldi package, ``make'' needs to be invoked.
+
 @node Installing
 @section Installing
 
 Installing Poldi works by invoking the ``install'' make target.  As
-noted before, special care must be taken so that the PAM module end up
+noted before, special care must be taken so that the PAM module ends up
 in the correct place.
 
 Poldi requires some directories beneath `SYSCONFDIR/poldi', which is
@@ -134,20 +165,8 @@ usually equal to `PREFIX/etc/poldi'.
 The directories can be created manually or through the
 `install-conf-skeleton' make target.
 
-@node Using Poldi
-@chapter Using Poldi
-
-In this chapter you will find information on the correct configuration
-and Usage of Poldi.
-
-@menu
-* Configuration::               Configuring Poldi
-* Example::                     Example
-* Testing::                     Testing basic functionality
-@end menu
-
 @node Configuration
-@section Configuration
+@chapter Configuration
 
 All configuration files of Poldi are stored beneath
 ``@code{sysconfdir}/poldi''.
@@ -158,11 +177,31 @@ configuration file is identical to the one used by several other GnuPG
 components; options, and their values, are written next each other,
 seperated by a whitespace - one such configuration item per line.
 
-Poldi supports the following options:
+Poldi supports the following options in its main configuration file:
 
 @table @code
-@item logfile
+@item logfile FILENAME
+Specify the file to use for log messages.
+@item auth-method AUTH-METHOD
+Specify the authentication method to use.  May be either ``trivial''
+or ``x509''.
+@item dirmngr-socket FILENAME
+Specify the socket to be used for communication with Dirmngr.  This
+option is only evaluated when using the X509 authentication method.
+@item debug
+Enable debugging messages.
 @end table
+
+Further configuration requirements depend on the authentication method
+to use.
+
+@menu
+* Configuration for ``trivial database'' authentication::
+* Configuration for ``X509'' authentication::
+@end menu
+
+@node Configuration for ``trivial database'' authentication
+@section Configuration for ``trivial database'' authentication
 
 In order for a user to be able to authenticate himself through Poldi,
 the following preconditions must be satisfied:
@@ -217,8 +256,21 @@ Such an entry has to be of the following form:
 
 @end table
 
-@node Example
-@section Example
+@node Configuration for ``X509'' authentication
+@section Configuration for ``X509'' authentication
+
+FIXME
+
+@node Configuration Example
+@chapter Configuration Example
+
+@menu
+* Example for ``trivial database'' authentication::
+* Example for ``X509'' authentication::
+@end menu
+
+@node Example for ``trivial database'' authentication
+@section Example for ``trivial database'' authentication
 
 The user ``bender'', who got a OpenPGP card with the serial number
 ``D2760001240101000001000000CF0000'', would like to authenticate himself
@@ -262,36 +314,36 @@ $ poldi-ctrl --set-key
 
 That's it.
 
+@node Example for ``X509'' authentication
+@section Example for ``X509'' authentication
+
+FIXME: provide some CA related information.
+
 @node Testing
-@section Testing
+@chapter Testing
 
-After configuring Poldi properly, basic functionality should be tested
-prior to integrating the PAM module into the system.
+Of course, authentication through Poldi should be tested before
+activating the module.  For this purpose, the Poldi package includes a
+simple program named ``pam-test'', which is suitable for testing PAM
+authentication.
 
-In order to test basic card access, poldi-ctrl can be used as follows
-to dump information read from the card:
+@menu
+* The pam-test program::
+@end menu
 
-@example
-$ poldi-ctrl --dump
-@end example
+@node The pam-test program
+@section The pam-test program
 
-After verifying the correct interaction with the card, poldi-ctrl
-should be used to simulate an authentication mechanism:
+FIXME.
 
-@example
-$ poldi-ctrl --test
-@end example
+@node Notes on Applications
+@chapter Notes on Applications
 
-If this works as well, Poldi should be ready for integration into the
-PAM system.
-
-@node Applications
-@chapter Applications
-
-Generally speaking, all applications containing a decent PAM integration
-should work flawlessly in combination with Poldi.  Sadly, there are
-applications out there, which do not use PAM as they should.  Therefore,
-they might work not too well in case they are configured to use Poldi.
+Generally speaking, all applications containing a decent PAM
+integration should work flawlessly in combination with Poldi.  Sadly,
+there are applications out there, which do not use PAM correctly.
+Therefore, they might work not too well in case they are configured to
+use Poldi.
 
 This chapter attempts to list the most common problems or useful hints
 in respect to popular applications.
@@ -299,7 +351,7 @@ in respect to popular applications.
 When applications still ask for e.g. a username although Poldi is
 activated for that application, it might be the case that other
 authentication modules, which trigger this kind of user interaction, are
-run prior to Poldi.
+configured to run prior to Poldi.
 
 @menu
 * login::
