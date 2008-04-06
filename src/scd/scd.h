@@ -1,5 +1,5 @@
 /* call-scd.c - Interface to Scdaemon
- *	Copyright (C) 2007 g10code GmbH. 
+ *	Copyright (C) 2007, 2008 g10code GmbH. 
  *
  * This file is part of Poldi.
  *
@@ -19,8 +19,8 @@
  * 02110-1301, USA.
  */
 
-#ifndef POLDI_CALL_SCD_H
-#define POLDI_CALL_SCD_H
+#ifndef POLDI_SCD_H
+#define POLDI_SCD_H
 
 #include <assuan.h>
 #include <gcrypt.h>
@@ -69,7 +69,7 @@ int scd_learn (scd_context_t ctx,
 
 /* Simply release the cardinfo structure INFO.  INFO being NULL is
    okay.  */
-void scd_release_cardinfo (struct scd_cardinfo *cardinfo);
+void scd_release_cardinfo (struct scd_cardinfo cardinfo);
 
 /* Create a signature using the current card */
 int scd_pksign (scd_context_t ctx,
@@ -92,5 +92,7 @@ int scd_getinfo (scd_context_t ctx, const char *what, char **result);
 /* Reset the SCD if it has been used.  */
 int scd_reset (scd_context_t ctx);
 
+/* Initializer objet for struct scd_cardinfo instances.  */
+extern struct scd_cardinfo scd_cardinfo_null;
 
 #endif

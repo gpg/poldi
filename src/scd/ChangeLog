@@ -1,3 +1,15 @@
+2008-04-05  Moritz  <moritz@gnu.org>
+
+	* scd.c: Include "util/support.h".
+	(scd_pksign): Use bin2hex.
+	(scd_pksign): Removed unused code.
+
+2008-04-05  Moritz  <moritz@gnu.org>
+
+	* scd.c, scd.h: Minor changes/cleanup.
+
+	* poldi-scd.c, poldi-scd.h: Removed.
+
 2007-12-15  Moritz Schulte  <moritz@g10code.com>
 
 	* scd.c (scd_release_cardinfo): Don't forget to release

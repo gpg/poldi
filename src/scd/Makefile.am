@@ -11,8 +11,7 @@ AM_CFLAGS = \
 	$(LIBASSUAN_CFLAGS) \
 	$(LIBGCRYPT_CFLAGS) \
 	-I$(top_srcdir)/src \
-	-I$(top_srcdir)/src/common
+	-I$(top_srcdir)/src/util
 
 libscd_a_SOURCES = \
- scd.c scd.h \
- poldi-scd.c poldi-scd.h
+ scd.c scd.h

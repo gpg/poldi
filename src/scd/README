@@ -1,1 +1,2 @@
-This directory contains a basic scdaemon access layer.
+This directory contains a basic scdaemon access layer.  Contains only
+the features required by Poldi.

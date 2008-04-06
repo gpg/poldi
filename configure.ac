@@ -1,5 +1,5 @@
 # configure.ac - Configure script for Poldi
-# Copyright (C) 2004, 2005, 2007 g10 Code GmbH
+# Copyright (C) 2004, 2005, 2007, 2008 g10 Code GmbH
 # 
 # This file is part of Poldi.
 #
@@ -64,8 +64,7 @@ have_libassuan=no
 have_ksba=no
 
 POLDI_ENABLE_FEATURE(enable_auth_x509, yes, x509-auth, support for X509 authentication)
-POLDI_ENABLE_FEATURE(enable_auth_simpledb, yes, simpledb-auth, support for simple-db authentication)
-POLDI_ENABLE_FEATURE(enable_auth_test, no, test-auth, support for test authentication - INSECURE)
+POLDI_ENABLE_FEATURE(enable_auth_localdb, yes, localdb-auth, support for local-db authentication)
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
 AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
@@ -195,17 +194,13 @@ if test $have_ksba = no; then
   enable_auth_x509=no
 fi
 AM_CONDITIONAL(AUTH_METHOD_X509, test "$enable_auth_x509" = "yes")
-AM_CONDITIONAL(AUTH_METHOD_SIMPLEDB, test "$enable_auth_simpledb" = "yes")
-AM_CONDITIONAL(AUTH_METHOD_TEST, test "$enable_auth_test" = "yes")
+AM_CONDITIONAL(AUTH_METHOD_LOCALDB, test "$enable_auth_localdb" = "yes")
 
 if test "$enable_auth_x509" = "yes"; then
    AC_DEFINE(ENABLE_AUTH_METHOD_X509, 1, [Enable X509 authentication method])
 fi
-if test "$enable_auth_simpledb" = "yes"; then
-   AC_DEFINE(ENABLE_AUTH_METHOD_SIMPLEDB, 1, [Enable simpledb authentication method])
-fi
-if test "$enable_auth_test" = "yes"; then
-   AC_DEFINE(ENABLE_AUTH_METHOD_TEST, 1, [Enable test authentication method])
+if test "$enable_auth_localdb" = "yes"; then
+   AC_DEFINE(ENABLE_AUTH_METHOD_LOCALDB, 1, [Enable local-db authentication method])
 fi
 
 #
@@ -263,15 +258,17 @@ fi
 AC_CONFIG_FILES([Makefile
 		 m4/Makefile
 		 am/Makefile
-		 doc/Makefile
 		 src/Makefile
 		 src/jnlib/Makefile
-		 src/common/Makefile
+		 src/util/Makefile
 		 src/scd/Makefile
-		 src/dirmngr/Makefile
-		 src/pam/Makefile
+		 src/pam-test/Makefile
 		 src/ctrl/Makefile
-		 src/test/Makefile
+		 src/pam/Makefile
+		 src/pam/auth-support/Makefile
+		 src/pam/auth-method-localdb/Makefile
+		 src/pam/auth-method-x509/Makefile
+		 doc/Makefile
 		 conf/Makefile])
 AC_OUTPUT
 
@@ -292,7 +289,6 @@ echo "
         installation directory for PAM module: $PAM_MODULE_DIRECTORY
         
              X509 authentication: $enable_auth_x509
-        simple-db authentication: $enable_auth_simpledb
-             test authentication: $enable_auth_test
+         local-db authentication: $enable_auth_localdb
 
 "

@@ -75,6 +75,7 @@ section entitled ``Copying''.
 
 @menu
 * Overview::
+* Authentication methods::
 * Installation from Source::
 * Configuration::
 * Configuration Example::
@@ -102,7 +103,7 @@ components (Libgcrypt, Assuan, Scdaemon, Dirmngr) and currently supports two
 authentication methods:
 
 @table @asis
-@item ``trivial database'' authentication method
+@item ``local-database'' authentication method
 
 This method establishs the mapping between user accounts and
 smartcards through a locally administered database.
@@ -110,206 +111,200 @@ smartcards through a locally administered database.
 @item ``X509'' authentication
 
 This method uses the PKI infrastructure provided by Dirmngr for
-associating X509 certificates with smartcards; information about the
-user account name is contained in the certificate itself.
-
+validating certificates.  OpenPGP smartcards are associated with X509
+certificates through the smartcard's ``url'' field; the user account
+name to use for authentication is extracted from the certificate.
 @end table
+
+This manual is primarily intended for system administrators interested
+in setting up authentication through PAM Poldi.  The next chapter
+explains the supported authentication methods.
+
+@node Authentication methods
+@chapter Authentication methods
+
+This chapter explains the supported authentication methods in detail.
+
+@menu
+* Local-database authentication::
+* X509 authentication::
+@end menu
+
+@node Local-database authentication
+@section Local-database authentication
+
+The login process through local database authentication consists
+essentially of three parts: looking up the smartcards key on the local
+computer, figuring out the desired identity for the login and finally
+doing challenge/response authentication against the local key.
+
+Poldi maintains a database, which associates local user accounts with
+smartcards (through their serial number).  There are little
+restrictions in respect to the mapping of users and smartcards: one
+smartcard can be associated with many users and one user can be
+associated with many smartcards.
+
+The public keys are stored in files in a subdirectory named
+``keys''. The file are named after the card serial numbers and must
+contain the public key as a single S-Expression as it is printed out
+by poldi-ctrl.
+
+The mapping between keys and Unix accounts is to be established by
+adding appropriate entries to the user database file named ``users''.
+Such an entry is of the following form:
+
+@example
+<card serial number> <white space(s)> <account>.
+@end example
+
+@node X509 authentication
+@section X509 authentication
+
+With X509 authentication smartcards need to be associated with X509
+certicates.  This mapping is to be established through the ``url''
+field on the OpenPGP smartcard.  The url field is expected to hold
+either a valid LDAP url (``ldap://...'') or a file url
+(``file:///somewhere/cert'').  After a certificate has been
+successfuly looked up, it is validated through Dirmngr and a
+challenge-response authentication is triggered against the smartcard.
+The mapping between smartcards and local accounts is established
+through the list of e-mail addresses contained in the certificate.
 
 @node Installation from Source
 @chapter Installation from Source
 
-Building and installating Poldi from souce should be pretty
-straightforward, since it uses the GNU autotools.  Build time
-dependencies vary with the choices for authentication methods.
+Building and installing Poldi from source should be pretty
+straightforward, since it uses the GNU autotools.  Build- and runtime
+dependencies may vary with the enabled authentication methods.
 
-In any case, Poldi depends on Libgpg-error, Libgcrypt, Libassuan,
-Scdaemon and of course Libpam.
+Independent from enabled authentication methods, Poldi depends on
+Libgpg-error, Libgcrypt, Libassuan, Scdaemon and of course Libpam.
 
-The ``X509'' authentication method additionaly requires Dirmngr.  The
-``trivial database'' authentication method has no additional
-requirements.
+The ``X509'' authentication method additionaly has a build-time
+dependency on libksba and requires Dirmngr to be properly setup at
+runtime.  The ``local database'' authentication method has no
+additional requirements.
 
 Details on the building procedure can be found in the file
 ``INSTALL''.
 
-@menu
-* Configuring::
-* Building::
-* Installing::
-@end menu
-
-@node Configuring
-@section Configuring
-
 At least one configure switch should be set:
 @code{--with-pam-module-directory}, which specifies the installation
-directory for PAM modules.  When not specifying the directory for PAM
-modules this way, one probably needs to install the PAM module (named
-``pam_poldi.so'') manually.
-
-@node Building
-@section Building
+directory for PAM modules.  Alternatively one can copy the built PAM
+module (named ``pam_poldi.so'') to the correct place manually.
 
 For building the Poldi package, ``make'' needs to be invoked.
-
-@node Installing
-@section Installing
 
 Installing Poldi works by invoking the ``install'' make target.  As
 noted before, special care must be taken so that the PAM module ends up
 in the correct place.
 
 Poldi requires some directories beneath `SYSCONFDIR/poldi', which is
-usually equal to `PREFIX/etc/poldi'.
-
-The directories can be created manually or through the
-`install-conf-skeleton' make target.
+usually equal to `PREFIX/etc/poldi'. These directories can be created
+manually or through the `install-conf-skeleton' make target.
 
 @node Configuration
 @chapter Configuration
 
-All configuration files of Poldi are stored beneath
+Poldi can be configured through configuration files and through PAM
+arguments.  All configuration files of Poldi are stored beneath
 ``@code{sysconfdir}/poldi''.
 
 Poldi's main configuration file is
-``@code{sysconfdir}/poldi/poldi.conf''.  The syntax of this
+``@code{sysconfdir}/poldi/poldi.conf''.  The syntax of Poldi's
 configuration file is identical to the one used by several other GnuPG
-components; options, and their values, are written next each other,
+components; options and their values are written next to each other,
 seperated by a whitespace - one such configuration item per line.
 
-Poldi supports the following options in its main configuration file:
+Poldi supports the following authentication method independent
+options, which can be specified in the main configuration file and in
+the PAM configuration files as arguments to the Poldi PAM module (with
+standard doubledash notation).
 
 @table @code
 @item logfile FILENAME
 Specify the file to use for log messages.
 @item auth-method AUTH-METHOD
-Specify the authentication method to use.  May be either ``trivial''
+Specify the authentication method to use.  May be either ``localdb
 or ``x509''.
-@item dirmngr-socket FILENAME
-Specify the socket to be used for communication with Dirmngr.  This
-option is only evaluated when using the X509 authentication method.
 @item debug
 Enable debugging messages.
 @end table
 
-Further configuration requirements depend on the authentication method
-to use.
+Further configuration depends on the authentication method to use.
 
 @menu
-* Configuration for ``trivial database'' authentication::
+* Configuration for ``local-database'' authentication::
 * Configuration for ``X509'' authentication::
 @end menu
 
-@node Configuration for ``trivial database'' authentication
-@section Configuration for ``trivial database'' authentication
+@node Configuration for ``local-database'' authentication
+@section Configuration for ``local-database'' authentication
 
-In order for a user to be able to authenticate himself through Poldi,
-the following preconditions must be satisfied:
+For the local-database authentication method additional configuration
+is required.  All local-database specific configuration files are
+stored in the subdirectory ``localdb'':
 
-@table @asis
-@item the smartcard must be registered
-@item the smartcards key must be installed on the computer
-@item the user must be associated with the smartcard
-@end table
+@table @code
 
-@table @asis
-
-@item Registering the smartcard
-
-Poldi manages a list of ``registered'' smartcards.  Each registered
-smartcard is associated with exactly one key.
-
-Smartcard registration/unregistration needs to be done by a user having
-write access to Poldi's key directory, which is stored beneath
-SYSCONFDIR/poldi by default.  Therefore the system administrator is
-usually the only user able to register/unregister smartcards in case
-Poldi is installed globally in the system.
-
-It might be desired to allow a user who is not the system administrator
-to install or update the key of his smartcard.  In this case, the
-appropriate user needs to be specified during card registration.
-
-@item Key setup
-
-After a smartcard has been registered, it's key needs to be installed
-on the computer side.  This is necessary for the function of
-challenge-response mechanisms.
-
-@item Associating a user with a card:
-
-Poldi manages a ``user database'', which is used for associating users
-with smartcards.  There are no quantitative restrictions in respect to
-the mapping of users and smartcards: on smartcard can be associated with
-many users and one user can be associated with many smartcards.
-
-@item Details:
-
-The public keys are stored in files beneath the directory
-``keys''. which are named after the card serial numbers.  These files
-must contain the public key as a single S-Expression.
-
-The mapping between keys and Unix accounts is to be established by
-adding appropriate entries to the user database file named ``users''.
-Such an entry has to be of the following form:
-
-<card serial number> <white space(s)> <account>.
+@item FIXME
 
 @end table
+
 
 @node Configuration for ``X509'' authentication
 @section Configuration for ``X509'' authentication
 
-FIXME
+In case X509 authentication is enabled, Poldi tries to parse another
+configuration file, namely ``x509/poldi-x509.conf''.  The following
+configuration options are supported for this configuration file:
+
+@table @code
+
+@item dirmngr-socket FILENAME
+Specify the socket to be used for communication with Dirmngr.
+
+@item x509-domain STRING
+Specify email address foobar suffix.
+
+@end table
 
 @node Configuration Example
 @chapter Configuration Example
 
 @menu
-* Example for ``trivial database'' authentication::
+* Example for ``local-database'' authentication::
 * Example for ``X509'' authentication::
 @end menu
 
-@node Example for ``trivial database'' authentication
-@section Example for ``trivial database'' authentication
+@node Example for ``local-database'' authentication
+@section Example for ``local-database'' authentication
 
-The user ``bender'', who got a OpenPGP card with the serial number
-``D2760001240101000001000000CF0000'', would like to authenticate himself
-through Poldi.  Neither the card, nor the user is already known to
-Poldi.
+Lets assume a new installation of Poldi into the root filesystem,
+having configuration files stored beneath /etc/poldi. The user
+``moritz'', who got an OpenPGP card with the serial number
+``D2760001240101010001000006550000, would like to authenticate himself
+through Poldi.
 
-First, the system administrator has to register the new card for Poldi:
+First, the system administrator has to associate the user moritz with
+the card's serial number:
 
 @example
-$ poldi-ctrl --register-card --serialno D2760001240101000001000000CF0000
+$ echo "D2760001240101010001000006550000 moritz" >> /etc/poldi/localdb/users
 @end example
 
-Alternatively, the admin could insert the card and use:
+Second, the system administrator needs to write the card's key into a
+card-specific key file:
+
 @example
-$ poldi-ctrl --register-card --serialno-inserted
+$ poldi-ctrl --print-key > /etc/poldi/localdb/keys/D2760001240101010001000006550000
 @end example
 
-If bender should be able to install or update his card's key himself,
-the following can be used:
+Change ownership if moritz should be able to install or update his
+card's key himself:
 
 @example
-$ poldi-ctrl --register-card --serialno-inserted --account bender
-@end example
-
-Now, after the card has been registered, a mapping needs to be
-established between the user ``bender'' and the smartcard he owns:
-
-@example
-$ poldi-ctrl --associate --account bender --serialno D2760001240101000001000000CF0000
-@end example
-
-Again, the --serialno-inserted switch could have been used instead of
-specifying the serial number explicitely.
-
-Now, bender has to write the public key of his OpenPGP card into the
-appropriate key file:
-
-@example
-$ poldi-ctrl --set-key
+$ chown moritz /etc/poldi/localdb/keys/D2760001240101010001000006550000
 @end example
 
 That's it.
@@ -317,15 +312,14 @@ That's it.
 @node Example for ``X509'' authentication
 @section Example for ``X509'' authentication
 
-FIXME: provide some CA related information.
+FIXME.
 
 @node Testing
 @chapter Testing
 
-Of course, authentication through Poldi should be tested before
-activating the module.  For this purpose, the Poldi package includes a
-simple program named ``pam-test'', which is suitable for testing PAM
-authentication.
+Authentication through Poldi should be tested before activating the
+module.  For this purpose, the Poldi package includes a simple program
+named ``pam-test'', which is suitable for testing PAM authentication.
 
 @menu
 * The pam-test program::
@@ -334,7 +328,15 @@ authentication.
 @node The pam-test program
 @section The pam-test program
 
-FIXME.
+pam-test is a small program suitable for testing PAM authentication,
+without any Poldi specific aspects.  Synopsis:
+
+@example # FIXME
+pam-test [options] <service name>
+@end example
+
+The program accepts the following options: FIXME.
+
 
 @node Notes on Applications
 @chapter Notes on Applications

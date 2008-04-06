@@ -1,4 +1,4 @@
-# Copyright (C) 2004, 2007 g10 Code GmbH
+# Copyright (C) 2004, 2007, 2008 g10 Code GmbH
 #
 # This file is part of Poldi.
 #
@@ -17,12 +17,6 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
-if AUTH_METHOD_X509
-  dirmngr = dirmngr
-else
-  dirmngr =
-endif
-
-SUBDIRS = jnlib common scd ${dirmngr} ctrl pam test
+SUBDIRS = jnlib util scd pam pam-test ctrl
 
 EXTRA_DIST = README

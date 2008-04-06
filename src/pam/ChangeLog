@@ -1,3 +1,33 @@
+2008-04-05  Moritz  <moritz@gnu.org>
+
+	* pam_poldi.so: Slightly reorganized.
+
+	* auth-method-localdb, auth-method-x509, auth-support: New
+	directories.
+	* auth-simpledb.c, auth-test.c, auth-x509.c, conv.c, conv.h,
+	getpin-cb.c, pam-util.c, pam-util.h, wait-for-card.c,
+	wait-for-card.h: Removed (or rather: moved into other
+	directories).
+
+	* auth-methods.h: Mostly rewritten.
+
+2008-02-21  Moritz Schulte  <moritz@gnu.org>
+
+	* Makefile.am: Use new variables SCD, DIRMNGR to implement
+	conditional linking of scdaemon/dirmngr.
+
+	* auth-methods.h: Include <gpg-error.h>, <jnlib/argparse.h>; new
+	types: auth_method_func_init_t, auth_method_func_deinit_t,
+	auth_method_func_parsecb_t, auth_method_func_auth_t;
+	auth_method_t; removed type: auth_method_func_t.
+	
+
+2008-02-15  Moritz Schulte  <moritz@gnu.org>
+
+	* auth-x509.c (email_address_match)
+	(email_address_extract_account): New functions.
+	(extract_username_from_cert): Rewritten to use above function.
+
 2008-01-04  Moritz Schulte  <moritz@gnu.org>
 
 	* pam_poldi.c (arg_opts): Cosmetic change in description of

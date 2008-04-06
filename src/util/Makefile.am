@@ -1,4 +1,4 @@
-# Copyright (C) 2005, 2007, 2008 g10 Code GmbH
+# Copyright (C) 2004, 2007, 2008 g10 Code GmbH
 #
 # This file is part of Poldi.
 #
@@ -18,21 +18,37 @@
 # 02111-1307, USA
 
 AM_CPPFLAGS =
+
 include $(top_srcdir)/am/cmacros.am
 
-bin_PROGRAMS = poldi-ctrl
+noinst_LIBRARIES = libpoldi-util.a
 
-poldi_ctrl_SOURCES = poldi-ctrl.c
-poldi_ctrl_CFLAGS = \
-	-Wall \
-	-I$(top_srcdir)/src -I$(top_srcdir)/src/common \
-	-I$(top_builddir)/src -I$(top_builddir) \
-	$(LIBGCRYPT_CFLAGS) \
-	$(GPG_ERROR_CFLAGS)
+libpoldi_util_a_SOURCES = \
+	support.c support.h \
+	optparse.c optparse.h \
+	usersdb.c usersdb.h \
+	membuf.c membuf.h \
+	util.h i18n.h \
+	sexputil.c sexp-parse.h \
+	convert.c
 
-poldi_ctrl_LDADD = \
-	../scd/libscd.a ../util/libpoldi-util.a ../jnlib/libjnlib.a \
-	$(LIBGCRYPT_LDFLAGS) \
-	$(LIBGCRYPT_LIBS) \
-	$(GPG_ERROR_LIBS) \
-	$(LIBASSUAN_LIBS)
+libpoldi_util_a_CFLAGS = \
+	-Wall -I$(top_builddir)/src/include \
+	-I$(top_srcdir)/src/include -I$(top_srcdir)/src \
+	-I$(top_srcdir)/src/include -I$(top_srcdir)/src \
+	$(LIBGCRYPT_CFLAGS) $(GPG_ERROR_CFLAGS)
+
+BUILT_SOURCES = \
+	defs.h
+
+generate = \
+	sed \
+         -e 's,[@]POLDI_CONF_DIRECTORY[@],$(POLDI_CONF_DIRECTORY),g'
+
+defs.h: defs.h.in
+	$(generate) < $< > $@
+
+EXTRA_DIST = \
+	defs.h.in
+
+CLEANFILES = $(BUILT_SOURCES)

@@ -1,4 +1,4 @@
-# Copyright (C) 2004, 2005, 2007 g10 Code GmbH
+# Copyright (C) 2004, 2005, 2007, 2008 g10 Code GmbH
 #
 # This file is part of Poldi.
 #
@@ -18,10 +18,11 @@
 # 02111-1307, USA
 
 AM_CPPFLAGS = \
+	-I$(top_srcdir)/src/pam \
 	-I$(top_srcdir)/src \
+	-I$(top_builddir)/src/pam \
 	-I$(top_builddir)/src \
-	-I$(top_builddir) \
-	-I$(top_srcdir)/src/common
+	-I$(top_builddir)
 
 include $(top_srcdir)/am/cmacros.am
 
@@ -31,48 +32,37 @@ AM_CFLAGS = \
 	-Wall -fPIC \
 	 $(LIBGCRYPT_CFLAGS) $(GPG_ERROR_CFLAGS) $(KSBA_CFLAGS)
 
-if AUTH_METHOD_SIMPLEDB
-  simpledb = auth-simpledb.c
-else
-  simpledb =
+AUTH_METHODS =
+AUTH_METHODS_LIBS =
+
+if AUTH_METHOD_LOCALDB
+  AUTH_METHODS += auth-method-localdb
+  AUTH_METHODS_LIBS += auth-method-localdb/libpoldi-auth-localdb.a
 endif
 
 if AUTH_METHOD_X509
-  x509 = auth-x509.c
-else
-  x509 =
+  AUTH_METHODS += auth-method-x509
+  AUTH_METHODS_LIBS += auth-method-x509/libpoldi-auth-x509.a
 endif
 
-if AUTH_METHOD_TEST
-  test = auth-test.c
-else
-  test =
-endif
+SUBDIRS = auth-support $(AUTH_METHODS)
 
 noinst_LIBRARIES = libpam_poldi.a
 
 libpam_poldi_a_SOURCES = \
- pam_poldi.c \
- conv.c conv.h \
- wait-for-card.c wait-for-card.h \
- getpin-cb.c getpin-cb.h \
- pam-util.c pam-util.h \
- ${simpledb} ${x509} ${test}
+ pam_poldi.c auth-methods.h
 
-pam_poldi.so: libpam_poldi.a
+pam_poldi.so: libpam_poldi.a $(AUTH_METHODS_LIBS) auth-support/libpam-poldi-auth-support.a \
+		../scd/libscd.a ../util/libpoldi-util.a ../jnlib/libjnlib.a
 	$(LD) \
 		-u pam_sm_authenticate -u pam_sm_setcred \
 		--shared -x -o pam_poldi.so libpam_poldi.a \
-		../scd/libscd.a ../dirmngr/libdirmngr.a ../common/libpoldi-common.a ../jnlib/libjnlib.a \
+		$(AUTH_METHODS_LIBS) auth-support/libpam-poldi-auth-support.a \
+		../scd/libscd.a ../util/libpoldi-util.a ../jnlib/libjnlib.a \
 		$(LIBGCRYPT_LDFLAGS) $(LIBGCRYPT_LIBS) $(LIBASSUAN_LIBS) $(KSBA_LIBS) -lc
 
 all-local: pam_poldi.so
+clean-local:
+	rm -rf pam_poldi.so
 
-install-exec-local:
-	$(INSTALL) -d $(DESTDIR)$(PAM_MODULE_DIRECTORY)
-	$(INSTALL) pam_poldi.so $(DESTDIR)$(PAM_MODULE_DIRECTORY)
-
-uninstall-local:
-	rm -f $(DESTDIR)$(PAM_MODULE_DIRECTORY)/pam_poldi.so
-
-CLEANFILES = pam_poldi.so
+# FIXME: LDFLAGS for other libs missing....

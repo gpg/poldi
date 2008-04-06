@@ -1,6 +1,6 @@
 /* call-scd.c - Interface to Scdaemon
  *	Copyright (C) 2001, 2002, 2005 Free Software Foundation, Inc.
- *	Copyright (C) 2007 g10code GmbH. 
+ *	Copyright (C) 2007, 2008 g10code GmbH. 
  *
  * This file is part of Poldi.
  *
@@ -21,6 +21,7 @@
  */
 
 #include <config.h>
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,13 +36,14 @@
 #include <sys/wait.h>
 #endif
 
-#include "scd.h"
 #include <assuan.h>
 #include <gpg-error.h>
 #include <gcrypt.h>
-#include "../common/util.h"
-//#include "../common/errors.h"
-#include "membuf.h"
+
+#include "scd.h"
+#include "util/util.h"
+#include "util/membuf.h"
+#include "util/support.h"
 #include "i18n.h"
 
 #ifdef _POSIX_OPEN_MAX
@@ -49,6 +51,11 @@
 #else
 #define MAX_OPEN_FDS 20
 #endif
+
+
+
+/* Initializer objet for struct scd_cardinfo instances.  */
+struct scd_cardinfo scd_cardinfo_null;
 
 
 
@@ -211,10 +218,12 @@ get_scd_socket_from_agent (const char *agent_infostr, char **socket_name)
   if (rc)
     goto out;
 
+#if 1
   /* FIXME, what is this? -mo */
   rc = scd_serialno_internal (ctx, 1, NULL);
   if (rc)
     goto out;
+#endif
 
   rc = agent_scd_getinfo_socket_name (ctx, socket_name);
 
@@ -306,13 +315,22 @@ scd_connect (scd_context_t *scd_ctx,
       xfree (scd_socket);
     }
 
-  
-
   if (rc)
     {
       log_error ("can't connect to the agent: %s\n", gpg_strerror (rc));
       goto out;
     }
+
+  scd_serialno_internal (assuan_ctx, 0, NULL);
+  /* Ignore error here (card must not be present, for example).  */
+#if 0
+  if (rc)
+    {
+      log_error ("initial serialno cmd for scdaemon failed: %s\n",
+		 gpg_strerror (rc));
+      goto out;
+    }
+#endif
 
  out:
 
@@ -390,8 +408,6 @@ unescape_status_string (const unsigned char *s)
 
 
 /* CARD LEARNING.  */
-static struct scd_cardinfo cardinfo_NULL;
-
 
 /* Take a 20 byte hexencoded string and put it into the the provided
    20 byte buffer FPR in binary format. */
@@ -490,7 +506,7 @@ scd_learn (scd_context_t ctx,
 {
   int rc;
 
-  *cardinfo = cardinfo_NULL;
+  *cardinfo = scd_cardinfo_null;
   rc = assuan_transact (ctx->assuan_ctx, "LEARN --force",
                         NULL, NULL, NULL, NULL,
                         learn_status_cb, cardinfo);
@@ -501,16 +517,12 @@ scd_learn (scd_context_t ctx,
 /* Simply release the cardinfo structure INFO.  INFO being NULL is
    okay.  */
 void
-scd_release_cardinfo (struct scd_cardinfo *info)
+scd_release_cardinfo (struct scd_cardinfo info)
 {
-  if (!info)
-    return;
-
-  xfree (info->serialno); info->serialno = NULL;
-  xfree (info->disp_name); info->disp_name = NULL;
-  xfree (info->login_data); info->login_data = NULL;
-  xfree (info->pubkey_url); info->pubkey_url = NULL;
-  info->fpr1valid = info->fpr2valid = info->fpr3valid = 0;
+  xfree (info.serialno);
+  xfree (info.disp_name);
+  xfree (info.login_data);
+  xfree (info.pubkey_url);
 }
 
 
@@ -675,8 +687,8 @@ scd_pksign (scd_context_t ctx,
 
   sprintf (line, "SETDATA ");
   p = line + strlen (line);
-  for (i=0; i < indatalen ; i++, p += 2 )
-    sprintf (p, "%02X", indata[i]);
+  bin2hex (indata, indatalen, p);
+
   rc = assuan_transact (ctx->assuan_ctx, line,
                         NULL, NULL, NULL, NULL, NULL, NULL);
   if (rc)
@@ -689,6 +701,7 @@ scd_pksign (scd_context_t ctx,
   inqparm.getpin_cb_arg = getpin_cb_arg;
 
   /* Go, sign it. */
+
   snprintf (line, DIM(line)-1, "PKSIGN %s", keyid);
   line[DIM(line)-1] = 0;
   rc = assuan_transact (ctx->assuan_ctx, line,
@@ -701,27 +714,6 @@ scd_pksign (scd_context_t ctx,
   /* Extract signature. */
 
   sigbuf = get_membuf (&data, &sigbuflen);
-
-#if 0
-  /* Create an S-expression from it which is formatted like this:
-     "(7:sig-val(3:rsa(1:sSIGBUFLEN:SIGBUF)))" */
-  *r_buflen = 21 + 11 + sigbuflen + 4;
-  p = xtrymalloc (*r_buflen);
-  *r_buf = (unsigned char*)p;
-  if (!p)
-    {
-      rc = gpg_error_from_syserror ();
-      goto out;
-    }
-
-  p = stpcpy (p, "(7:sig-val(3:rsa(1:s" );
-  sprintf (p, "%u:", (unsigned int)sigbuflen);
-  p += strlen (p);
-  memcpy (p, sigbuf, sigbuflen);
-  p += sigbuflen;
-  strcpy (p, ")))");
-#else
-  /* No S-expression.  */
   *r_buflen = sigbuflen;
   p = xtrymalloc (*r_buflen);
   *r_buf = (unsigned char*)p;
@@ -732,16 +724,10 @@ scd_pksign (scd_context_t ctx,
     }
 
   memcpy (p, sigbuf, sigbuflen);
-#endif
   
  out:
 
   xfree (get_membuf (&data, &len));
-
-#if 0
-  if (! rc)
-    assert (gcry_sexp_canon_len (*r_buf, *r_buflen, NULL, NULL));
-#endif
 
   return rc;
 }
@@ -858,6 +844,5 @@ scd_reset (scd_context_t ctx)
 
   return 0;
 }
-
 
 /* END */

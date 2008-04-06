@@ -1,0 +1,15 @@
+# This is the database used by Poldis "local database" authentication
+# method.  Syntax of this file is:
+# 
+#   This file consists of entries - one entry per line.
+#   Entries are of the form: "<SERIALNO><WHITESPACES><USERNAME>\n"
+#   (without quotation marks and without angle brackets.  Allowed
+#   whitespaces are spaces and tabs.  <SERIALNO> is the serial number
+#   of an OpenPGP smartcard as reported by poldi-ctrl
+#   --print-serialno.  <USERNAME> is a valid username on the system.
+#   Comments are opened with "#" and terminated by a newline.
+#
+# So, a valid entry would look like:
+#   "D2760001240101010001000006550000	moritz"
+
+D2760001240101010001000006550000	moritz

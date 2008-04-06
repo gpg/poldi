@@ -1,4 +1,4 @@
-# Copyright (C) 2005, 2007, 2008 g10 Code GmbH
+# Copyright (C) 2008 g10 Code GmbH
 #
 # This file is part of Poldi.
 #
@@ -17,22 +17,24 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
-AM_CPPFLAGS =
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/src/pam/auth-support \
+	-I$(top_srcdir)/src/pam \
+	-I$(top_srcdir)/src/scd \
+	-I$(top_srcdir)/src/util \
+	-I$(top_srcdir)/src/jnlib \
+	-I$(top_builddir)/src \
+	-I$(top_srcdir)/src
+
 include $(top_srcdir)/am/cmacros.am
 
-bin_PROGRAMS = poldi-ctrl
+noinst_LIBRARIES = libpoldi-auth-x509.a
 
-poldi_ctrl_SOURCES = poldi-ctrl.c
-poldi_ctrl_CFLAGS = \
-	-Wall \
-	-I$(top_srcdir)/src -I$(top_srcdir)/src/common \
-	-I$(top_builddir)/src -I$(top_builddir) \
-	$(LIBGCRYPT_CFLAGS) \
+libpoldi_auth_x509_a_SOURCES = \
+ auth-x509.c \
+ dirmngr.h dirmngr.c
+
+
+libpoldi_auth_x509_a_CFLAGS = \
+	-Wall -I$(top_srcdir)/src/pam -I$(top_srcdir)/src \
 	$(GPG_ERROR_CFLAGS)
-
-poldi_ctrl_LDADD = \
-	../scd/libscd.a ../util/libpoldi-util.a ../jnlib/libjnlib.a \
-	$(LIBGCRYPT_LDFLAGS) \
-	$(LIBGCRYPT_LIBS) \
-	$(GPG_ERROR_LIBS) \
-	$(LIBASSUAN_LIBS)

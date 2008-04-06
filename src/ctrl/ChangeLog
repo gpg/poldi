@@ -1,3 +1,8 @@
+2008-04-05  Moritz  <moritz@gnu.org>
+
+	* poldi-ctrl.c (cmd_dump): Use bin2hex instead of convert_to_hex.
+	Removed usersdb manipulating functions.
+
 2007-11-10  Moritz  <moritz@g10code.com>
 
 	* poldi-ctrl.c (conversation): Removed unused function.

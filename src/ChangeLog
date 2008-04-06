@@ -1,3 +1,10 @@
+2008-04-05  Moritz  <moritz@gnu.org>
+
+	Renamed directory "common" to "util".
+	Renamed directory "test" to "pam-test".
+	Removed directory "dirmngr".
+	* Makefile.am: adjusted.
+
 2007-12-13  Moritz Schulte  <moritz@g10code.com>
 
 	* test: New directory.

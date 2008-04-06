@@ -1,0 +1,5 @@
+2008-04-05  Moritz  <moritz@gnu.org>
+
+	* conv.c, conf.h, ctx.h, getpin-cb.c, getpin-cb.h, Makefile.am,
+	pam-util.c, pam-util.h, wait-for-card.h, wait-for-card.c: New.
+
