@@ -164,11 +164,15 @@ With X509 authentication smartcards need to be associated with X509
 certicates.  This mapping is to be established through the ``url''
 field on the OpenPGP smartcard.  The url field is expected to hold
 either a valid LDAP url (``ldap://...'') or a file url
-(``file:///somewhere/cert'').  After a certificate has been
-successfuly looked up, it is validated through Dirmngr and a
-challenge-response authentication is triggered against the smartcard.
-The mapping between smartcards and local accounts is established
-through the list of e-mail addresses contained in the certificate.
+(``file:///...).  After a certificate has been successfuly looked up,
+it is validated through Dirmngr and a challenge-response
+authentication is triggered against the smartcard.  The mapping
+bentween smartcards and local accounts is established through the list
+of email addresses contained in the certificate.  Through the
+configuration file, Poldi is informed about the ``X509 domain'' to
+use.  This domain is used when looking through the list of email
+addresses for the local username on the system. Note: semantics might
+change (FIXME?).
 
 @node Installation from Source
 @chapter Installation from Source
@@ -246,9 +250,29 @@ is required.  All local-database specific configuration files are
 stored in the subdirectory ``localdb'':
 
 @table @code
+@item File: users
+This file contains the mapping between smartcard serial numbers and
+local usernames.  Syntax: this file consists of entries - one entry
+per line.  Entries are of the form:
+"<SERIALNO><WHITESPACES><USERNAME>\n" (without quotation marks and
+without angle brackets.  Allowed whitespaces are spaces and tabs.
+<SERIALNO> is the serial number of an OpenPGP smartcard as reported by
+poldi-ctrl --print-serialno.  <USERNAME> is a valid username on the
+system.  Comments are opened with "#" and terminated by a newline.
 
-@item FIXME
+@item Directory: keys
 
+This directory contains the "key database" for Poldis "local database"
+authentication method.  When Poldi needs the key belonging to a given
+smartcard serial number, it looks up a file in this directory whose
+name is exactly the serial number.
+
+Usually only the system administrator is able to modify this directory
+and thus establish the mapping between smartcards and keys.  But it
+might make sense for the administrator to make a file in this
+directory writable for a ordinary user as well, since this would allow
+that user to update his smartcard's key and adjust the mapping himself
+without bothering the admin.
 @end table
 
 
@@ -256,17 +280,17 @@ stored in the subdirectory ``localdb'':
 @section Configuration for ``X509'' authentication
 
 In case X509 authentication is enabled, Poldi tries to parse another
-configuration file, namely ``x509/poldi-x509.conf''.  The following
+configuration file, namely ``poldi-x509.conf''.  The following
 configuration options are supported for this configuration file:
 
 @table @code
-
 @item dirmngr-socket FILENAME
 Specify the socket to be used for communication with Dirmngr.
 
 @item x509-domain STRING
-Specify email address foobar suffix.
-
+Specify the X509 domain, which is simply a suffix required for
+recognizing email addresses contained in user certificates as
+belonging to the system on which authentication happens.
 @end table
 
 @node Configuration Example
@@ -312,7 +336,181 @@ That's it.
 @node Example for ``X509'' authentication
 @section Example for ``X509'' authentication
 
-FIXME.
+Setting up X509 authentication is more complicated than setting up
+localdb authentication, since [...].  This sections tries to explain
+the basic steps.
+
+When using localdb authentication, all we need is a list of keys on
+the system, against which the challenge-response authentication is
+done.  For X509 authentication we need to ...
+
+@table @asis
+@item ... create X509 certificates
+one per smartcard, issued by a certificate authority trusted by Dirmngr
+@item ... setup the smartcards
+so that they ``point'' to their certificates
+@item ... run Dirmngr
+making it listen on a specific socket
+@item ... setup Poldi
+specifying Dirmngr's socket and the ``X509 domain'' in poldi-x509.conf.
+@end table
+
+Lets assume we have no certificate authority (FIXME).
+
+For the CA administration one needs a CA program, like OpenSSL.  It
+can either be used directly or through a GUI frontend like ``Tiny
+CA''.
+
+FIXME: explain situation/goal (x509_domain).
+
+Step 1: Create a CA.  I created my test CA with the following:
+
+@table @asis
+@item Common Name: Fnord Inc CA
+@item Country Name: DE
+@item Organization Name: Fnord Inc
+@item Organizational Unit: Testing
+@end table
+
+The other options required are rather self-explanitory (FIXME?).
+After CA creation, we need to generate a signing request.  For this,
+gpgsm-gencert.sh can be used:
+
+@example
+$ gpgsm-gencert.sh
+Key type
+ [1] RSA
+ [2] Existing key
+ [3] Direct from card
+Your selection: 3
+You selected: Direct from card
+Card with S/N D2760001240101010001000006550000 found
+gpg-agent uses OPENPGP.3 as ssh key
+Select key 
+ [1] OPENPGP.1
+ [2] OPENPGP.2
+ [3] OPENPGP.3
+ [4] back
+Your selection: 3
+You selected: OPENPGP.3
+Key usage
+ [1] sign, encrypt
+ [2] sign
+ [3] encrypt
+Your selection: 2
+You selected: sign
+Name (DN)
+> CN=Moritz Schulte
+E-Mail addresses (end with an empty line)
+> Moritz.Schulte@@rub.de
+E-Mail addresses (end with an empty line)
+> 
+DNS Names (optional; end with an empty line)
+> 
+URIs (optional; end with an empty line)
+> 
+Parameters for certificate request to create:
+     1  Key-Type: card:OPENPGP.3
+     2  Key-Length: 
+     3  Key-Usage: sign
+     4  Name-DN: CN=Moritz Schulte
+     5  Name-Email: Moritz.Schulte@@rub.de
+
+Really create such a CSR?
+ [1] yes
+ [2] no
+Your selection: 1
+You selected: yes
+gpgsm: certificate request created
+-----BEGIN CERTIFICATE REQUEST-----
+MIIBnjCCAQcCAQAwGTEXMBUGA1UEAxMOTW9yaXR6IFNjaHVsdGUwgaEwDQYJKoZI
+hvcNAQEBBQADgY8AMIGLAoGBALjl58iz5T59otx5e6G2NMujUj949QAMLqYXL2Gw
+bugmlkY8eDQ4Gd1S1fKBXCbGQrZ1D+M8mMdqjLInI4BK9DxBBq7X91YonuJdR1WS
+6tSIYudMV0UoonbAyksB0zM2SatWz6roD8KgX8cPJbKgKlOmZ4VZGGa0GVayHaEE
+fQuDAgUA6o2s+aBDMEEGCSqGSIb3DQEJDjE0MDIwIAYDVR0RBBkwF4EVTW9yaXR6
+LlNjaHVsdGVAcnViLmRlMA4GA1UdDwEB/wQEAwIGwDANBgkqhkiG9w0BAQUFAAOB
+gQCpRvQK2gV0rjFK4+H7/rBgUZvA5L89tz3vlWSgXwCVqTewgPMKYmFYXViGobti
+c4laXQuGGqnCjmakbcs5/2Mt13bSTAaTOtfyzWZp+LwVtl8xwR9w/PbbsWyjKwnW
+9H/jfXaKtyoLQgyUyK3cplPw0jW8bqC/t6zQcHe0YMYfPA==
+-----END CERTIFICATE REQUEST-----
+$ 
+@end example
+
+Import the new certificate signing request in your CA and sign it,
+yielding a new client certificate.  A note on Tiny CA: the program
+defaults FIXME mail address.
+
+Export both, the CA certificate and the client certificate, in DER
+format.  Export a certificate revocation list (CRL) for your CA in DER
+format.
+
+Step 2: Setup OpenPGP smartcard
+
+The OpenPGP smartcard is not a ``real'' PKCS#XYZ (FIXME?) smartcard -
+it cannot store X509 certificates.  So instead of ``uploading'' the
+certificate to the smartcard, we write an URL to the card, through
+which the complete certificate can be retrieved.  Simply fill the
+smartcard's ``url'' field with either a ``ldap://'' or a ``file://''
+URL, pointing to the certificate.  For LDAP urls to work, the
+certificate must be stored on a LDAP server and Dirmngr must be
+configured to use that LDAP server.  For testing, one can simply
+specify ``file:///some/where/cert-exported-from-ca.crt''.  Editing the
+card's data fields is to be done through GnuPG:
+
+@example
+$ gpg --card-edit # (or gpg2)
+@end example
+
+Step 3: Setup Dirmngr.
+
+For debugging purposes it is usually a good idea to add:
+@example
+debug-all
+log-file /some/where/dirmngr.log
+@end example
+
+to dirmngr.conf.
+
+Drop the exported CA certificate in Dirmngr's ``trusted-certs''
+directory.
+
+Now, run Dirmngr:
+
+@example
+$ eval $(dirmngr --socket /some/where/dirmngr.S --daemon)
+@end example
+
+and inform it about the CRL:
+
+@example
+$ dirmngr-client --load-crl previously-saved-crl.der
+@end example
+
+Check Dirmngr's log file for any errors.
+
+Step 4: Configure Poldi.
+
+Obviously, in the main configuration file poldi.conf, we need:
+
+@example
+auth-method x509
+@end example
+
+Again, it's a very good idea to also add:
+
+@example
+debug
+log-file /some/where/poldi.og
+@end example
+
+Add the following to ``poldi-x509.conf'':
+
+@example
+dirmngr-socket /some/where/dirmngr.S # the socket name previously specified
+x509-domain example.com
+@end example
+
+Now, things should be ready for trying authentication.
 
 @node Testing
 @chapter Testing

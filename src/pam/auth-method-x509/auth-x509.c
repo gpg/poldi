@@ -119,6 +119,8 @@ auth_method_x509_parsecb (ARGPARSE_ARGS *parg, void *cookie)
 		     strlen (parg->r.ret_str), strerror (errno));
 	  break;
 	}
+      break;
+
     case arg_dirmngr_socket:
       ctx->dirmngr_socket = strdup (parg->r.ret_str);
       if (!ctx->dirmngr_socket)
@@ -296,9 +298,9 @@ email_address_match (const char *subject, const char *x509_domain)
 
   /* FIXME: some more sanity checks necessary?  */
 
-  if ((x509_domain_len < subject_len - 1)
+  if ((x509_domain_len < subject_len - 3)
       && (subject[0] == '<')
-      && (subject[subject_len - 1 - x509_domain_len] == '@')
+      && (subject[subject_len - 1 - x509_domain_len - 1] == '@')
       && (! strncmp (subject + subject_len - x509_domain_len - 1, x509_domain, x509_domain_len))
       && (subject[subject_len - 1] == '>'))
     return 1;
@@ -458,11 +460,21 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
   ksba_cert_t cert;
   dirmngr_ctx_t dirmngr;
 
+  dirmngr = NULL;
   challenge = NULL;
   response = NULL;
   card_username = NULL;
   cert = NULL;
   err = 0;
+
+  /*** Sanity checks. ***/
+
+  if (! (cookie->x509_domain && cookie->dirmngr_socket))
+    {
+      err = gpg_error (GPG_ERR_CONFIGURATION);
+      log_error ("x509 authentication method not properly configured\n");
+      goto out;
+    }
 
   /*** Connect to Dirmngr. ***/
 
@@ -531,7 +543,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
   /*** Let card sign the challenge. ***/
 
   err = scd_pksign (ctx->scd, "OPENPGP.3",
-		    getpin_cb, ctx,
+		    getpin_cb, ctx->conv,
 		    challenge, challenge_n,
 		    &response, &response_n);
   if (err)
@@ -552,24 +564,19 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
       goto out;
     }
 
-#if 0
-  /* FIXME: needs to me moved to pam_poldi.c.  */
-  if (!ctx->username)
-    {
-      err = send_username_to_pam (ctx->pam_handle, card_username);
-      if (err)
-	goto out;
-    }
-#endif
-
   /* Auth succeeded.  */
+
+  if (!username_desired)
+    *username_authenticated = card_username;
 
  out:
 
   /* Release resources.  */
   dirmngr_disconnect (dirmngr);
   ksba_cert_release (cert);
-  free (card_username);
+
+  if (err)
+    free (card_username);
 
   /* Log result.  */
   if (err)

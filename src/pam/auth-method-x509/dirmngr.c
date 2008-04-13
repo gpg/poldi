@@ -76,51 +76,9 @@ struct lookup_parm_s {
 
 
 
-static gpg_error_t
-connect_pipe (dirmngr_ctx_t ctx, const char *path)
-{
-  assuan_context_t assuan_ctx;
-  gpg_error_t err;
-  const char *argv[3];
-  const char *pgmname;
-  int no_close_list[3];
-  int i;
-
-  assuan_ctx = NULL;
-  err = 0;
-
-  if ((!path) || (!*path))
-    path = GNUPG_DEFAULT_DIRMNGR;
-  pgmname = strrchr (path, '/');
-  if (!pgmname)
-    pgmname = path;
-  else
-    pgmname++;
-
-  argv[0] = pgmname;
-  argv[1] = "--server";
-  argv[2] = NULL;
-
-  i=0;
-  if (log_get_fd () != -1)
-    no_close_list[i++] = log_get_fd ();
-  no_close_list[i++] = fileno (stderr);
-  no_close_list[i] = -1;
-
-  err = assuan_pipe_connect (&assuan_ctx, path, argv, no_close_list);
-  if (err)
-    goto out;
-
-  ctx->assuan = assuan_ctx;
-
- out:
-
-  return err;
-}
-
 gpg_error_t
 dirmngr_connect (dirmngr_ctx_t *ctx,
-		 const char *path,
+		 const char *sock,
 		 unsigned int flags)
 {
   dirmngr_ctx_t context;
@@ -136,9 +94,7 @@ dirmngr_connect (dirmngr_ctx_t *ctx,
     }
 
   context->assuan = NULL;
-
-  err = connect_pipe (context, path);
-
+  err = assuan_socket_connect (&context->assuan, sock, -1);
   if (err)
     goto out;
 
@@ -151,16 +107,6 @@ dirmngr_connect (dirmngr_ctx_t *ctx,
 
   return err;
 }
-
-gpg_error_t
-dirmngr_connect_socket (dirmngr_ctx_t *ctx,
-			const char *socket,
-			unsigned int flags)
-{
-
-}
-
-
 
 void
 dirmngr_disconnect (dirmngr_ctx_t ctx)

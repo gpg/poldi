@@ -27,12 +27,8 @@
 typedef struct dirmngr_ctx_s *dirmngr_ctx_t;
 
 gpg_error_t dirmngr_connect (dirmngr_ctx_t *ctx,
-			     const char *path,
+			     const char *sock,
 			     unsigned int flags);
-
-gpg_error_t dirmngr_connect_socket (dirmngr_ctx_t *ctx,
-				    const char *socket,
-				    unsigned int flags);
 
 void dirmngr_disconnect (dirmngr_ctx_t ctx);
 
