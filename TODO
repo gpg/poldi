@@ -1,0 +1,19 @@
+* better (new?) error codes
+* write poldi-x509-ca howto
+* strip getpin-cb.c?
+* poldi-ctrl --print-config?
+* audit: scd.c
+* i18n, gettext??
+* verify we don't need pam_sm_setcred
+* improve doc
+* poldi shouldn't contain any global state (explain why), reference needed
+* are there any problems with PAM in respect to serialization?
+* cleanup/verify scd_pksign()
+* figure out what exactly the dependencies on the OpenPGP smartcard are.
+* conf skeleton for x509 method?
+* decide on pam-poldi.h common header file for all poldi sources
+* add logging prefix "[Poldi]" automatically? how about conv calls?
+* decide on naming convention for conf files in Poldi manual
+* do we want to respect conv_tell error codes or should it be void?
+* PIN-less authentication mechanism?
+* give user a chance to enter PIN twice?
