@@ -81,8 +81,6 @@ section entitled ``Copying''.
 * Configuration Example::
 * Testing::
 * Notes on Applications::
-
-Appendices
 * Copying::                     The GNU General Public License
 
 @c @detailmenu
@@ -117,8 +115,7 @@ name to use for authentication is extracted from the certificate.
 @end table
 
 This manual is primarily intended for system administrators interested
-in setting up authentication through PAM Poldi.  The next chapter
-explains the supported authentication methods.
+in setting up authentication through PAM Poldi.
 
 @node Authentication methods
 @chapter Authentication methods
@@ -145,7 +142,7 @@ smartcard can be associated with many users and one user can be
 associated with many smartcards.
 
 The public keys are stored in files in a subdirectory named
-``keys''. The file are named after the card serial numbers and must
+``keys''. The files are named after the card serial numbers and must
 contain the public key as a single S-Expression as it is printed out
 by poldi-ctrl.
 
@@ -164,15 +161,24 @@ With X509 authentication smartcards need to be associated with X509
 certicates.  This mapping is to be established through the ``url''
 field on the OpenPGP smartcard.  The url field is expected to hold
 either a valid LDAP url (``ldap://...'') or a file url
-(``file:///...).  After a certificate has been successfuly looked up,
-it is validated through Dirmngr and a challenge-response
+(``file:///...'').  After a certificate has been successfuly looked
+up, it is validated through Dirmngr and a challenge-response
 authentication is triggered against the smartcard.  The mapping
-bentween smartcards and local accounts is established through the list
+between smartcards and local accounts is established through the list
 of email addresses contained in the certificate.  Through the
 configuration file, Poldi is informed about the ``X509 domain'' to
 use.  This domain is used when looking through the list of email
 addresses for the local username on the system. Note: semantics might
-change (FIXME?).
+change.
+
+To illustrate this with an example: lets assume a user is trying to
+authenticate himself trough Poldi's X509 method.  Poldi looks up the
+url field of the user's smartcard and retrieves his X509 certificate.
+The certificate contains two e-mail addresses: ``<dude@@example.com>''
+and ``<fry@@gnupg.org>''.  Since the administrator set the ``X509
+domain'' to ``gnupg.org'' in Poldi's configuration file, Poldi will
+pick out the address ``fry@@gnupg.org'' and (after succesful
+challenge-response authentication) will let the user login as ``fry''.
 
 @node Installation from Source
 @chapter Installation from Source
@@ -318,14 +324,15 @@ $ echo "D2760001240101010001000006550000 moritz" >> /etc/poldi/localdb/users
 @end example
 
 Second, the system administrator needs to write the card's key into a
-card-specific key file:
+card-specific key file.  Therefore he inserts Moritz' smartcard and
+executes:
 
 @example
 $ poldi-ctrl --print-key > /etc/poldi/localdb/keys/D2760001240101010001000006550000
 @end example
 
-Change ownership if moritz should be able to install or update his
-card's key himself:
+The administrator wants to allow Moritz to update his card's key
+himself; he/she types:
 
 @example
 $ chown moritz /etc/poldi/localdb/keys/D2760001240101010001000006550000
@@ -337,33 +344,32 @@ That's it.
 @section Example for ``X509'' authentication
 
 Setting up X509 authentication is more complicated than setting up
-localdb authentication, since [...].  This sections tries to explain
-the basic steps.
+localdb authentication, since more components are involved.  This
+sections tries to explain the basic steps.
 
 When using localdb authentication, all we need is a list of keys on
 the system, against which the challenge-response authentication is
-done.  For X509 authentication we need to ...
+done.  For X509 authentication we need to:
 
 @table @asis
 @item ... create X509 certificates
 one per smartcard, issued by a certificate authority trusted by Dirmngr
 @item ... setup the smartcards
-so that they ``point'' to their certificates
+so that they ``point'' to ``their'' certificates
 @item ... run Dirmngr
 making it listen on a specific socket
 @item ... setup Poldi
 specifying Dirmngr's socket and the ``X509 domain'' in poldi-x509.conf.
 @end table
 
-Lets assume we have no certificate authority (FIXME).
-
-For the CA administration one needs a CA program, like OpenSSL.  It
-can either be used directly or through a GUI frontend like ``Tiny
-CA''.
+Lets assume we don't have a certificate authority yet.  For the CA
+administration one needs a CA program, like OpenSSL.  It can either be
+used directly or through a GUI frontend like ``Tiny CA''.
 
 FIXME: explain situation/goal (x509_domain).
 
-Step 1: Create a CA.  I created my test CA with the following:
+Step 1: Create a CA.  I created my test CA with the following
+settings:
 
 @table @asis
 @item Common Name: Fnord Inc CA
@@ -372,9 +378,10 @@ Step 1: Create a CA.  I created my test CA with the following:
 @item Organizational Unit: Testing
 @end table
 
-The other options required are rather self-explanitory (FIXME?).
-After CA creation, we need to generate a signing request.  For this,
-gpgsm-gencert.sh can be used:
+The other options required are rather self-explanitory.  After CA
+creation, we need to generate a signing request.  For this,
+gpgsm-gencert.sh can be used (after inserting the users smartcard and
+running gpg-agent):
 
 @example
 $ gpgsm-gencert.sh
