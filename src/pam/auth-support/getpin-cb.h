@@ -21,11 +21,17 @@
 #ifndef GETPIN_CB_H
 #define GETPIN_CB_H
 
+/* Structure for passing data to getpin_cb. */
+struct getpin_cb_data
+{
+  conv_t conv;
+};
+
 /* This is the Assuan callback, which is to be used for SCDaemon
    transactions.  It takes care of PIN querying through PAM
    conversation functions.  This function is used by authentiation
-   methods (in src/pam/auth-XXX/).  OPAQUE is expected to be a conv_t
-   object. */
+   methods.  OPAQUE is expected to be a pointer to struct
+   getpin_cb_data. */
 
 int getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf);
 

@@ -1,3 +1,20 @@
+2008-04-21  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.c: Include "getpin-cb.h"; heavily stripped, needs more
+	thinking.
+
+2008-04-20  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.h: New struct: getpin_cb_data.
+
+2008-04-19  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.c (getpin_cb): Removed flag handling, removed
+	variables: ends, any_flags, again_text.
+	(agent_popup_message_start, agent_popup_message_stop): Removed to
+	...
+	(keypad_mode_enter, keypad_mode_leave): ... this.
+
 2008-04-05  Moritz  <moritz@gnu.org>
 
 	* conv.c, conf.h, ctx.h, getpin-cb.c, getpin-cb.h, Makefile.am,

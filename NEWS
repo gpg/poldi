@@ -6,6 +6,15 @@ Changes since version 0.3:
   Poldi internals rewritten: uses the scdaemon from now on instead of
   talking to the smartcard directly
 
+* Authentication methods
+  Implemented abstraction layer for "authentication methods".  The
+  previous authentication process is now encapsulated in an
+  authentication method named "localdb".
+
+* X509
+  Added another authentication method named "x509", which interacts
+  with Dirmngr in order to provide authentication through a X509 PKI.
+
 Changes since version 0.2:
 
 * Smartcard to account mapping:

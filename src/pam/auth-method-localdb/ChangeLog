@@ -1,0 +1,5 @@
+2008-04-21  Moritz  <moritz@gnu.org>
+
+	* auth-localdb.c (auth_method_localdb_auth_do): New local
+	variable: cb_data, fill and pass to scd_pksign instead of conv
+	object directly.

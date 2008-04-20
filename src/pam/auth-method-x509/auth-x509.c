@@ -459,6 +459,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
   char *card_username;
   ksba_cert_t cert;
   dirmngr_ctx_t dirmngr;
+  struct getpin_cb_data cb_data;
 
   dirmngr = NULL;
   challenge = NULL;
@@ -542,8 +543,9 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
 
   /*** Let card sign the challenge. ***/
 
+  cb_data.conv = ctx->conv;
   err = scd_pksign (ctx->scd, "OPENPGP.3",
-		    getpin_cb, ctx->conv,
+		    getpin_cb, &cb_data,
 		    challenge, challenge_n,
 		    &response, &response_n);
   if (err)

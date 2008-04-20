@@ -89,7 +89,8 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
   gpg_error_t err;
   char *card_username;
   const char *username;
-  
+  struct getpin_cb_data cb_data;
+
   challenge = NULL;
   response = NULL;
   username = NULL;
@@ -150,8 +151,9 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
     }
 
   /* Let card sign the challenge.  */
+  cb_data.conv = ctx->conv;
   err = scd_pksign (ctx->scd, "OPENPGP.3",
-		    getpin_cb, ctx->conv,
+		    getpin_cb, &cb_data,
 		    challenge, challenge_n,
 		    &response, &response_n);
   if (err)

@@ -44,23 +44,12 @@
 #include "jnlib/logging.h"
 #include "auth-support/conv.h"
 
-
-
-struct pin_entry_info_s 
-{
-  int min_digits; /* min. number of digits required or 0 for freeform entry */
-  int max_digits; /* max. number of allowed digits allowed*/
-  int max_tries;
-  int failed_tries;
-  const char *cb_errtext; /* used by the cb to displaye a specific error */
-  size_t max_length; /* allocated length of the buffer */
-  char pin[1];
-};
+#include "getpin-cb.h"
 
 
 
 static int
-all_digitsp( const char *s)
+all_digitsp (const char *s)
 {
   for (; *s && *s >= '0' && *s <= '9'; s++)
     ;
@@ -68,84 +57,45 @@ all_digitsp( const char *s)
 }  
 
 
-/* Call the Entry and ask for the PIN.  We do check for a valid PIN
-   number here and repeat it as long as we have invalid formed
-   numbers. */
-/* FIXME: pin length, cecks, looping, etc, all... -mo  */
-int
-agent_askpin (conv_t conv,
-              const char *desc_text, const char *prompt_text,
-              const char *initial_errtext,
-              struct pin_entry_info_s *pininfo)
+/* Query the user through PAM for his pin.  Display INFO to the user.
+   Store the retrieved pin in PIN, which is of size PIN_SIZE.  If it
+   does not fit, return error. */
+static int
+query_user (conv_t conv, const char *info, char *pin, size_t pin_size)
 {
+  char *buffer;
   int rc;
-  char line[ASSUAN_LINELENGTH];
-  const char *errtext = NULL;
-  char *PIN;
 
-  PIN = NULL;
+  buffer = NULL;
+  rc = 0;
 
-  if (!pininfo || pininfo->max_length < 1)
-    return gpg_error (GPG_ERR_INV_VALUE);
-  if (!desc_text && pininfo->min_digits)
-    desc_text = _("Please enter your PIN, so that the secret key "
-                  "can be unlocked for this session");
-  else if (!desc_text)
-    desc_text = _("Please enter your passphrase, so that the secret key "
-                  "can be unlocked for this session");
-
-  for (;pininfo->failed_tries < pininfo->max_tries; pininfo->failed_tries++)
+  while (1)			/* Loop until well-formed PIN retrieved. */
     {
-      if (errtext)
-        { 
-          /* TRANLATORS: The string is appended to an error message in
-             the pinentry.  The %s is the actual error message, the
-             two %d give the current and maximum number of tries. */
-
-	  /* FIXME, moritz, we can probably eliminate the use of
-	     ASSUAN_LINE_LENGTH here.  */
-          snprintf (line, DIM(line)-1, _("%s (try %d of %d)"),
-                    errtext, pininfo->failed_tries+1, pininfo->max_tries);
-	  line[DIM(line)-1] = 0;
-
-	  rc = conv_tell (conv, line);
-          if (rc)
-	    goto out;
-	  //            return unlock_pinentry (rc);
-          errtext = NULL;
-        }
-
-      rc = conv_ask (conv, 1, &PIN, POLDI_PIN2_QUERY_MSG);
-      if (! rc)
-	{
-	  if (strlen (PIN) >= pininfo->max_length)
-	    {
-	      /* FIXME, error code -mo. */
-	      rc = gpg_error (GPG_ERR_INV_VALUE);
-	      errtext = _("PIN too long");
-	      /* FIXME: after this choice, we shouldn't goto out!  */
-	    }
-	  else
-	    strcpy (pininfo->pin, PIN);
-	}
+      /* Retrieve PIN through PAM.  */
+      rc = conv_ask (conv, 1, &buffer, info);
       if (rc)
 	goto out;
 
-      if (!errtext && pininfo->min_digits)
-        {
-          /* do some basic checks on the entered PIN. */
-          if (!all_digitsp (pininfo->pin))
-            errtext = _("Invalid characters in PIN");
-          else if (pininfo->max_digits
-                   && strlen (pininfo->pin) > pininfo->max_digits)
-            errtext = _("PIN too long");
-          else if (strlen (pininfo->pin) < pininfo->min_digits)
-            errtext = _("PIN too short");
-        }
-
-      if (!errtext)
+      /* Do some basic checks on the entered PIN - shall we really
+	 forbid to use non-digit characters in PIN? */
+      if (strlen (buffer) < 6)	/* FIXME? is it really minimum of 6 bytes? */
+	log_error ("invalid characters in PIN\n");
+      else if (!all_digitsp (buffer))
+	log_error ("invalid characters in PIN\n");
+      else
 	break;
     }
+
+  /* FIXME: overflow possible? */
+
+  if (strlen (buffer) >= pin_size)
+    {
+      log_error ("PIN too long for buffer!\n");
+      rc = gpg_error (GPG_ERR_INV_DATA); /* ? */
+      goto out;
+    }
+
+  strcpy (pin, buffer);
 
  out:
 
@@ -159,7 +109,7 @@ agent_askpin (conv_t conv,
    system modal and all other attempts to use the pinentry will fail
    (after a timeout). */
 static int
-agent_popup_message_start (conv_t conv)
+keypad_mode_enter (conv_t conv)
 {
   int rc;
 
@@ -168,9 +118,8 @@ agent_popup_message_start (conv_t conv)
   return rc;
 }
 
-/* Close a popup window. */
 static int
-agent_popup_message_stop (conv_t conv)
+keypad_mode_leave (conv_t conv)
 {
   int rc;
 
@@ -178,7 +127,6 @@ agent_popup_message_stop (conv_t conv)
 
   return rc;
 }
-
 
 /* Callback used to ask for the PIN which should be set into BUF.  The
    buf has been allocated by the caller and is of size MAXBUF which
@@ -191,129 +139,48 @@ agent_popup_message_stop (conv_t conv)
    verical bar are considered flags and only everything after the
    second vertical bar gets displayed as the full prompt.
 
-   Flags:
-
-      'N' = New PIN, this requests a second prompt to repeat the the
-            PIN.  If the PIN is not correctly repeated it starts from
-            all over.
-      'A' = The PIN is an Admin PIN, SO-PIN, PUK or alike.
-
-   Example:
-
-     "|AN|Please enter the new security officer's PIN"
-     
-   The text "Please ..." will get displayed and the flags 'A' and 'N'
-   are considered.
- */
+   We don't need/implement the N/A flags.  When they occur, we signal
+   an error.  */
 int 
 getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
 {
-  struct pin_entry_info_s *pi;
+  struct getpin_cb_data *cb_data = opaque;
   int rc;
-  conv_t conv = opaque;
-  const char *ends, *s;
-  int any_flags = 0;
-  int newpin = 0;
-  const char *again_text = NULL;
-  const char *prompt = "PIN";
 
+#if 0
+  /* FIXME: why "< 2"? -mo */
   if (buf && maxbuf < 2)
     return gpg_error (GPG_ERR_INV_VALUE);
+#endif
 
-  /* Parse the flags. */
-  if (info && *info =='|' && (ends=strchr (info+1, '|')))
+  if (info && (info[0] == '|' && info[1] != '|'))
     {
-      for (s=info+1; s < ends; s++)
-        {
-          if (*s == 'A')
-            prompt = _("Admin PIN");
-          else if (*s == 'N')
-            newpin = 1;
-        }
-      info = ends+1;
-      any_flags = 1;
-    }
-  else if (info && *info == '|')
-    log_debug ("pin_cb called without proper PIN info hack\n");
-
-  /* If BUF has been passed as NULL, we are in keypad mode: The
-     callback opens the popup and immediatley returns. */
-  if (!buf)
-    {
-      if (maxbuf == 0) /* Close the pinentry. */
-        {
-          agent_popup_message_stop (conv);
-          rc = 0;
-        }
-      else if (maxbuf == 1)  /* Open the pinentry. */
-        {
-          rc = agent_popup_message_start (conv);
-        }
-      else
-        rc = gpg_error (GPG_ERR_INV_VALUE);
-      return rc;
+      /* Weird that we received flags - they are neither expected nor
+	 implemented here.  */
+      log_error ("getpin_cb called with flags set in info string `%s'\n", info);
+      goto out;
     }
 
-  /* FIXME: keep PI and TRIES in OPAQUE.  Frankly this is a whole
-     mess because we should call the card's verify function from the
-     pinentry check pin CB. */
- again:
-  pi = gcry_calloc_secure (1, sizeof (*pi) + maxbuf + 10);
-  if (!pi)
-    return gpg_error_from_syserror ();
-  pi->max_length = maxbuf-1;
-  pi->min_digits = 0;  /* we want a real passphrase */
-  pi->max_digits = 8;
-  pi->max_tries = 3;
-
-  if (any_flags)
-    {
-      rc = agent_askpin (conv, info, prompt, again_text, pi);
-      again_text = NULL;
-      if (!rc && newpin)
-        {
-          struct pin_entry_info_s *pi2;
-          pi2 = gcry_calloc_secure (1, sizeof (*pi) + maxbuf + 10);
-          if (!pi2)
-            {
-              rc = gpg_error_from_syserror ();
-              gcry_free (pi);
-              return rc;
-            }
-          pi2->max_length = maxbuf-1;
-          pi2->min_digits = 0;
-          pi2->max_digits = 8;
-          pi2->max_tries = 1;
-          rc = agent_askpin (conv, _("Repeat this PIN"), prompt, NULL, pi2);
-          if (!rc && strcmp (pi->pin, pi2->pin))
-            {
-              again_text = N_("PIN not correctly repeated; try again");
-	      gcry_free (pi2);
-	      gcry_free (pi);
-              goto again;
-            }
-          gcry_free (pi2);
-        }
-    }
+  if (buf)
+    rc = query_user (cb_data->conv, info, buf, maxbuf);
   else
     {
-      char *desc;
-      if ( asprintf (&desc,
-                     _("Please enter the PIN%s%s%s to unlock the card"), 
-                     info? " (`":"",
-                     info? info:"",
-                     info? "')":"") < 0)
-        desc = NULL;
-      rc = agent_askpin (conv, desc?desc:info, prompt, NULL, pi);
-      free (desc);
+      /* Special handling for keypad mode hack. */
+
+      /* If BUF has been passed as NULL, we are in keypad mode: the
+	 callback notifies the user and immediately returns.  */
+      if (maxbuf == 0) /* Close the pinentry. */
+	rc = keypad_mode_leave (cb_data->conv);
+      else if (maxbuf == 1)  /* Open the pinentry. */
+	rc = keypad_mode_enter (cb_data->conv);
+      else
+        rc = gpg_error (GPG_ERR_INV_VALUE); /* FIXME: must signal
+					       internal error(!)
+					       -mo */
     }
 
-  if (!rc)
-    {
-      strncpy (buf, pi->pin, maxbuf-1);
-      buf[maxbuf-1] = 0;
-    }
-  gcry_free (pi);
+ out:
+
   return rc;
 }
 
