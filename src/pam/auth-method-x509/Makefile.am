@@ -36,5 +36,5 @@ libpoldi_auth_x509_a_SOURCES = \
 
 
 libpoldi_auth_x509_a_CFLAGS = \
-	-Wall -I$(top_srcdir)/src/pam -I$(top_srcdir)/src \
+	-fPIC -Wall -I$(top_srcdir)/src/pam -I$(top_srcdir)/src \
 	$(GPG_ERROR_CFLAGS)

@@ -1,3 +1,9 @@
+2008-05-03  Moritz  <moritz@gnu.org>
+
+	* Makefile.am: Link pam_poldi.so against shared library version of
+	internal libraries.  Link against internal libassuan.  Use gcc for
+	linking, not ld.
+
 2008-04-05  Moritz  <moritz@gnu.org>
 
 	* pam_poldi.so: Slightly reorganized.

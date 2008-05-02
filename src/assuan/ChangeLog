@@ -1,0 +1,3 @@
+2008-05-03  Moritz  <moritz@gnu.org>
+
+	* assuan.h: Adjusted definitions for Poldi.

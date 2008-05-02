@@ -53,13 +53,13 @@ libpam_poldi_a_SOURCES = \
  pam_poldi.c auth-methods.h
 
 pam_poldi.so: libpam_poldi.a $(AUTH_METHODS_LIBS) auth-support/libpam-poldi-auth-support.a \
-		../scd/libscd.a ../util/libpoldi-util.a ../jnlib/libjnlib.a
-	$(LD) \
-		-u pam_sm_authenticate -u pam_sm_setcred \
-		--shared -x -o pam_poldi.so libpam_poldi.a \
+		../scd/libscd_shared.a ../util/libpoldi-util_shared.a ../jnlib/libjnlib_shared.a
+	gcc -shared -o pam_poldi.so -Wl,-u,pam_sm_authenticate \
+		libpam_poldi.a \
 		$(AUTH_METHODS_LIBS) auth-support/libpam-poldi-auth-support.a \
-		../scd/libscd.a ../util/libpoldi-util.a ../jnlib/libjnlib.a \
-		$(LIBGCRYPT_LDFLAGS) $(LIBGCRYPT_LIBS) $(LIBASSUAN_LIBS) $(KSBA_LIBS) -lc
+		../scd/libscd_shared.a ../util/libpoldi-util_shared.a ../jnlib/libjnlib_shared.a \
+		../assuan/libassuan.a \
+		$(LIBGCRYPT_LDFLAGS) $(LIBGCRYPT_LIBS) $(KSBA_LIBS)
 
 all-local: pam_poldi.so
 clean-local:

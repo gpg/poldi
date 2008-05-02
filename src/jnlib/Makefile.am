@@ -1,4 +1,4 @@
-# Copyright (C) 1999, 2000, 2001, 2004 Feee Software Soundation, Inc.
+# Copyright (C) 1999, 2000, 2001, 2004, 2008 Feee Software Soundation, Inc.
 # 
 # This file is part of Poldi
 # 
@@ -24,11 +24,11 @@ EXTRA_DIST = README
 AM_CPPFLAGS = -I$(top_srcdir)/intl
 
 # We need libgcrypt because libjnlib-config includes gcrypt.h
-AM_CFLAGS = $(LIBGCRYPT_CFLAGS)
+jnlib_CFLAGS = $(LIBGCRYPT_CFLAGS)
 
-noinst_LIBRARIES = libjnlib.a
+noinst_LIBRARIES = libjnlib.a libjnlib_shared.a
 
-libjnlib_a_SOURCES = \
+jnlib_SOURCES = \
 	libjnlib-config.h \
 	stringhelp.c stringhelp.h \
 	strlist.c strlist.h \
@@ -38,3 +38,9 @@ libjnlib_a_SOURCES = \
 	dotlock.c dotlock.h  \
 	xmalloc.c xmalloc.h \
 	types.h mischelp.h
+
+libjnlib_a_SOURCES = $(jnlib_SOURCES)
+libjnlib_a_CFLAGS = $(jnlib_CFLAGS)
+
+libjnlib_shared_a_SOURCES = $(jnlib_SOURCES)
+libjnlib_shared_a_CFLAGS = -fPIC $(jnlib_CFLAGS)

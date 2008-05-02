@@ -1,3 +1,7 @@
+2008-05-01  Moritz  <moritz@gnu.org>
+
+	* Makefile.am: Build a shared and a nonshared version.
+
 2008-04-05  Moritz  <moritz@gnu.org>
 
 	* support.c, support.h (convert_to_hex): Removed function.

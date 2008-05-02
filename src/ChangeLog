@@ -1,3 +1,9 @@
+2008-05-02  Moritz  <moritz@gnu.org>
+
+	* Makefile.am: Build assuan.
+
+	* assuan: New directory, contains a copy of libassuan source.
+
 2008-04-05  Moritz  <moritz@gnu.org>
 
 	Renamed directory "common" to "util".

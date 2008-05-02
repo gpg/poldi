@@ -21,9 +21,9 @@ AM_CPPFLAGS =
 
 include $(top_srcdir)/am/cmacros.am
 
-noinst_LIBRARIES = libpoldi-util.a
+noinst_LIBRARIES = libpoldi-util.a libpoldi-util_shared.a
 
-libpoldi_util_a_SOURCES = \
+poldi_util_SOURCES = \
 	support.c support.h \
 	optparse.c optparse.h \
 	usersdb.c usersdb.h \
@@ -32,7 +32,7 @@ libpoldi_util_a_SOURCES = \
 	sexputil.c sexp-parse.h \
 	convert.c
 
-libpoldi_util_a_CFLAGS = \
+poldi_util_CFLAGS = \
 	-Wall -I$(top_builddir)/src/include \
 	-I$(top_srcdir)/src/include -I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/include -I$(top_srcdir)/src \
@@ -40,6 +40,11 @@ libpoldi_util_a_CFLAGS = \
 
 BUILT_SOURCES = \
 	defs.h
+
+libpoldi_util_a_CFLAGS = $(poldi_util_CFLAGS)
+libpoldi_util_shared_a_CFLAGS = -fPIC $(poldi_util_CFLAGS)
+libpoldi_util_a_SOURCES = $(poldi_util_SOURCES)
+libpoldi_util_shared_a_SOURCES = $(poldi_util_SOURCES)
 
 generate = \
 	sed \
