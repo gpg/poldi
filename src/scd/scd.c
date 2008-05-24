@@ -36,11 +36,11 @@
 #include <sys/wait.h>
 #endif
 
-#include <assuan.h>
 #include <gpg-error.h>
 #include <gcrypt.h>
 
 #include "scd.h"
+#include "assuan.h"
 #include "util/util.h"
 #include "util/membuf.h"
 #include "util/support.h"

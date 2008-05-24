@@ -33,10 +33,11 @@ poldi_util_SOURCES = \
 	convert.c
 
 poldi_util_CFLAGS = \
-	-Wall -I$(top_builddir)/src/include \
-	-I$(top_srcdir)/src/include -I$(top_srcdir)/src \
-	-I$(top_srcdir)/src/include -I$(top_srcdir)/src \
-	$(LIBGCRYPT_CFLAGS) $(GPG_ERROR_CFLAGS)
+	-Wall \
+	-I$(top_builddir) \
+	-I$(top_srcdir)/src \
+	 $(GPG_ERROR_CFLAGS) \
+	$(LIBGCRYPT_CFLAGS)
 
 BUILT_SOURCES = \
 	defs.h

@@ -32,9 +32,6 @@ VERSION=$PACKAGE_VERSION
 NEED_LIBGCRYPT_VERSION=0
 NEED_GPG_ERROR_VERSION=0.7
 
-NEED_LIBASSUAN_API=1
-NEED_LIBASSUAN_VERSION=0.9.3
-
 NEED_KSBA_API=1
 NEED_KSBA_VERSION=1.0.2
 
@@ -60,7 +57,6 @@ AC_GNU_SOURCE
 
 have_gpg_error=no
 have_libgcrypt=no 
-have_libassuan=no
 have_ksba=no
 
 POLDI_ENABLE_FEATURE(enable_auth_x509, yes, x509-auth, support for X509 authentication)
@@ -115,8 +111,6 @@ AM_PATH_LIBGCRYPT("$NEED_LIBGCRYPT_VERSION",
                   have_libgcrypt=yes,have_libgcrypt=no)
 AM_PATH_GPG_ERROR("$NEED_GPG_ERROR_VERSION",
                   have_gpg_error=yes,have_gpg_error=no)
-AM_PATH_LIBASSUAN("$NEED_LIBASSUAN_API:$NEED_LIBASSUAN_VERSION",
-                  have_libassuan=yes,have_libassuan=no)
 AM_PATH_KSBA("$NEED_KSBA_API:$NEED_KSBA_VERSION",have_ksba=yes,have_ksba=no)
 
 #
@@ -187,6 +181,32 @@ AC_DEFINE(HAVE_JNLIB_LOGGING, 1,
          [Defined if jnlib style logging fucntions are available])
 
 #
+# Taken from libassuan source package
+#
+
+#AC_DEFINE(HAVE_DOSISH_SYSTEM,0,[We do not run here])
+#AC_UNDEFINE(HAVE_W32_SYSTEM),0, [We do not run here])
+AC_CHECK_HEADERS([string.h locale.h sys/uio.h])
+AC_TYPE_SIGNAL
+#AC_DEFINE(USE_DESCRIPTOR_PASSING, 0, [We do not need this feature])
+AC_REPLACE_FUNCS(setenv)
+# Check for funopen
+AC_CHECK_FUNCS(funopen)
+if test $ac_cv_func_funopen != yes; then
+    # No funopen but we can implement that in terms of fopencookie.
+    AC_CHECK_FUNCS(fopencookie)
+    if test $ac_cv_func_fopencookie = yes; then
+        AC_LIBOBJ([funopen])
+    else
+        AC_MSG_WARN([
+***
+*** No implementation of fopencookie or funopen available.
+*** The assuan_get_data_fp feature won't work.
+***])
+    fi
+fi
+
+#
 # Decide what to build
 #
 
@@ -228,16 +248,6 @@ if test "$have_libgcrypt" = "no"; then
 *** (at least version $NEED_LIBGCRYPT_VERSION is required.)
 ***]])
 fi
-if test "$have_libassuan" = "no"; then
-   die=yes
-   AC_MSG_NOTICE([[
-***
-*** You need libassuan to build this program.
-*** This library is for example available at
-***   ftp://ftp.gnupg.org/gcrypt/libassuan/
-*** (at least version $NEED_LIBASSUAN_VERSION (API $NEED_LIBASSUAN_API) is required).
-***]])
-fi
 if test "$have_ksba" = "no"; then
    AC_MSG_NOTICE([[
 ***
@@ -259,6 +269,7 @@ AC_CONFIG_FILES([Makefile
 		 m4/Makefile
 		 am/Makefile
 		 src/Makefile
+		 src/assuan/Makefile
 		 src/jnlib/Makefile
 		 src/util/Makefile
 		 src/scd/Makefile

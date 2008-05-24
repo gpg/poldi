@@ -62,8 +62,8 @@
        Use a double fork approach when connecting to a server through
        a pipe.
  */
-#define _ASSUAN_EXT_SYM_PREFIX _poldi_
-#define _ASSUAN_ONLY_GPG_ERRORS
+#define _ASSUAN_EXT_SYM_PREFIX poldi_
+//#define _ASSUAN_ONLY_GPG_ERRORS
 #define _ASSUAN_NO_PTH 
 #define _ASSUAN_NO_SOCKET_WRAPPER
 /* FIXME: is NO_FIXED_SIGNALS needed for Poldi? -mo */

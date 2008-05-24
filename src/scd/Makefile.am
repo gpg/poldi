@@ -7,11 +7,12 @@ EXTRA_DIST = README
 
 scd_CFLAGS = \
 	-Wall \
-	$(GPG_ERROR_CFLAGS) \
-	$(LIBASSUAN_CFLAGS) \
-	$(LIBGCRYPT_CFLAGS) \
+	-I$(top_builddir) \
 	-I$(top_srcdir)/src \
-	-I$(top_srcdir)/src/util
+	-I$(top_srcdir)/src/assuan \
+	-I$(top_srcdir)/src/util \
+	$(GPG_ERROR_CFLAGS) \
+	$(LIBGCRYPT_CFLAGS)
 
 scd_SOURCES = scd.c scd.h
 

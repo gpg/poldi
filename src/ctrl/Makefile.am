@@ -25,14 +25,16 @@ bin_PROGRAMS = poldi-ctrl
 poldi_ctrl_SOURCES = poldi-ctrl.c
 poldi_ctrl_CFLAGS = \
 	-Wall \
-	-I$(top_srcdir)/src -I$(top_srcdir)/src/common \
-	-I$(top_builddir)/src -I$(top_builddir) \
-	$(LIBGCRYPT_CFLAGS) \
-	$(GPG_ERROR_CFLAGS)
+	-I$(top_builddir) \
+	-I$(top_srcdir)/src \
+	-I$(top_builddir)/src \
+	-I$(top_srcdir)/util \
+	-I$(top_srcdir)/src/assuan \
+	$(GPG_ERROR_CFLAGS) \
+	$(LIBGCRYPT_CFLAGS)
 
 poldi_ctrl_LDADD = \
-	../scd/libscd.a ../util/libpoldi-util.a ../jnlib/libjnlib.a \
+	../scd/libscd.a ../util/libpoldi-util.a ../jnlib/libjnlib.a ../assuan/libassuan.a \
 	$(LIBGCRYPT_LDFLAGS) \
 	$(LIBGCRYPT_LIBS) \
-	$(GPG_ERROR_LIBS) \
-	$(LIBASSUAN_LIBS)
+	$(GPG_ERROR_LIBS)

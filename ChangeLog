@@ -1,3 +1,12 @@
+2008-05-24  Moritz  <moritz@gnu.org>
+
+	Some build fixes related to Assuan (mostly correctings include paths in Makefile.am's).
+
+2008-05-03  Moritz  <moritz@gnu.org>
+
+	* configure.ac: Added tests for included libassuan.  Removed code
+	for installed libassuan.
+
 2008-04-05  Moritz  <moritz@gnu.org>
 
 	* configure.ac: Renamed auth method simpledb to localdb.  Removed

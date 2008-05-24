@@ -1,34 +1,32 @@
 Dunno:
 * dirmngr!
 
-Documentation:
-* write poldi-x509-ca howto
-* improve doc
-* decide on naming convention for conf files in Poldi manual
-* write tutorial on migration from poldi 0.3 to poldi 0.4/0.5.
-* draw diagram explaining the source components and their interaction?
+Final:
+* poldi mit anderen karten!
+* allow for Dirmngr to be started on demand (in pipe mode) (NO <- Why?!)
 
 Low priority:
+* decide on naming convention for conf files in Poldi manual
+* improve doc
 * work on MIGRATION text
 * fix install-conf-skeleton (does nothing for x509?)
 * better (new?) error codes
 * poldi-ctrl --print-config?
 * verify we don't need pam_sm_setcred
 * poldi shouldn't contain any global state (explain why), reference needed
-* figure out what exactly the dependencies on the OpenPGP smartcard are.
+!* figure out what exactly the dependencies on the OpenPGP smartcard are.
 * conf skeleton for x509 method?
 * decide on pam-poldi.h common header file for all poldi sources
 * add logging prefix "[Poldi]" automatically? how about conv calls?
 * do we want to respect conv_tell error codes or should it be void?
 * give user a chance to enter PIN twice?
-* PIN-less authentication mechanism?
+!* PIN-less authentication mechanism?
 * check if information on Applications in the manual are still uptodate.
-* figure what needs to be done for enabling LTSP logins through Poldi (interesting!)
-* allow for Dirmngr to be started on demand (in pipe mode)?
+!* figure what needs to be done for enabling LTSP logins through Poldi (interesting!)
 * allow user to override scdaemon to use through environment variables
   or something (probably required for ltsp).
 * print signature counter on login?
-* what does "6 characters minimum" mean in openpgp-card.pdf? is it "bytes" or really "utf8 characters"?
+!* what does "6 characters minimum" mean in openpgp-card.pdf? is it "bytes" or really "utf8 characters"?
 * shall we really forbid to use non-digit characters in PIN?
 
 High priority:
@@ -40,4 +38,3 @@ High priority:
 * cleanup/verify scd_pksign()
 * verify it works in keypad mode (this needs more thinking, since we
   do not use the pinentry in poldi)
-

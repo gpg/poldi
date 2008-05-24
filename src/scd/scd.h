@@ -22,8 +22,8 @@
 #ifndef POLDI_SCD_H
 #define POLDI_SCD_H
 
-#include <assuan.h>
 #include <gcrypt.h>
+#include "assuan.h"
 
 struct scd_context;
 

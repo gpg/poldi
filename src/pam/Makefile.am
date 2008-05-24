@@ -22,15 +22,22 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src \
 	-I$(top_builddir)/src/pam \
 	-I$(top_builddir)/src \
-	-I$(top_builddir)
+	-I$(top_builddir) \
+	-I$(top_srcdir)/src/assuan
+
 
 include $(top_srcdir)/am/cmacros.am
 
 PAM_MODULE_DIRECTORY = @PAM_MODULE_DIRECTORY@
 
 AM_CFLAGS = \
-	-Wall -fPIC \
-	 $(LIBGCRYPT_CFLAGS) $(GPG_ERROR_CFLAGS) $(KSBA_CFLAGS)
+	-fPIC \
+	-Wall \
+	-I$(top_builddir) \
+	-I$(top_srcdir)/src \
+	-I$(top_srcdir)/util \
+	$(GPG_ERROR_CFLAGS) \
+	$(LIBGCRYPT_CFLAGS)
 
 AUTH_METHODS =
 AUTH_METHODS_LIBS =

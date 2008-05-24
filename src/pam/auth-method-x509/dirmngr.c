@@ -29,9 +29,9 @@
 #include <ctype.h>
 
 #include <gcrypt.h>
-#include <assuan.h>
 #include <ksba.h>
 
+#include "assuan.h"
 #include "util/util.h"
 #include "util/membuf.h"
 #include "dirmngr.h"

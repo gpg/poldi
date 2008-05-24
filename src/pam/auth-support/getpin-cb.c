@@ -34,8 +34,8 @@
 #include <time.h>
 
 #include <gcrypt.h>
-#include <assuan.h>
 
+#include "assuan.h"
 #include "util/support.h"
 #include "util/defs.h"
 #include <i18n.h>
