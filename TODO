@@ -2,17 +2,21 @@ Dunno:
 * dirmngr!
 
 Final:
-* poldi mit anderen karten!
 * allow for Dirmngr to be started on demand (in pipe mode) (NO <- Why?!)
 
 Low priority:
+* poldi mit anderen karten!
 * decide on naming convention for conf files in Poldi manual
 * improve doc
 * work on MIGRATION text
 * fix install-conf-skeleton (does nothing for x509?)
 * better (new?) error codes
 * poldi-ctrl --print-config?
-* verify we don't need pam_sm_setcred
+* verify we don't need pam_sm_setcred; i still don't get what this
+  call is needed for - most PAM modules in Linux-PAM implement it as a
+  dummy.
+* Note: currently Poldi ignores the expired flag on authentication keys.
+
 * poldi shouldn't contain any global state (explain why), reference needed
 !* figure out what exactly the dependencies on the OpenPGP smartcard are.
 * conf skeleton for x509 method?
@@ -28,6 +32,7 @@ Low priority:
 * print signature counter on login?
 !* what does "6 characters minimum" mean in openpgp-card.pdf? is it "bytes" or really "utf8 characters"?
 * shall we really forbid to use non-digit characters in PIN?
+* improve/verify internatinalization
 
 High priority:
 * getpin/pincb interface: info strings?  tell user about CHV number?
@@ -36,5 +41,5 @@ High priority:
 * i18n, gettext??
 * clearify: are there any problems with PAM in respect to serialization?
 * cleanup/verify scd_pksign()
-* verify it works in keypad mode (this needs more thinking, since we
-  do not use the pinentry in poldi)
+* verify it works in keypad mode
+* verify changes to logging.c (related to syslog) are okay.

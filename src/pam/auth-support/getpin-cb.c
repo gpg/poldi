@@ -1,22 +1,21 @@
-/* support.c - PAM authentication via OpenPGP smartcards.
+/* getpin-cb.c - getpin Assuan Callback (Poldi)
    Copyright (C) 2004, 2005, 2007, 2008 g10 Code GmbH
  
    This file is part of Poldi.
-  
+ 
    Poldi is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
+   the Free Software Foundation; either version 3 of the License, or
    (at your option) any later version.
-  
+ 
    Poldi is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
-  
+ 
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-   02111-1307, USA.  */
+   along with this program; if not, see
+   <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
 
@@ -38,7 +37,7 @@
 #include "assuan.h"
 #include "util/support.h"
 #include "util/defs.h"
-#include <i18n.h>
+#include "i18n.h"
 #include "util/util.h"
 #include "jnlib/stringhelp.h"
 #include "jnlib/logging.h"
@@ -76,6 +75,8 @@ query_user (conv_t conv, const char *info, char *pin, size_t pin_size)
       if (rc)
 	goto out;
 
+      log_error ("pin retrieved: '%s'\n", buffer);
+
       /* Do some basic checks on the entered PIN - shall we really
 	 forbid to use non-digit characters in PIN? */
       if (strlen (buffer) < 6)	/* FIXME? is it really minimum of 6 bytes? */
@@ -95,7 +96,8 @@ query_user (conv_t conv, const char *info, char *pin, size_t pin_size)
       goto out;
     }
 
-  strcpy (pin, buffer);
+  strncpy (pin, buffer, pin_size - 1);
+  pin[pin_size-1] = 0;
 
  out:
 
@@ -113,7 +115,7 @@ keypad_mode_enter (conv_t conv)
 {
   int rc;
 
-  rc = conv_tell (conv, "popup message start");
+  rc = conv_tell (conv, "Please enter PIN on keypad");
 
   return rc;
 }
@@ -121,11 +123,15 @@ keypad_mode_enter (conv_t conv)
 static int
 keypad_mode_leave (conv_t conv)
 {
+#if 0
   int rc;
 
   rc = conv_tell (conv, "popup message stop");
 
   return rc;
+#else
+  return 0;
+#endif
 }
 
 /* Callback used to ask for the PIN which should be set into BUF.  The

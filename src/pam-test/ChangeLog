@@ -1,3 +1,7 @@
+2008-05-25  Moritz  <moritz@gnu.org>
+
+	* pam-test.c: Added GPL3 header.
+
 2007-12-15  Moritz Schulte  <moritz@g10code.com>
 
 	* pam-test.c: Slightly polished, uses getopt now.

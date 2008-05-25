@@ -20,9 +20,6 @@
 #include <config.h>
 
 #include <gpg-error.h>
-#include <security/pam_modules.h>
-
-//#include "ctx.h"
 
 #define PAM_SM_AUTH
 #include <security/pam_modules.h>

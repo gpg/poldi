@@ -238,6 +238,7 @@ cmd_dump (void)
   /* Connect.  */
 
   err = scd_connect (&ctx,
+		     NULL,
 		     getenv ("GPG_AGENT_INFO"),
 		     NULL,
 		     0);
@@ -336,6 +337,7 @@ cmd_print_key (void)
   /* Connect.  */
 
   err = scd_connect (&ctx,
+		     NULL,
 		     getenv ("GPG_AGENT_INFO"),
 		     NULL,
 		     0);
@@ -391,6 +393,7 @@ cmd_print_serialno (void)
   /* Connect.  */
 
   err = scd_connect (&ctx,
+		     NULL,
 		     getenv ("GPG_AGENT_INFO"),
 		     NULL,
 		     0);
@@ -439,6 +442,7 @@ cmd_print_config (void)
   /* Connect.  */
 
   err = scd_connect (&ctx,
+		     NULL,
 		     getenv ("GPG_AGENT_INFO"),
 		     NULL,
 		     0);

@@ -2,21 +2,20 @@
    Copyright (C) 2004, 2005, 2007, 2008 g10 Code GmbH
  
    This file is part of Poldi.
-  
+ 
    Poldi is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
+   the Free Software Foundation; either version 3 of the License, or
    (at your option) any later version.
-  
+ 
    Poldi is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
-  
-   You should have received a copy of the GNU Lesser General Public
-   License along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-   02111-1307, USA.  */
+ 
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, see
+   <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
 
@@ -28,28 +27,21 @@
 #define PAM_SM_AUTH
 #include <security/pam_modules.h>
 
-//#include "poldi-ctx.h"
-
 #include "auth-methods.h"
 #include "conv.h"
 #include "util/util.h"
 
 #include "scd/scd.h"
-//#include "util/util.h"
 #include "util/support.h"
 #include "auth-support/ctx.h"
 #include "auth-support/getpin-cb.h"
 #include "auth-support/wait-for-card.h"
-//#include "wait-for-card.h"
-//#include "auth-support/conv.h"
 #include "auth-support/pam-util.h"
 
 #include "usersdb.h"
 #include "key-lookup.h"
 
 
-
-//static struct scd_cardinfo cardinfo_null;
 
 #if 0
 static gpg_error_t
@@ -90,6 +82,8 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
   char *card_username;
   const char *username;
   struct getpin_cb_data cb_data;
+
+  card_username = NULL;
 
   challenge = NULL;
   response = NULL;

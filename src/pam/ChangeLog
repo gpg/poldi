@@ -1,3 +1,14 @@
+2008-05-25  Moritz  <moritz@gnu.org>
+
+	Some cleanups, added GPL3 headers.
+
+	* pam_poldi.c: New conf options: arg_scdaemon_socket, arg_scdaemon_program.
+	(pam_poldi_options_cb): Handle new options.
+	(create_context): Initialize new context struct members.
+	(destroy_context): Release them.
+	(pam_sm_authenticate): Pass scdaemon_socket and scdaemon_program to scd_connect.
+	(auth_method_lookup): Return -1 in case the auth method could not be found.
+
 2008-05-03  Moritz  <moritz@gnu.org>
 
 	* Makefile.am: Link pam_poldi.so against shared library version of

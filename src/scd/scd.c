@@ -1,24 +1,22 @@
-/* call-scd.c - Interface to Scdaemon
- *	Copyright (C) 2001, 2002, 2005 Free Software Foundation, Inc.
- *	Copyright (C) 2007, 2008 g10code GmbH. 
- *
- * This file is part of Poldi.
- *
- * Poldi is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * Poldi is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA.
- */
+/* scd.c - Interface to Scdaemon
+   Copyright (C) 2001, 2002, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2008 g10code GmbH. 
+
+   This file is part of Poldi.
+ 
+   Poldi is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
+ 
+   Poldi is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+ 
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, see
+   <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
 
@@ -237,10 +235,14 @@ get_scd_socket_from_agent (const char *agent_infostr, char **socket_name)
 
 
 
-/* Try to connect to the agent via socket or fork it off and work by
-   pipes.  Returns proper error code or zero on success.  */
+/* Try to connect to scdaemon.  We support three methods to access
+   scdaemon.  First: connect to a specified socket, second: connect to
+   a running gpg-agent, retrieve scdaemon socket name through the
+   agent and connect to that socket, third: fork of a new scdaemon.
+   Returns proper error code or zero on success.  */
 int
 scd_connect (scd_context_t *scd_ctx,
+	     const char *scdaemon_socket,
 	     const char *agent_infostr,
 	     const char *scd_path,
 	     unsigned int flags)
@@ -261,9 +263,43 @@ scd_connect (scd_context_t *scd_ctx,
   ctx->assuan_ctx = NULL;
   ctx->flags = 0;
 
-  if (!agent_infostr || !*agent_infostr)
+  if (scdaemon_socket)
     {
-      /* Start new scdaemon.  */
+      /* This has the highest priority; connect to system scdaemon. */
+
+      rc = assuan_socket_connect (&assuan_ctx, scdaemon_socket, 0);
+      if (!rc)
+	{
+	  log_debug ("connected to system scdaemon through socket '%s'\n", scdaemon_socket);
+	  goto out;
+	}
+    }
+
+  if (agent_infostr && *agent_infostr)
+    {
+      /* Somehow connecting to a system scdaemon didn't work.  Try to
+	 retrieve a scdaemon socket name from gpg-agent. */
+
+      char *scd_socket;
+
+      rc = get_scd_socket_from_agent (agent_infostr, &scd_socket);
+      if (!rc)
+	rc = assuan_socket_connect (&assuan_ctx, scd_socket, 0);
+
+      if (!rc)
+	log_debug ("got scdaemon socket name from gpg-agent, connected to socket '%s'\n",
+		   scd_socket);
+      
+      xfree (scd_socket);
+
+      if (!rc)
+	goto out;
+    }
+
+  if (1)
+    {
+      /* Neither of the above scdaemon connect methods worked,
+	 fallback: spawn a new scdaemon.  */
 
       const char *pgmname;
       const char *argv[3];
@@ -300,37 +336,14 @@ scd_connect (scd_context_t *scd_ctx,
       /* connect to the agent and perform initial handshaking */
       rc = assuan_pipe_connect (&assuan_ctx, scd_path, argv,
                                 no_close_list);
-    }
-  else
-    {
-      /* Try to connect to agent and receive scdaemon socket name
-	 through agent.  */
-
-      char *scd_socket;
-
-      rc = get_scd_socket_from_agent (agent_infostr, &scd_socket);
-      if (! rc)
-	rc = assuan_socket_connect (&assuan_ctx, scd_socket, 0);
-
-      xfree (scd_socket);
+      if (!rc)
+	{
+	  log_debug ("spawned a new scdaemon (path: '%s')\n", scd_path);
+	  goto out;
+	}
     }
 
-  if (rc)
-    {
-      log_error ("can't connect to the agent: %s\n", gpg_strerror (rc));
-      goto out;
-    }
-
-  scd_serialno_internal (assuan_ctx, 0, NULL);
-  /* Ignore error here (card must not be present, for example).  */
-#if 0
-  if (rc)
-    {
-      log_error ("initial serialno cmd for scdaemon failed: %s\n",
-		 gpg_strerror (rc));
-      goto out;
-    }
-#endif
+  log_error ("could not connect to any scdaemon: %s\n", gpg_strerror (rc));
 
  out:
 
@@ -342,6 +355,7 @@ scd_connect (scd_context_t *scd_ctx,
     }
   else
     {
+      scd_serialno_internal (assuan_ctx, 0, NULL);
       ctx->assuan_ctx = assuan_ctx;
       ctx->flags = flags;
       *scd_ctx = ctx;

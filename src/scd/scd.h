@@ -1,23 +1,21 @@
-/* call-scd.c - Interface to Scdaemon
- *	Copyright (C) 2007, 2008 g10code GmbH. 
- *
- * This file is part of Poldi.
- *
- * Poldi is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * Poldi is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA.
- */
+/* scd.h - Interface to Scdaemon
+   Copyright (C) 2007, 2008 g10code GmbH. 
+
+   This file is part of Poldi.
+ 
+   Poldi is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
+ 
+   Poldi is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+ 
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, see
+   <http://www.gnu.org/licenses/>.  */
 
 #ifndef POLDI_SCD_H
 #define POLDI_SCD_H
@@ -50,6 +48,7 @@ typedef struct scd_cardinfo scd_cardinfo_t;
 /* Try to connect to the agent via socket or fork it off and work by
    pipes.  Returns proper error code or zero on success.  */
 int scd_connect (scd_context_t *scd_ctx,
+		 const char *scdaemon_socket,
 		 const char *agent_infostr,
 		 const char *scd_path,
 		 unsigned int flags);

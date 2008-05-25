@@ -2,21 +2,20 @@
    Copyright (C) 2004, 2005, 2007, 2008 g10 Code GmbH
  
    This file is part of Poldi.
-  
+ 
    Poldi is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
+   the Free Software Foundation; either version 3 of the License, or
    (at your option) any later version.
-  
+ 
    Poldi is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
-  
-   You should have received a copy of the GNU Lesser General Public
-   License along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-   02111-1307, USA.  */
+ 
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, see
+   <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
 
@@ -38,10 +37,11 @@
 #include "util/optparse.h"
 #include "util/defs.h"
 #include "scd/scd.h"
+
+#include "auth-support/wait-for-card.h"
+#include "auth-support/pam-util.h"
 #include "auth-support/conv.h"
 #include "auth-methods.h"
-#include "auth-support/pam-util.h"
-#include "auth-support/wait-for-card.h"
 
 
 
@@ -51,15 +51,16 @@
 
 /* Auth methods list.  */
 
+/* Declare authentication methods.  */
+extern struct auth_method_s auth_method_localdb;
+extern struct auth_method_s auth_method_x509;
+
+/* List element type for AUTH_METHODS list.  */
 struct auth_method
 {
   const char *name;
   auth_method_t method;
 };
-
-/* Declare authentication methods.  */
-extern struct auth_method_s auth_method_localdb;
-extern struct auth_method_s auth_method_x509;
 
 /* List, associating authenting method definitions with their
    names.  */
@@ -85,6 +86,8 @@ enum arg_opt_ids
   {
     arg_logfile = 500,
     arg_auth_method,
+    arg_scdaemon_socket,
+    arg_scdaemon_program,
     arg_debug
   };
 
@@ -97,6 +100,10 @@ static ARGPARSE_OPTS arg_opts[] =
       "auth-method", 2, "|NAME|Specify authentication method" },
     { arg_debug,
       "debug", 256, "Enable debugging messages" },
+    { arg_scdaemon_socket,
+      "scdaemon-socket", 2, "|SOCKET|Specify socket of system scdaemon" },
+    { arg_scdaemon_program,
+      "scdaemon-program", 2, "|PATH|Specify scdaemon executable to use" },
     { 0 }
   };
 
@@ -105,13 +112,16 @@ static ARGPARSE_OPTS arg_opts[] =
 static int
 auth_method_lookup (const char *name)
 {
-  int i = -1;
+  int i;
 
   for (i = 0; auth_methods[i].name; i++)
     if (strcmp (auth_methods[i].name, name) == 0)
       break;
 
-  return i;
+  if (auth_methods[i].name)
+    return i;
+  else
+    return -1;
 }
 
 /* Callback for authentication method independent option parsing. */
@@ -134,6 +144,28 @@ pam_poldi_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 	}
       break;
 
+      /* SCDAEMON-SOCKET.  */
+    case arg_scdaemon_socket:
+      ctx->scdaemon_socket = strdup (parg->r.ret_str);
+      if (!ctx->scdaemon_socket)
+	{
+	  err = gpg_error_from_errno (errno);
+	  log_error ("failed to strdup scdaemon socket name: %s\n",
+		     gpg_strerror (err));
+	}
+      break;
+
+      /* SCDAEMON-PROGRAM.  */
+    case arg_scdaemon_program:
+      ctx->scdaemon_program = strdup (parg->r.ret_str);
+      if (!ctx->scdaemon_program)
+	{
+	  err = gpg_error_from_errno (errno);
+	  log_error ("failed to strdup scdaemon program name: %s\n",
+		     gpg_strerror (err));
+	}
+      break;
+
       /* AUTH-METHOD.  */
     case arg_auth_method:
       {
@@ -143,8 +175,8 @@ pam_poldi_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 	else
 	  {
 	    /* FIXME, better error handling? */
-	    log_error ("unknown auth-method in conffile `%s'\n", parg->r.ret_str);
 	    err = GPG_ERR_GENERAL;
+	    log_error ("unknown auth-method in conffile `%s'\n", parg->r.ret_str);
 	  }
       }
       break;
@@ -186,6 +218,8 @@ create_context (poldi_ctx_t *context)
   ctx->auth_method = -1;
   ctx->cookie = NULL;
   ctx->debug = 0;
+  ctx->scdaemon_socket = NULL;
+  ctx->scdaemon_program = NULL;
   ctx->scd = NULL;
   ctx->pam_handle = NULL;
   ctx->conv = NULL;
@@ -199,6 +233,7 @@ create_context (poldi_ctx_t *context)
   return err;
 }
 
+/* Deallocates resources associated with context CTX. */
 static void
 destroy_context (poldi_ctx_t ctx)
 {
@@ -207,6 +242,10 @@ destroy_context (poldi_ctx_t ctx)
       scd_disconnect (ctx->scd);
       if (ctx->logfile)
 	free (ctx->logfile);
+      if (ctx->scdaemon_socket)
+	free (ctx->scdaemon_socket);
+      if (ctx->scdaemon_program)
+	free (ctx->scdaemon_program);
       scd_release_cardinfo (ctx->cardinfo);
       free (ctx);
     }
@@ -326,12 +365,16 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 	  || (auth_methods[ctx->auth_method].method->func_parsecb
 	      && auth_methods[ctx->auth_method].method->arg_opts));
 
+  if (ctx->debug)
+    {
+      log_info ("using authentication method `%s'\n",
+		auth_methods[ctx->auth_method].name);
+      if (ctx->scdaemon_socket)
+	log_info ("using system scdaemon; socket is '%s'\n", ctx->scdaemon_socket);
+    }
+
   /*** Init authentication method.  ***/
   
-  if (ctx->debug)
-    log_info ("using authentication method `%s'\n",
-	      auth_methods[ctx->auth_method].name);
-
   if (auth_methods[ctx->auth_method].method->func_init)
     {
       err = (*auth_methods[ctx->auth_method].method->func_init) (&ctx->cookie);
@@ -386,7 +429,9 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
   /*** Connect to Scdaemon. ***/
 
-  err = scd_connect (&scd_ctx, getenv ("GPG_AGENT_INFO"), NULL, 0);
+  err = scd_connect (&scd_ctx,
+		     ctx->scdaemon_socket, getenv ("GPG_AGENT_INFO"),
+		     ctx->scdaemon_program, 0);
   if (err)
     goto out;
 

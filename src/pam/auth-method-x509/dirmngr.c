@@ -36,6 +36,8 @@
 #include "util/membuf.h"
 #include "dirmngr.h"
 
+/* FIXME: compare with original file, figure out why these are not
+   needed. */
 //#include "i18n.h"
 //#include "keydb.h"
 //#include "fingerprint.h"

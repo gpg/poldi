@@ -1,5 +1,5 @@
 /* pam-util.c - PAM util functions for Poldi.
- * Copyright (C) 2007 g10 Code GmbH
+ * Copyright (C) 2007, 2008 g10 Code GmbH
  *
  * This file is part of Poldi.
  *
@@ -21,8 +21,6 @@
 #define PAM_UTIL_H
 
 #include <gpg-error.h>
-
-//#include "ctx.h"
 
 #define PAM_SM_AUTH
 #include <security/pam_modules.h>

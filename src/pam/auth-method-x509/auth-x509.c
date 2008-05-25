@@ -39,7 +39,6 @@
 #include "auth-support/pam-util.h"
 #include "auth-methods.h"
 #include "util/defs.h"
-//#include "wait-for-card.h"
 
 
 

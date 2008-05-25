@@ -1,3 +1,9 @@
+2008-05-24  Moritz  <moritz@gnu.org>
+
+	* scd.c (scd_connect): Slightly rewritten; now allows for
+	connecting to specified scdaemon socket directly.
+	* scd.h (scd_connect): New parameter: scdaemon_socket.
+
 2008-05-01  Moritz  <moritz@gnu.org>
 
 	* Makefile.am: Build a shared and a nonshared version.
