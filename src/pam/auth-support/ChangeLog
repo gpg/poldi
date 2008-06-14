@@ -1,3 +1,10 @@
+2008-06-14  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.c (getpin_cb): New local variable: info_frobbed; use
+	frob_info_msg.
+	(frob_info_msg): New function.
+	(strcpy_escaped): New function, taken from Pinentry.
+
 2008-05-25  Moritz  <moritz@gnu.org>
 
 	Some cleanups, added GPL 3 headers.

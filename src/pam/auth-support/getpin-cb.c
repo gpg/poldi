@@ -75,19 +75,15 @@ query_user (conv_t conv, const char *info, char *pin, size_t pin_size)
       if (rc)
 	goto out;
 
-      log_error ("pin retrieved: '%s'\n", buffer);
-
       /* Do some basic checks on the entered PIN - shall we really
 	 forbid to use non-digit characters in PIN? */
       if (strlen (buffer) < 6)	/* FIXME? is it really minimum of 6 bytes? */
-	log_error ("invalid characters in PIN\n");
+	log_error ("invalid PIN\n");
       else if (!all_digitsp (buffer))
 	log_error ("invalid characters in PIN\n");
       else
 	break;
     }
-
-  /* FIXME: overflow possible? */
 
   if (strlen (buffer) >= pin_size)
     {
@@ -134,11 +130,53 @@ keypad_mode_leave (conv_t conv)
 #endif
 }
 
-/* Callback used to ask for the PIN which should be set into BUF.  The
-   buf has been allocated by the caller and is of size MAXBUF which
-   includes the terminating null.  The function should return an UTF-8
-   string with the passphrase, the buffer may optionally be padded
-   with arbitrary characters.
+/* This function is taken from pinentry.c.  */
+/* Note, that it is sufficient to allocate the target string D as
+   long as the source string S, i.e.: strlen(s)+1; */
+static void
+strcpy_escaped (char *d, const unsigned char *s)
+{
+  while (*s)
+    {
+      if (*s == '%' && s[1] && s[2])
+        { 
+          s++;
+          *d++ = xtoi_2 ( s);
+          s += 2;
+        }
+      else
+        *d++ = *s++;
+    }
+  *d = 0; 
+}
+
+/* Unescape special characters in INFO and write unescaped string into
+   newly allocated memory in *INFO_FROBBED.  Returns proper error
+   code.  */
+static gpg_error_t
+frob_info_msg (const char *info, char **info_frobbed)
+{
+  gpg_error_t err = 0;
+
+  *info_frobbed = malloc (strlen (info) + 1);
+  if (!*info_frobbed)
+    {
+      err = gpg_error_from_errno (errno);
+      goto out;
+    }
+
+  strcpy_escaped (*info_frobbed, info);
+
+ out:
+
+  return err;
+}
+
+/* Callback used to ask for the PIN which shall be written into BUF.
+   The buf has been allocated by the caller and is of size MAXBUF
+   which includes the terminating null.  The function should return an
+   UTF-8 string with the passphrase/PIN, the buffer may optionally be
+   padded with arbitrary characters.
 
    INFO gets displayed as part of a generic string.  However if the
    first character of INFO is a vertical bar all up to the next
@@ -151,7 +189,11 @@ int
 getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
 {
   struct getpin_cb_data *cb_data = opaque;
-  int rc;
+  char *info_frobbed;
+  int err;
+
+  info_frobbed = NULL;
+  err = 0;
 
 #if 0
   /* FIXME: why "< 2"? -mo */
@@ -159,16 +201,34 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
     return gpg_error (GPG_ERR_INV_VALUE);
 #endif
 
-  if (info && (info[0] == '|' && info[1] != '|'))
+  if (info)
     {
-      /* Weird that we received flags - they are neither expected nor
-	 implemented here.  */
-      log_error ("getpin_cb called with flags set in info string `%s'\n", info);
-      goto out;
+      if (info[0] == '|')
+	{
+	  if (info[1] == '|')
+	    /* Skip "||" at the beginning.  */
+	    info += 2;
+	  else
+	    {
+	      /* Weird that we received flags - they are neither expected nor
+		 implemented here.  */
+	      log_error ("getpin_cb called with flags set in info string `%s'\n", info);
+	      err = gpg_error (GPG_ERR_INV_VALUE); /* FIXME? */
+	      goto out;
+	    }
+	}
+      err = frob_info_msg (info, &info_frobbed);
+      if (err)
+	{
+	  log_error ("frob_info_msg failed for info msg of size of size %u\n",
+		     (unsigned int) strlen (info));
+	  goto out;
+	}
     }
 
   if (buf)
-    rc = query_user (cb_data->conv, info, buf, maxbuf);
+    /* No info message? Use a very simple hard-coded default.  */
+    err = query_user (cb_data->conv, info_frobbed ? info_frobbed : "PIN", buf, maxbuf);
   else
     {
       /* Special handling for keypad mode hack. */
@@ -176,18 +236,20 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
       /* If BUF has been passed as NULL, we are in keypad mode: the
 	 callback notifies the user and immediately returns.  */
       if (maxbuf == 0) /* Close the pinentry. */
-	rc = keypad_mode_leave (cb_data->conv);
+	err = keypad_mode_leave (cb_data->conv);
       else if (maxbuf == 1)  /* Open the pinentry. */
-	rc = keypad_mode_enter (cb_data->conv);
+	err = keypad_mode_enter (cb_data->conv);
       else
-        rc = gpg_error (GPG_ERR_INV_VALUE); /* FIXME: must signal
+        err = gpg_error (GPG_ERR_INV_VALUE); /* FIXME: must signal
 					       internal error(!)
 					       -mo */
     }
 
  out:
 
-  return rc;
+  free (info_frobbed);
+
+  return err;
 }
 
 /* END */
