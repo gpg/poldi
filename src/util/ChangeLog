@@ -1,5 +1,10 @@
 2008-07-20  Moritz  <moritz@gnu.org>
 
+	* sexputil, sexp-parse.h: Removed files.
+	* Makefile.am: dito.
+
+2008-07-20  Moritz  <moritz@gnu.org>
+
 	* Makefile.am (poldi_util_SOURCES): added util-local.h,
 	simplelog.c, simplelog.h, simpleparse.c, simpleparse.h,
 	filenames.c, filenames.h.

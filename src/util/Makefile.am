@@ -28,7 +28,6 @@ poldi_util_SOURCES = \
 	support.c support.h \
 	membuf.c membuf.h \
 	util.h i18n.h \
-	sexputil.c sexp-parse.h \
 	convert.c \
 	simplelog.c simplelog.h \
 	simpleparse.c simpleparse.h \
