@@ -1,11 +1,16 @@
 2008-07-20  Moritz  <moritz@gnu.org>
 
+	* dirmngr.c: Removed two unused struct definitions.
+
+2008-07-20  Moritz  <moritz@gnu.org>
+
 	* dirmngr.c: Include poldi.h and simplelog.h.
 	(struct dirmngr_ctx_s): New member: log_handle.
 	(dirmngr_connect): Tages new parameter: log_handle; insteall
 	log_handle in new context.
 	(struct inq_cert_parm_s): Replaced assuan_context_t ctx member
 	with dirmngr_ctx_t ctx.
+
 	* dirmngr.h: Adjusted for new dirmngr_connect API; include
 	simplelog.h.
 

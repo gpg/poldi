@@ -56,20 +56,6 @@ struct dirmngr_ctx_s
   log_handle_t log_handle;
 };
 
-#if 0
-struct inq_certificate_parm_s {
-  assuan_context_t ctx;
-  ksba_cert_t cert;
-  ksba_cert_t issuer_cert;
-};
-
-struct isvalid_status_parm_s {
-  //ctrl_t ctrl;
-  int seen;
-  unsigned char fpr[20];
-};
-#endif
-
 struct lookup_parm_s {
   /* FIXME? */
   //assuan_context_t ctx;
