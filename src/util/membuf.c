@@ -1,11 +1,11 @@
 /* membuf.c - A simple implementation of a dynamic buffer
- *	Copyright (C) 2001, 2003 Free Software Foundation, Inc.
+ *	Copyright (C) 2001, 2003, 2008 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
  *
  * GnuPG is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * GnuPG is distributed in the hope that it will be useful,
@@ -14,12 +14,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
- * USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
+#include "util-local.h"
+
 #include <stdlib.h>
 #include <errno.h>
 
@@ -52,7 +51,7 @@ init_membuf_secure (membuf_t *mb, int initiallen)
   mb->len = 0;
   mb->size = initiallen;
   mb->out_of_core = 0;
-  mb->buf = xtrymalloc (initiallen);
+  mb->buf = xtrymalloc_secure (initiallen);
   if (!mb->buf)
     mb->out_of_core = errno;
 }
@@ -84,6 +83,13 @@ put_membuf (membuf_t *mb, const void *buf, size_t len)
     }
   memcpy (mb->buf + mb->len, buf, len);
   mb->len += len;
+}
+
+
+void
+put_membuf_str (membuf_t *mb, const char *string)
+{
+  put_membuf (mb, string, strlen (string));
 }
 
 

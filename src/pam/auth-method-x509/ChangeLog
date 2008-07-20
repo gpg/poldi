@@ -1,0 +1,49 @@
+2008-07-20  Moritz  <moritz@gnu.org>
+
+	* dirmngr.c: Include poldi.h and simplelog.h.
+	(struct dirmngr_ctx_s): New member: log_handle.
+	(dirmngr_connect): Tages new parameter: log_handle; insteall
+	log_handle in new context.
+	(struct inq_cert_parm_s): Replaced assuan_context_t ctx member
+	with dirmngr_ctx_t ctx.
+	* dirmngr.h: Adjusted for new dirmngr_connect API; include
+	simplelog.h.
+
+2008-07-14  Moritz  <moritz@gnu.org>
+
+	* auth-x509.c: Include simpleparse.h, simplelog.h, poldi.h.
+	Use x* memory allocator.
+	Use simpleparse subsystem, not ARGPARSE, adjust parsing cb, etc.
+	Use simplelog subsystem.
+
+2008-05-25  Moritz  <moritz@gnu.org>
+
+	Minor cleanups.
+
+2008-05-01  Moritz  <moritz@gnu.org>
+
+	* Makefile.am (libpoldi_auth_x509_a_CFLAGS): Use -fPIC.
+
+2008-04-21  Moritz  <moritz@gnu.org>
+
+	* auth-x509.c (auth_method_x509_auth_do): New local variable:
+	cb_data, fill and pass to scd_pksign instead of conv object
+	directly.
+
+2008-04-13  Moritz  <moritz@gnu.org>
+
+	* auth-x509.c (auth_method_x509_auth_do): Initialize DIRMNGR to
+	NULL.
+	(auth_method_x509_parsecb): Added missing "break".
+	(email_address_match): Fix logic.
+	(auth_method_x509_auth_do): on success, set
+	(auth_method_x509_auth_do): Pass ctx->conv to scd_pksign, not ctx.
+
+	*username_authenticated, only free card_username in case of error.
+	* dirmngr.c (dirmngr_connect): Rename parameter PATH to SOCK.
+	* dirmngr.h: Likewise.
+	* dirmngr.c (dirmngr_connect_socket): Removed dummy function.
+	* dirmngr.h: Likewise.
+	* dirmngr.c (dirmngr_connect): Use assuan_socket_connect to
+	connect to dirmngr, not connect_pipe().
+	(connect_pipe): Removed function.

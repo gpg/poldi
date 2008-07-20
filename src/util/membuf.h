@@ -5,7 +5,7 @@
  *
  * GnuPG is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * GnuPG is distributed in the hope that it will be useful,
@@ -14,9 +14,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
- * USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef GNUPG_COMMON_MEMBUF_H
@@ -34,10 +32,15 @@ struct private_membuf_s
 
 typedef struct private_membuf_s membuf_t;
 
+/* Return the current length of the membuf.  */
+#define get_membuf_len(a)  ((a)->len)
+#define is_membuf_ready(a) ((a)->buf || (a)->out_of_core)
+#define MEMBUF_ZERO        { 0, 0, NULL, 0}
 
 void init_membuf (membuf_t *mb, int initiallen);
 void init_membuf_secure (membuf_t *mb, int initiallen);
 void put_membuf  (membuf_t *mb, const void *buf, size_t len);
+void put_membuf_str (membuf_t *mb, const char *string);
 void *get_membuf (membuf_t *mb, size_t *len);
 
 

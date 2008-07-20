@@ -20,9 +20,10 @@
 #ifndef POLDI_AUTH_METHODS_H
 #define POLDI_AUTH_METHODS_H
 
-#include <gpg-error.h>
+#include <poldi.h>
 
-#include "jnlib/argparse.h"	/* For ARGPARSE_ARGS type.  */
+#include <util/simpleparse.h>
+
 #include "auth-support/ctx.h"
 
 
@@ -38,9 +39,10 @@ typedef gpg_error_t (*auth_method_func_init_t) (void **cookie);
    function.  */
 typedef void (*auth_method_func_deinit_t) (void *cookie);
 
-/* This function is a callback implementing the knowledge for
-   authentication method specific argument parsing.  */
-typedef gpg_error_t (*auth_method_func_parsecb_t) (ARGPARSE_ARGS *parg, void *cookie);
+// We don't need this, we can simply use the cb type from simpleparse!
+///* This function is a callback implementing the knowledge for
+//   authentication method specific argument parsing.  */
+//typedef gpg_error_t (*auth_method_func_parsecb_t) (ARGPARSE_ARGS *parg, void *cookie);
 
 /* This function is called in order to authenticate a user.  The
    identity of the user after authentication is stored in
@@ -53,15 +55,22 @@ typedef int (*auth_method_func_auth_t) (poldi_ctx_t ctx, void *cookie,
 typedef int (*auth_method_func_auth_as_t) (poldi_ctx_t ctx, void *cookie,
 					   const char *username);
 
+struct auth_method_parse_cookie
+{
+  poldi_ctx_t poldi_ctx;
+  void *method_ctx;
+};
+
 /* Each authentication method must define one such object.  */
 struct auth_method_s
 {
   auth_method_func_init_t func_init;
   auth_method_func_deinit_t func_deinit;
-  auth_method_func_parsecb_t func_parsecb;
   auth_method_func_auth_t func_auth;
   auth_method_func_auth_as_t func_auth_as;
-  ARGPARSE_OPTS *arg_opts;
+  simpleparse_opt_spec_t *opt_specs;
+  simpleparse_parse_cb_t parsecb;
+  //  ARGPARSE_OPTS *arg_opts;
   const char *config;
 };
 

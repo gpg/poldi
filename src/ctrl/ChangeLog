@@ -1,3 +1,28 @@
+2008-07-20  Moritz  <moritz@gnu.org>
+
+	* Makefile.am: removed jnlib.
+
+	* poldi-ctrl.c: New static variables: loghandle, scd_ctx,
+	scd_cardinfo. Setup loghandle and scdaemon context in main(), thus
+	the cmd implementation functions don't need to it anymore.
+	Now uses simplelog API.
+
+2008-07-14  Moritz  <moritz@gnu.org>
+
+	* poldi-ctrl.c: Don't include pwd.h and util/optparse.h.  Include:
+	util/simpleparse.h.
+	(struct poldi_ctrl_opt): Remove member cmd_print_config.  Replace
+	enum_arg_opt_ids list with enum opt_ids.  Replace ARGPARSE_OPTS
+	definitions with simpleparse_opt_spec_t opt_specs[].
+	(my_strusage): Dropped functions.
+	(poldi_ctrl_options_cb): Adjust to new simpleparse interface.
+	Throughout: adjust calls to scd_connect() to new API (providing
+	logging callback).
+	(cmd_print_config): Dropped function. I don't think this
+	functionality is required. Instead do: cat poldi.conf.
+	(main): use new simpleparse subsystem, not jnlibs ARGPARSE, do not
+	use jnlib logging interface.
+	
 2008-04-05  Moritz  <moritz@gnu.org>
 
 	* poldi-ctrl.c (cmd_dump): Use bin2hex instead of convert_to_hex.

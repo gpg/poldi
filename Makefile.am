@@ -1,4 +1,4 @@
-# Copyright (C) 2004, 2005, 2007 g10 Code GmbH
+# Copyright (C) 2004, 2005, 2007, 2008 g10 Code GmbH
 #
 # This file is part of Poldi.
 #
@@ -19,7 +19,9 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = src doc conf am m4
+SUBDIRS = src doc conf am m4 tests
 
 install-conf-skeleton:
 	$(MAKE) -C conf install-conf-skeleton
+
+EXTRA_DIST = MIGRATION

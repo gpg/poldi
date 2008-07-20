@@ -24,13 +24,15 @@ include $(top_srcdir)/am/cmacros.am
 noinst_LIBRARIES = libpoldi-util.a libpoldi-util_shared.a
 
 poldi_util_SOURCES = \
+	util-local.h \
 	support.c support.h \
-	optparse.c optparse.h \
-	usersdb.c usersdb.h \
 	membuf.c membuf.h \
 	util.h i18n.h \
 	sexputil.c sexp-parse.h \
-	convert.c
+	convert.c \
+	simplelog.c simplelog.h \
+	simpleparse.c simpleparse.h \
+	filenames.c filenames.h
 
 poldi_util_CFLAGS = \
 	-Wall \

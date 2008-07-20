@@ -24,11 +24,14 @@
 #include <stdio.h>
 #include <ksba.h>
 
+#include <util/simplelog.h>
+
 typedef struct dirmngr_ctx_s *dirmngr_ctx_t;
 
 gpg_error_t dirmngr_connect (dirmngr_ctx_t *ctx,
 			     const char *sock,
-			     unsigned int flags);
+			     unsigned int flags,
+			     log_handle_t log_handle);
 
 void dirmngr_disconnect (dirmngr_ctx_t ctx);
 

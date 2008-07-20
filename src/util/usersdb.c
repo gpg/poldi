@@ -30,8 +30,6 @@
 #include "usersdb.h"
 #include "defs.h"
 
-#include <jnlib/stringhelp.h>
-
 
 
 /* This is the type for callbacks functions, which need to be passed

@@ -17,6 +17,6 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
-SUBDIRS = assuan jnlib util scd pam pam-test ctrl
+SUBDIRS = assuan util scd pam ctrl
 
-EXTRA_DIST = README
+EXTRA_DIST = README poldi.h

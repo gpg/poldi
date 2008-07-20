@@ -177,8 +177,9 @@ if test "$GCC" = yes; then
 fi
 
 # We use jnlib, so tell other modules about it
-AC_DEFINE(HAVE_JNLIB_LOGGING, 1,
-         [Defined if jnlib style logging fucntions are available])
+#AC_DEFINE(HAVE_JNLIB_LOGGING, 1,
+#         [Defined if jnlib style logging fucntions are available])
+# Disabled, since we don't use jnlib anymore.
 
 #
 # Taken from libassuan source package
@@ -270,16 +271,15 @@ AC_CONFIG_FILES([Makefile
 		 am/Makefile
 		 src/Makefile
 		 src/assuan/Makefile
-		 src/jnlib/Makefile
 		 src/util/Makefile
 		 src/scd/Makefile
-		 src/pam-test/Makefile
 		 src/ctrl/Makefile
 		 src/pam/Makefile
 		 src/pam/auth-support/Makefile
 		 src/pam/auth-method-localdb/Makefile
 		 src/pam/auth-method-x509/Makefile
 		 doc/Makefile
+		 tests/Makefile
 		 conf/Makefile])
 AC_OUTPUT
 

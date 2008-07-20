@@ -1,3 +1,26 @@
+2008-07-20  Moritz  <moritz@gnu.org>
+
+	* scd.c: Include simplelog.h and poldi.h.
+	(struct scd_context): New member: loghandle.
+	Use xtrystrdup instead of strdup.
+	Use xtrymalloc instead of malloc.
+	Use xfree instead of free.
+	Use log_msg_* functions.
+	Pass loghandle to several functions.
+	(struct inq_needpin_s): Replace assuan_ctx_t ctx member with
+	scd_context_t ctx. Adjusted callers.
+
+	* scd.h: Include simplelog.h and poldi.h; adjusted for new
+	scd_connect API.
+
+	* scd.c (get_serialno_cb): Do not call out_of_core(); just return
+	errno on oom.
+
+2008-06-14  Moritz  <moritz@gnu.org>
+
+	* scd.c (agent_connect_from_infostr): Use xtrystrdup/xfree instead
+	strdup/free.
+
 2008-05-24  Moritz  <moritz@gnu.org>
 
 	* scd.c (scd_connect): Slightly rewritten; now allows for

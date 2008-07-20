@@ -34,7 +34,7 @@ poldi_ctrl_CFLAGS = \
 	$(LIBGCRYPT_CFLAGS)
 
 poldi_ctrl_LDADD = \
-	../scd/libscd.a ../util/libpoldi-util.a ../jnlib/libjnlib.a ../assuan/libassuan.a \
+	../scd/libscd.a ../util/libpoldi-util.a ../assuan/libassuan.a \
 	$(LIBGCRYPT_LDFLAGS) \
 	$(LIBGCRYPT_LIBS) \
 	$(GPG_ERROR_LIBS)

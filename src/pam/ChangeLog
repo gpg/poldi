@@ -1,3 +1,17 @@
+2008-07-14  Moritz  <moritz@gnu.org>
+
+	* auth-methods.h: Include simpleparse.h instead of argparse.h.
+	(auth_method_func_parsecb_t): Removed type.
+	(struct auth_method_parse_cookie): New struct.
+	(struct auth_method_s): Dropped members func_parsecb, arg_otps,
+	new members opt_specs, parsecb.
+
+	* pam_poldi.c: Include poldi.h, simplelog.h, simpleparse.h instead
+	of not config.h, jnlib/logging.h, optparse.h.
+	Replace parsing/logging related code in favour of new
+	simplelog/simpleparse subsystem.
+	
+
 2008-05-25  Moritz  <moritz@gnu.org>
 
 	Some cleanups, added GPL3 headers.

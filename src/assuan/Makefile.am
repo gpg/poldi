@@ -49,5 +49,7 @@ libassuan_a_SOURCES = $(common_sources) assuan-io.c
 libassuan_a_CFLAGS = -Wall -fPIC
 libassuan_a_LIBADD = @LIBOBJS@
 
+EXTRA_DIST = mkerrors
+
 assuan-errors.c : assuan.h mkerrors
 	$(srcdir)/mkerrors < $(srcdir)/assuan.h > assuan-errors.c

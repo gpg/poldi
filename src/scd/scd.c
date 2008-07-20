@@ -18,7 +18,7 @@
    along with this program; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include <config.h>
+#include <poldi.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -30,9 +30,7 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#ifndef HAVE_W32_SYSTEM
 #include <sys/wait.h>
-#endif
 
 #include <gpg-error.h>
 #include <gcrypt.h>
@@ -42,6 +40,7 @@
 #include "util/util.h"
 #include "util/membuf.h"
 #include "util/support.h"
+#include "util/simplelog.h"
 #include "i18n.h"
 
 #ifdef _POSIX_OPEN_MAX
@@ -61,6 +60,7 @@ struct scd_context
 {
   assuan_context_t assuan_ctx;
   unsigned int flags;
+  log_handle_t loghandle;
 };
 
 /* Callback parameter for learn card */
@@ -76,7 +76,7 @@ struct learn_parm_s
 
 struct inq_needpin_s 
 {
-  assuan_context_t ctx;
+  scd_context_t ctx;
   int (*getpin_cb)(void *, const char *, char*, size_t);
   void *getpin_cb_arg;
 };
@@ -103,7 +103,8 @@ static int scd_serialno_internal (assuan_context_t ctx,
    success. */
 static int
 agent_connect_from_infostr (const char *agent_infostr,
-			    assuan_context_t *agent_ctx)
+			    assuan_context_t *agent_ctx,
+			    log_handle_t loghandle)
 {
   char *infostr;
   int prot;
@@ -111,13 +112,14 @@ agent_connect_from_infostr (const char *agent_infostr,
   int rc;
   char *p;
 
-  infostr = strdup (agent_infostr);
+  infostr = xtrystrdup (agent_infostr);
   *agent_ctx = NULL;
   rc = 0;
 
   if ( !(p = strchr (infostr, ':')) || p == infostr)
     {
-      log_error (_("malformed GPG_AGENT_INFO environment variable\n"));
+      log_msg_info (loghandle,
+		    _("malformed GPG_AGENT_INFO environment variable"));
       /* moritz: fixme, wrong err code.  */
       rc = gpg_error (GPG_ERR_ASS_CONNECT_FAILED);
       goto out;
@@ -129,9 +131,9 @@ agent_connect_from_infostr (const char *agent_infostr,
   prot = *p? atoi (p+1) : 0;
   if (prot != 1)
     {
-      log_error (_("agent protocol version %d is not supported\n"),	/* FIXME,
-									   moritz?  */
-		 prot);
+      log_msg_error (loghandle,
+		     _("agent protocol version %d is not supported"),
+		     prot);
       /* moritz: fixme, wrong err code.  */
       rc = gpg_error (GPG_ERR_ASS_CONNECT_FAILED);
       goto out;
@@ -143,7 +145,7 @@ agent_connect_from_infostr (const char *agent_infostr,
 
  out:
 
-  free (infostr);
+  xfree (infostr);
 
   return rc;
 }
@@ -155,7 +157,8 @@ agent_connect_from_infostr (const char *agent_infostr,
    context CTX.  On success, *SOCKET_NAME is filled with a copy ot the
    socket name.  Return proper error code or zero on success. */
 static int
-agent_scd_getinfo_socket_name (assuan_context_t ctx, char **socket_name)
+agent_scd_getinfo_socket_name (assuan_context_t ctx, char **socket_name,
+			       log_handle_t loghandle)
 {
   unsigned char *databuf;
   size_t datalen;
@@ -179,9 +182,9 @@ agent_scd_getinfo_socket_name (assuan_context_t ctx, char **socket_name)
       res = xtrymalloc (datalen + 1);
       if (!res)
 	{
-	  log_error ("warning: can't store getinfo data: %s\n",
-		     strerror (errno));
-	  rc = gpg_error_from_syserror ();
+	  log_msg_error (loghandle,
+			 _("warning: can't store getinfo data: %s"),
+			 strerror (errno));
 	}
       else
 	{
@@ -203,7 +206,8 @@ agent_scd_getinfo_socket_name (assuan_context_t ctx, char **socket_name)
    *SOCKET_NAME contains a copy of the socket name.  Returns proper
    error code or zero on success.  */
 static int
-get_scd_socket_from_agent (const char *agent_infostr, char **socket_name)
+get_scd_socket_from_agent (const char *agent_infostr, char **socket_name,
+			   log_handle_t loghandle)
 {
   assuan_context_t ctx;
   int rc;
@@ -212,7 +216,7 @@ get_scd_socket_from_agent (const char *agent_infostr, char **socket_name)
   ctx = NULL;
   rc = 0;
 
-  rc = agent_connect_from_infostr (agent_infostr, &ctx);
+  rc = agent_connect_from_infostr (agent_infostr, &ctx, loghandle);
   if (rc)
     goto out;
 
@@ -223,7 +227,7 @@ get_scd_socket_from_agent (const char *agent_infostr, char **socket_name)
     goto out;
 #endif
 
-  rc = agent_scd_getinfo_socket_name (ctx, socket_name);
+  rc = agent_scd_getinfo_socket_name (ctx, socket_name, loghandle);
 
  out:
 
@@ -245,7 +249,8 @@ scd_connect (scd_context_t *scd_ctx,
 	     const char *scdaemon_socket,
 	     const char *agent_infostr,
 	     const char *scd_path,
-	     unsigned int flags)
+	     unsigned int flags,
+	     log_handle_t loghandle)
 {
   assuan_context_t assuan_ctx;
   scd_context_t ctx;
@@ -253,7 +258,7 @@ scd_connect (scd_context_t *scd_ctx,
 
   assuan_ctx = NULL;
 
-  ctx = malloc (sizeof (*ctx));
+  ctx = xtrymalloc (sizeof (*ctx));
   if (! ctx)
     {
       rc = gpg_error_from_syserror ();
@@ -270,7 +275,9 @@ scd_connect (scd_context_t *scd_ctx,
       rc = assuan_socket_connect (&assuan_ctx, scdaemon_socket, 0);
       if (!rc)
 	{
-	  log_debug ("connected to system scdaemon through socket '%s'\n", scdaemon_socket);
+	  log_msg_debug (loghandle,
+			 _("connected to system scdaemon through socket '%s'"),
+			 scdaemon_socket);
 	  goto out;
 	}
     }
@@ -282,13 +289,14 @@ scd_connect (scd_context_t *scd_ctx,
 
       char *scd_socket;
 
-      rc = get_scd_socket_from_agent (agent_infostr, &scd_socket);
+      rc = get_scd_socket_from_agent (agent_infostr, &scd_socket, loghandle);
       if (!rc)
 	rc = assuan_socket_connect (&assuan_ctx, scd_socket, 0);
 
       if (!rc)
-	log_debug ("got scdaemon socket name from gpg-agent, connected to socket '%s'\n",
-		   scd_socket);
+	log_msg_debug (loghandle,
+		       _("got scdaemon socket name from gpg-agent, "
+			 "connected to socket '%s'"), scd_socket);
       
       xfree (scd_socket);
 
@@ -307,12 +315,15 @@ scd_connect (scd_context_t *scd_ctx,
       int i;
 
       if (flags & SCD_FLAG_VERBOSE)
-        log_info (_("no running scdaemon - starting one\n"));
+	log_msg_debug (loghandle,
+		       _("no running scdaemon - starting one"));
 
       if (fflush (NULL))
         {
           rc = gpg_error_from_syserror ();
-          log_error ("error flushing pending output: %s\n", strerror (errno));
+	  log_msg_error (loghandle,
+			 _("error flushing pending output: %s"),
+			 strerror (errno));
 	  goto out;
         }
 
@@ -328,8 +339,12 @@ scd_connect (scd_context_t *scd_ctx,
       argv[2] = NULL;
 
       i=0;
+
+      /* FIXME!! Can't we do this differently? -mo */
+#if 0
       if (log_get_fd () != -1)
         no_close_list[i++] = log_get_fd ();
+#endif
       no_close_list[i++] = fileno (stderr);
       no_close_list[i] = -1;
 
@@ -338,12 +353,16 @@ scd_connect (scd_context_t *scd_ctx,
                                 no_close_list);
       if (!rc)
 	{
-	  log_debug ("spawned a new scdaemon (path: '%s')\n", scd_path);
+	  log_msg_debug (loghandle,
+			 _("spawned a new scdaemon (path: '%s')"),
+			 scd_path);
 	  goto out;
 	}
     }
 
-  log_error ("could not connect to any scdaemon: %s\n", gpg_strerror (rc));
+  log_msg_error (loghandle,
+		 _("could not connect to any scdaemon: %s"),
+		 gpg_strerror (rc));
 
  out:
 
@@ -358,9 +377,11 @@ scd_connect (scd_context_t *scd_ctx,
       scd_serialno_internal (assuan_ctx, 0, NULL);
       ctx->assuan_ctx = assuan_ctx;
       ctx->flags = flags;
+      ctx->loghandle = loghandle;
       *scd_ctx = ctx;
       if (flags & SCD_FLAG_VERBOSE)
-	log_debug ("connection to scdaemon established\n");
+	log_msg_debug (loghandle,
+		       _("connection to scdaemon established"));
     }
 
   return rc;
@@ -567,11 +588,11 @@ get_serialno_cb (void *opaque, const char *line)
         return gpg_error (GPG_ERR_ASS_PARAMETER);
       *serialno = xtrymalloc (n+1);
       if (!*serialno)
-        return out_of_core ();
+	return gpg_error_from_errno (errno);
       memcpy (*serialno, line, n);
       (*serialno)[n] = 0;
     }
-  
+
   return 0;
 }
 
@@ -630,6 +651,8 @@ inq_needpin (void *opaque, const char *line)
   size_t pinlen;
   int rc;
 
+  rc = 0;
+
   if (!strncmp (line, "NEEDPIN", 7) && (line[7] == ' ' || !line[7]))
     {
       line += 7;
@@ -639,11 +662,14 @@ inq_needpin (void *opaque, const char *line)
       pinlen = 90;
       pin = xtrymalloc_secure (pinlen);
       if (!pin)
-        return out_of_core ();
+	{
+	  rc = gpg_error_from_errno (errno);
+	  goto out;
+	}
 
       rc = parm->getpin_cb (parm->getpin_cb_arg, line, pin, pinlen);
       if (!rc)
-        rc = assuan_send_data (parm->ctx, pin, pinlen);
+        rc = assuan_send_data (parm->ctx->assuan_ctx, pin, pinlen);
       xfree (pin);
     }
   else if (!strncmp (line, "POPUPKEYPADPROMPT", 17)
@@ -662,16 +688,26 @@ inq_needpin (void *opaque, const char *line)
     }
   else
     {
-      log_error ("unsupported inquiry `%s'\n", line);
+      log_msg_error (parm->ctx->loghandle,
+		     "received unsupported inquiry from scdaemon `%s'",
+		     line);
       rc = gpg_error (GPG_ERR_ASS_UNKNOWN_INQUIRE);
     }
+
+ out:
 
   return rc;
 }
 
 
-
-/* Create a signature using the current card */
+/* Create a signature using the current card. CTX is the handle for
+   the scd subsystem.  KEYID identifies the key on the card to use for
+   signing. GETPIN_CB is the callback, which is called for querying of
+   the PIN, GETPIN_CB_ARG is passed as opaque argument to
+   GETPIN_CB. INDATA/INDATALEN is the input for the signature
+   function.  The signature created is written into newly allocated
+   memory in *R_BUF, *R_BUFLEN will hold the length of the
+   signature. */
 int
 scd_pksign (scd_context_t ctx,
 	    const char *keyid,
@@ -680,7 +716,7 @@ scd_pksign (scd_context_t ctx,
 	    const unsigned char *indata, size_t indatalen,
 	    unsigned char **r_buf, size_t *r_buflen)
 {
-  int rc, i;
+  int rc;
   char *p, line[ASSUAN_LINELENGTH];
   membuf_t data;
   struct inq_needpin_s inqparm;
@@ -689,9 +725,14 @@ scd_pksign (scd_context_t ctx,
   size_t sigbuflen;
 
   *r_buf = NULL;
+  *r_buflen = 0;
+  rc = 0;
+
   init_membuf (&data, 1024);
 
-  if (indatalen*2 + 50 > DIM(line))
+  if (indatalen*2 + 50 > DIM(line)) /* FIXME: Are such long inputs
+				       allowed? Should we handle them
+				       differently?  */
     {
       rc = gpg_error (GPG_ERR_GENERAL);
       goto out;
@@ -710,7 +751,7 @@ scd_pksign (scd_context_t ctx,
 
   /* Setup NEEDPIN inquiry handler.  */
 
-  inqparm.ctx = ctx->assuan_ctx;
+  inqparm.ctx = ctx;
   inqparm.getpin_cb = getpin_cb;
   inqparm.getpin_cb_arg = getpin_cb_arg;
 
@@ -725,7 +766,8 @@ scd_pksign (scd_context_t ctx,
   if (rc)
     goto out;
 
-  /* Extract signature. */
+  /* Extract signature.  FIXME: can't we do this easier?  By reusing
+     membuf, without another alloc/free? */
 
   sigbuf = get_membuf (&data, &sigbuflen);
   *r_buflen = sigbuflen;
@@ -830,8 +872,9 @@ scd_getinfo (scd_context_t ctx, const char *what, char **result)
       res = xtrymalloc (datalen + 1);
       if (!res)
 	{
-	  log_error ("warning: can't store getinfo data: %s\n",
-		     strerror (errno));
+	  log_msg_error (ctx->loghandle,
+			 _("warning: can't store getinfo data: %s"),
+			 strerror (errno));
 	  rc = gpg_error_from_syserror ();
 	}
       else

@@ -17,7 +17,7 @@
    along with this program; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include <config.h>
+#include <poldi.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,12 +36,14 @@
 
 #include "assuan.h"
 #include "util/support.h"
-#include "util/defs.h"
+#include <util/defs.h>
 #include "i18n.h"
 #include "util/util.h"
-#include "jnlib/stringhelp.h"
-#include "jnlib/logging.h"
+//#include "jnlib/stringhelp.h"
+#include "util/simplelog.h"
 #include "auth-support/conv.h"
+
+#include "ctx.h"
 
 #include "getpin-cb.h"
 
@@ -56,11 +58,11 @@ all_digitsp (const char *s)
 }  
 
 
-/* Query the user through PAM for his pin.  Display INFO to the user.
+/* Query the user through PAM for his PIN.  Display INFO to the user.
    Store the retrieved pin in PIN, which is of size PIN_SIZE.  If it
    does not fit, return error. */
 static int
-query_user (conv_t conv, const char *info, char *pin, size_t pin_size)
+query_user (poldi_ctx_t ctx, const char *info, char *pin, size_t pin_size)
 {
   char *buffer;
   int rc;
@@ -71,23 +73,23 @@ query_user (conv_t conv, const char *info, char *pin, size_t pin_size)
   while (1)			/* Loop until well-formed PIN retrieved. */
     {
       /* Retrieve PIN through PAM.  */
-      rc = conv_ask (conv, 1, &buffer, info);
+      rc = conv_ask (ctx->conv, 1, &buffer, info);
       if (rc)
 	goto out;
 
       /* Do some basic checks on the entered PIN - shall we really
 	 forbid to use non-digit characters in PIN? */
       if (strlen (buffer) < 6)	/* FIXME? is it really minimum of 6 bytes? */
-	log_error ("invalid PIN\n");
+	log_msg_error (ctx->loghandle, "invalid PIN"); /* FIXME: i18n. */
       else if (!all_digitsp (buffer))
-	log_error ("invalid characters in PIN\n");
+	log_msg_error (ctx->loghandle, "invalid characters in PIN");
       else
 	break;
     }
 
   if (strlen (buffer) >= pin_size)
     {
-      log_error ("PIN too long for buffer!\n");
+      log_msg_error (ctx->loghandle, "PIN too long for buffer!");
       rc = gpg_error (GPG_ERR_INV_DATA); /* ? */
       goto out;
     }
@@ -107,17 +109,17 @@ query_user (conv_t conv, const char *info, char *pin, size_t pin_size)
    system modal and all other attempts to use the pinentry will fail
    (after a timeout). */
 static int
-keypad_mode_enter (conv_t conv)
+keypad_mode_enter (poldi_ctx_t ctx)
 {
   int rc;
 
-  rc = conv_tell (conv, "Please enter PIN on keypad");
+  rc = conv_tell (ctx->conv, "Please enter PIN on keypad");
 
   return rc;
 }
 
 static int
-keypad_mode_leave (conv_t conv)
+keypad_mode_leave (poldi_ctx_t ctx)
 {
 #if 0
   int rc;
@@ -158,7 +160,7 @@ frob_info_msg (const char *info, char **info_frobbed)
 {
   gpg_error_t err = 0;
 
-  *info_frobbed = malloc (strlen (info) + 1);
+  *info_frobbed = gcry_malloc (strlen (info) + 1);
   if (!*info_frobbed)
     {
       err = gpg_error_from_errno (errno);
@@ -189,6 +191,7 @@ int
 getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
 {
   struct getpin_cb_data *cb_data = opaque;
+  poldi_ctx_t ctx = cb_data->poldi_ctx;
   char *info_frobbed;
   int err;
 
@@ -212,7 +215,8 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
 	    {
 	      /* Weird that we received flags - they are neither expected nor
 		 implemented here.  */
-	      log_error ("getpin_cb called with flags set in info string `%s'\n", info);
+	      log_msg_error (ctx->loghandle,
+			 "getpin_cb called with flags set in info string `%s'\n", info);
 	      err = gpg_error (GPG_ERR_INV_VALUE); /* FIXME? */
 	      goto out;
 	    }
@@ -220,7 +224,8 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
       err = frob_info_msg (info, &info_frobbed);
       if (err)
 	{
-	  log_error ("frob_info_msg failed for info msg of size of size %u\n",
+	  log_msg_error (ctx->loghandle,
+		     "frob_info_msg failed for info msg of size of size %u\n",
 		     (unsigned int) strlen (info));
 	  goto out;
 	}
@@ -228,7 +233,7 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
 
   if (buf)
     /* No info message? Use a very simple hard-coded default.  */
-    err = query_user (cb_data->conv, info_frobbed ? info_frobbed : "PIN", buf, maxbuf);
+    err = query_user (ctx, info_frobbed ? info_frobbed : "PIN", buf, maxbuf);
   else
     {
       /* Special handling for keypad mode hack. */
@@ -236,9 +241,9 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
       /* If BUF has been passed as NULL, we are in keypad mode: the
 	 callback notifies the user and immediately returns.  */
       if (maxbuf == 0) /* Close the pinentry. */
-	err = keypad_mode_leave (cb_data->conv);
+	err = keypad_mode_leave (ctx);
       else if (maxbuf == 1)  /* Open the pinentry. */
-	err = keypad_mode_enter (cb_data->conv);
+	err = keypad_mode_enter (ctx);
       else
         err = gpg_error (GPG_ERR_INV_VALUE); /* FIXME: must signal
 					       internal error(!)
@@ -247,7 +252,7 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
 
  out:
 
-  free (info_frobbed);
+  gcry_free (info_frobbed);
 
   return err;
 }

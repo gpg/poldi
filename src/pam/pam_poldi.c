@@ -17,7 +17,7 @@
    along with this program; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include <config.h>
+#include <poldi.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -30,11 +30,8 @@
 #define PAM_SM_AUTH
 #include <security/pam_modules.h>
 
-#include <gcrypt.h>
-
-#include "jnlib/xmalloc.h"
-#include "jnlib/logging.h"
-#include "util/optparse.h"
+#include "util/simplelog.h"
+#include "util/simpleparse.h"
 #include "util/defs.h"
 #include "scd/scd.h"
 
@@ -45,24 +42,20 @@
 
 
 
-/* Auth methods declarations. */
-
-
-
-/* Auth methods list.  */
+/*** Auth methods declarations. ***/
 
 /* Declare authentication methods.  */
 extern struct auth_method_s auth_method_localdb;
 extern struct auth_method_s auth_method_x509;
 
-/* List element type for AUTH_METHODS list.  */
+/* List element type for AUTH_METHODS list below.  */
 struct auth_method
 {
   const char *name;
   auth_method_t method;
 };
 
-/* List, associating authenting method definitions with their
+/* List associating authenting method definitions with their
    names.  */
 static struct auth_method auth_methods[] =
   {
@@ -72,38 +65,37 @@ static struct auth_method auth_methods[] =
 #ifdef ENABLE_AUTH_METHOD_X509
     { "x509", &auth_method_x509 },
 #endif
-    { NULL, NULL }
+    { NULL }
   };
 
 
 
-/* Macros.  */
+/*** Option parsing. ***/
 
-
-
-/* Option IDs for authentication method independent options. */
-enum arg_opt_ids
+/* IDs for supported options. */
+enum opt_ids
   {
-    arg_logfile = 500,
-    arg_auth_method,
-    arg_scdaemon_socket,
-    arg_scdaemon_program,
-    arg_debug
+    opt_none,
+    opt_logfile,
+    opt_auth_method,
+    opt_debug,
+    opt_scdaemon_socket,
+    opt_scdaemon_program
   };
 
-/* According option specifications. */
-static ARGPARSE_OPTS arg_opts[] =
+/* Full specifications for options. */
+static simpleparse_opt_spec_t opt_specs[] =
   {
-    { arg_logfile,
-      "log-file", 2, "|FILENAME|Specify file to use for logging" },
-    { arg_auth_method,
-      "auth-method", 2, "|NAME|Specify authentication method" },
-    { arg_debug,
-      "debug", 256, "Enable debugging messages" },
-    { arg_scdaemon_socket,
-      "scdaemon-socket", 2, "|SOCKET|Specify socket of system scdaemon" },
-    { arg_scdaemon_program,
-      "scdaemon-program", 2, "|PATH|Specify scdaemon executable to use" },
+    { opt_logfile, "log-file",
+      0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify file to user for logging" },
+    { opt_auth_method, "auth-method",
+      0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify authentication method" },
+    { opt_debug, "debug",
+      0, SIMPLEPARSE_ARG_NONE,     0, "Enable debugging mode" },
+    { opt_scdaemon_socket, "scdaemon-socket",
+      0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify socket of system scdaemon" },
+    { opt_scdaemon_program, "scdaemon-program",
+      0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify scdaemon executable to use" },
     { 0 }
   };
 
@@ -126,69 +118,68 @@ auth_method_lookup (const char *name)
 
 /* Callback for authentication method independent option parsing. */
 static gpg_error_t
-pam_poldi_options_cb (ARGPARSE_ARGS *parg, void *opaque)
+pam_poldi_options_cb (void *cookie, simpleparse_opt_spec_t spec, const char *arg)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
-  poldi_ctx_t ctx = opaque;
+  poldi_ctx_t ctx = cookie;
 
-  switch (parg->r_opt)
+  if (!strcmp (spec.long_opt, "log-file"))
     {
-      /* LOGFILE.  */
-    case arg_logfile:
-      ctx->logfile = strdup (parg->r.ret_str);
+      /* LOG-FILE.  */
+      ctx->logfile = xtrystrdup (arg);
       if (!ctx->logfile)
 	{
 	  err = gpg_error_from_errno (errno);
-	  log_error ("failed to strdup logfile name: %s\n",
-		     gpg_strerror (err));
+	  log_msg_error (ctx->loghandle,
+			 "failed to strdup logfile name: %s",
+			 gpg_strerror (err));
 	}
-      break;
-
+    }
+  else if (!strcmp (spec.long_opt, "scdaemon-socket"))
+    {
       /* SCDAEMON-SOCKET.  */
-    case arg_scdaemon_socket:
-      ctx->scdaemon_socket = strdup (parg->r.ret_str);
+
+      ctx->scdaemon_socket = xtrystrdup (arg);
       if (!ctx->scdaemon_socket)
 	{
 	  err = gpg_error_from_errno (errno);
-	  log_error ("failed to strdup scdaemon socket name: %s\n",
-		     gpg_strerror (err));
+	  log_msg_error (ctx->loghandle,
+			 "failed to strdup scdaemon socket name: %s",
+			 gpg_strerror (err));
 	}
-      break;
-
+    }
+  else if (!strcmp (spec.long_opt, "scdaemon-program"))
+    {
       /* SCDAEMON-PROGRAM.  */
-    case arg_scdaemon_program:
-      ctx->scdaemon_program = strdup (parg->r.ret_str);
+
+      ctx->scdaemon_program = strdup (arg);
       if (!ctx->scdaemon_program)
 	{
 	  err = gpg_error_from_errno (errno);
-	  log_error ("failed to strdup scdaemon program name: %s\n",
-		     gpg_strerror (err));
+	  log_msg_error (ctx->loghandle,
+			 "failed to strdup scdaemon program name: %s",
+			 gpg_strerror (err));
 	}
-      break;
-
+    }
+  else if (!strcmp (spec.long_opt, "auth-method"))
+    {
       /* AUTH-METHOD.  */
-    case arg_auth_method:
-      {
-	int method = auth_method_lookup (parg->r.ret_str);
-	if (method >= 0)
-	  ctx->auth_method = method;
-	else
-	  {
-	    /* FIXME, better error handling? */
-	    err = GPG_ERR_GENERAL;
-	    log_error ("unknown auth-method in conffile `%s'\n", parg->r.ret_str);
-	  }
-      }
-      break;
 
+      int method = auth_method_lookup (arg);
+      if (method >= 0)
+	ctx->auth_method = method;
+      else
+	{
+	  log_msg_error (ctx->loghandle,
+			 "unknown auth-method '%s'", arg);
+	  err = GPG_ERR_INV_VALUE;
+	}
+    }
+  else if (!strcmp (spec.long_opt, "debug"))
+    {
       /* DEBUG.  */
-    case arg_debug:
       ctx->debug = 1;
-      break;
-
-    default:
-      err = GPG_ERR_INTERNAL;	/* FIXME?  */
-      break;
+      log_set_min_level (ctx->loghandle, LOG_LEVEL_DEBUG);
     }
 
   return gpg_error (err);
@@ -196,9 +187,12 @@ pam_poldi_options_cb (ARGPARSE_ARGS *parg, void *opaque)
 
 
 
+static struct poldi_ctx_s poldi_ctx_NULL; /* For initialization
+					     purpose. */
+
 /* Create new, empty Poldi context.  Return proper error code.   */
 static gpg_error_t
-create_context (poldi_ctx_t *context)
+create_context (poldi_ctx_t *context, pam_handle_t *pam_handle)
 {
   gpg_error_t err;
   poldi_ctx_t ctx;
@@ -206,7 +200,7 @@ create_context (poldi_ctx_t *context)
   err = 0;
 
   /* Allocate. */
-  ctx = malloc (sizeof (*ctx));
+  ctx = xtrymalloc (sizeof (*ctx));
   if (!ctx)
     {
       err = gpg_error_from_errno (errno);
@@ -214,21 +208,38 @@ create_context (poldi_ctx_t *context)
     }
 
   /* Initialize. */
-  ctx->logfile = NULL;
+
+  *ctx = poldi_ctx_NULL;
+
   ctx->auth_method = -1;
-  ctx->cookie = NULL;
-  ctx->debug = 0;
-  ctx->scdaemon_socket = NULL;
-  ctx->scdaemon_program = NULL;
-  ctx->scd = NULL;
-  ctx->pam_handle = NULL;
-  ctx->conv = NULL;
-  ctx->username = NULL;
   ctx->cardinfo = scd_cardinfo_null;
+  ctx->pam_handle = pam_handle;
+
+  err = log_create (&ctx->loghandle);
+  if (err)
+    goto out;
+
+  err = simpleparse_create (&ctx->parsehandle);
+  if (err)
+    goto out;
+
+  simpleparse_set_loghandle (ctx->parsehandle, ctx->loghandle);
+  simpleparse_set_parse_cb (ctx->parsehandle, pam_poldi_options_cb, ctx);
+  simpleparse_set_specs (ctx->parsehandle, opt_specs);
 
   *context = ctx;
 
  out:
+
+  if (err)
+    {
+      if (ctx)
+	{
+	  simpleparse_destroy (ctx->parsehandle);
+	  log_destroy (ctx->loghandle);
+	  xfree (ctx);
+	}
+    }
 
   return err;
 }
@@ -239,15 +250,16 @@ destroy_context (poldi_ctx_t ctx)
 {
   if (ctx)
     {
+      xfree (ctx->logfile);
+      simpleparse_destroy (ctx->parsehandle);
+      log_destroy (ctx->loghandle);
+      xfree (ctx->cookie);
+      xfree (ctx->scdaemon_socket);
+      xfree (ctx->scdaemon_program);
       scd_disconnect (ctx->scd);
-      if (ctx->logfile)
-	free (ctx->logfile);
-      if (ctx->scdaemon_socket)
-	free (ctx->scdaemon_socket);
-      if (ctx->scdaemon_program)
-	free (ctx->scdaemon_program);
       scd_release_cardinfo (ctx->cardinfo);
-      free (ctx);
+      /* FIXME: conv_t conv?! */
+      xfree (ctx);
     }
 }
 
@@ -270,11 +282,14 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   scd_context_t scd_ctx;
   int ret;
   const char *pam_username;
+  struct auth_method_parse_cookie method_parse_cookie = { NULL, NULL };
+  simpleparse_handle_t method_parse;
 
   pam_username = NULL;
   scd_ctx = NULL;
   conv = NULL;
   ctx = NULL;
+  method_parse = NULL;
   err = 0;
 
   /*** Basic initialization. ***/
@@ -287,43 +302,49 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
      info. */
   gcry_control (GCRYCTL_DISABLE_SECMEM);
 
+  /*** Setup main context.  ***/
+
+  err = create_context (&ctx, pam_handle);
+  if (err)
+    goto out;
+
   /* Setup logging prefix.  */
-  log_set_prefix ("[Poldi] ",
-		  JNLIB_LOG_WITH_PREFIX | JNLIB_LOG_WITH_TIME | JNLIB_LOG_WITH_PID);
+  log_set_flags (ctx->loghandle,
+		 LOG_FLAG_WITH_PREFIX | LOG_FLAG_WITH_TIME | LOG_FLAG_WITH_PID);
+  log_set_prefix (ctx->loghandle, "Poldi");
+  log_set_backend_syslog (ctx->loghandle);
+
+  //log_set_prefix ("[Poldi] ",
+  //JNLIB_LOG_WITH_PREFIX | JNLIB_LOG_WITH_TIME | JNLIB_LOG_WITH_PID);
+
   /* FIXME: I guess we should also call log_set_syslog() here - but
      i'm not sure if logging.c works fine when calling log_set_foo()
      and later on log_set_bar(). -mo */
 
-  /*** Setup main context.  ***/
-
-  err = create_context (&ctx);
-  if (err)
-    goto out;
-
-  ctx->pam_handle = pam_handle;
+  log_set_flags (ctx->loghandle,
+		 LOG_FLAG_WITH_TIME | LOG_FLAG_WITH_PID | LOG_FLAG_WITH_PREFIX);
 
   /*** Parse auth-method independent options.  ***/
 
   /* ... from configuration file:  */
-  err = options_parse_conf  (pam_poldi_options_cb, ctx,
-			     arg_opts, POLDI_CONF_FILE);
+  err = simpleparse_parse_file (ctx->parsehandle, 0, POLDI_CONF_FILE);
   if (err)
     {
-      log_error ("Error: failed to parse configuration file: %s\n",
-		 gpg_strerror (err));
+      log_msg_error (ctx->loghandle,
+		     "failed to parse configuration file: %s",
+		     gpg_strerror (err));
       goto out;
     }
 
   /* ... and from argument vector provided by PAM: */
   if (argc)
     {
-      err = options_parse_argv_const (pam_poldi_options_cb,
-				      ctx, arg_opts, argc, argv,
-				      OPTPARSE_FLAG_DONT_SKIP_FIRST);
+      err = simpleparse_parse (ctx->parsehandle, 0, argc, argv, NULL);
       if (err)
 	{
-	  log_error ("Error: failed to parse PAM argument vector: %s\n",
-		     gpg_strerror (err));
+	  log_msg_error (ctx->loghandle,
+			 "failed to parse PAM argument vector: %s",
+			 gpg_strerror (err));
 	  goto out;
 	}
     }
@@ -337,24 +358,21 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
      through Syslog.  */
   if (ctx->logfile)
     {
-      log_set_file (ctx->logfile);
-      if (! strcmp (ctx->logfile, "-"))
-	/* We need to disable bufferring on stderr, since it might
-	   have been enabled by log_set_file().  Buffering on stderr
-	   will complicate PAM interaction, since e.g. libpam-misc's
-	   misc_conv() function does expect stderr to be
-	   unbuffered.  */
-	setvbuf (stderr, NULL, _IONBF, 0);
+      gpg_error_t rc;
+
+      rc = log_set_backend_file (ctx->loghandle, ctx->logfile);
+      if (rc != 0)
+	/* Last try...  */
+	log_set_backend_syslog (ctx->loghandle);
     }
-  else
-    log_set_syslog ();
 
   /*** Sanity checks. ***/
 
   /* Authentication method to use must be specified.  */
   if (ctx->auth_method < 0)
     {
-      log_error ("Error: no authentication method specified\n");
+      log_msg_error (ctx->loghandle,
+		     "no authentication method specified");
       err = GPG_ERR_CONFIGURATION;
       goto out;
     }
@@ -362,15 +380,18 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   /* Authentication methods must provide a parser callback in case
      they have specific a configuration file.  */
   assert ((!auth_methods[ctx->auth_method].method->config)
-	  || (auth_methods[ctx->auth_method].method->func_parsecb
-	      && auth_methods[ctx->auth_method].method->arg_opts));
+	  || (auth_methods[ctx->auth_method].method->parsecb
+	      && auth_methods[ctx->auth_method].method->opt_specs));
 
   if (ctx->debug)
     {
-      log_info ("using authentication method `%s'\n",
-		auth_methods[ctx->auth_method].name);
+      log_msg_debug (ctx->loghandle,
+		     "using authentication method `%s'",
+		     auth_methods[ctx->auth_method].name);
       if (ctx->scdaemon_socket)
-	log_info ("using system scdaemon; socket is '%s'\n", ctx->scdaemon_socket);
+	log_msg_debug (ctx->loghandle,
+		       "using system scdaemon; socket is '%s'",
+		       ctx->scdaemon_socket);
     }
 
   /*** Init authentication method.  ***/
@@ -380,24 +401,51 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
       err = (*auth_methods[ctx->auth_method].method->func_init) (&ctx->cookie);
       if (err)
 	{
-	  log_error ("failed to initialize authentication method %i: %s\n",
-		     -1, gpg_strerror (err));
+	  log_msg_error (ctx->loghandle,
+			 "failed to initialize authentication method %i: %s",
+			 -1, gpg_strerror (err));
 	  goto out;
 	}
     }
 
   if (auth_methods[ctx->auth_method].method->config)
     {
-      err = options_parse_conf (auth_methods[ctx->auth_method].method->func_parsecb,
-				ctx->cookie,
-				auth_methods[ctx->auth_method].method->arg_opts,
-				auth_methods[ctx->auth_method].method->config);
+      /* Do auth-method specific parsing. */
+
+      err = simpleparse_create (&method_parse);
       if (err)
 	{
-	  log_error ("failed to parse configuration for authentication method %i: %s\n",
+	  log_msg_error (ctx->loghandle,
+		     "failed to parse configuration for authentication method %i: %s",
 		     -1, gpg_strerror (err));
-	  goto out;
+	  goto out_parsing;
 	}
+
+      method_parse_cookie.poldi_ctx = ctx;
+      method_parse_cookie.method_ctx = ctx->cookie;
+
+      simpleparse_set_loghandle (method_parse, ctx->loghandle);
+      simpleparse_set_parse_cb (method_parse,
+				auth_methods[ctx->auth_method].method->parsecb,
+				&method_parse_cookie);
+      simpleparse_set_specs (method_parse,
+			     auth_methods[ctx->auth_method].method->opt_specs);
+
+      err = simpleparse_parse_file (method_parse, 0, 
+				    auth_methods[ctx->auth_method].method->config);
+      if (err)
+	{
+	  log_msg_error (ctx->loghandle,
+			 "failed to parse configuration for authentication method %i: %s",
+			 -1, gpg_strerror (err));
+	  goto out_parsing;
+	}
+
+    out_parsing:
+
+      simpleparse_destroy (method_parse);
+      if (err)
+	goto out;
     }
 
   /*** Prepare PAM interaction.  ***/
@@ -406,7 +454,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   ret = pam_get_item (ctx->pam_handle, PAM_CONV, &conv_void);
   if (ret != PAM_SUCCESS)
     {
-      log_error ("failed to retrieve conversation structure");
+      log_msg_error (ctx->loghandle, "failed to retrieve conversation structure");
       err = GPG_ERR_INTERNAL;
       goto out;
     }
@@ -423,15 +471,15 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   err = retrieve_username_from_pam (ctx->pam_handle, &pam_username);
   if (err)
     {
-      log_error ("failed to retrieve username from PAM: %s\n",
-		 gpg_strerror (err));
+      log_msg_error (ctx->loghandle, "failed to retrieve username from PAM: %s",
+		     gpg_strerror (err));
     }
 
   /*** Connect to Scdaemon. ***/
 
   err = scd_connect (&scd_ctx,
 		     ctx->scdaemon_socket, getenv ("GPG_AGENT_INFO"),
-		     ctx->scdaemon_program, 0);
+		     ctx->scdaemon_program, 0, ctx->loghandle);
   if (err)
     goto out;
 
@@ -447,8 +495,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   err = wait_for_card (ctx->scd, 0);
   if (err)
     {
-      log_error ("failed to wait for card insertion: %s\n",
-		 gpg_strerror (err));
+      log_msg_error (ctx->loghandle, "failed to wait for card insertion: %s",
+		     gpg_strerror (err));
       goto out;
     }
 
@@ -459,8 +507,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
     goto out;
 
   if (ctx->debug)
-    log_info ("connected to card, serial number is: %s",
-	      ctx->cardinfo.serialno);
+    log_msg_debug (ctx->loghandle, "connected to card, serial number is: %s",
+		   ctx->cardinfo.serialno);
 
   /*** Authenticate.  ***/
 
@@ -507,11 +555,11 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
   /* Log result.  */
   if (err)
-    log_error ("Failure: %s\n", gpg_strerror (err));
-  else
-    log_info ("Success\n");
+    log_msg_error (ctx->loghandle, "failure: %s", gpg_strerror (err));
+  else if (ctx->debug)
+    log_msg_debug (ctx->loghandle, "success");
 
-  log_close ();
+  //log_close ();
 
   /* Call authentication method's deinit callback. */
   if ((ctx->auth_method >= 0)

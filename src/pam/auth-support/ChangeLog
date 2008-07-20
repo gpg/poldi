@@ -1,3 +1,13 @@
+2008-07-14  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.c:
+
+2008-07-06  Moritz  <moritz@gnu.org>
+
+	* ctx.h: Include simplelog.h, simpleparse.h.
+	(struct poldi_ctx_s): New members: loghandle, parsehandle; removed
+	old member logfile.
+
 2008-06-14  Moritz  <moritz@gnu.org>
 
 	* getpin-cb.c (getpin_cb): New local variable: info_frobbed; use

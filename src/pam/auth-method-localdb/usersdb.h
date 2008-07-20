@@ -17,29 +17,27 @@
    along with this program; if not, see
    <http://www.gnu.org/licenses/>.  */
  
-#ifndef USERSDB_H
-#define USERSDB_H
+#ifndef INCLUDED_USERSDB_H
+#define INCLUDED_USERSDB_H
 
-#include <gcrypt.h>
+#include <poldi.h>
 
 /* This functions figures out wether the provided (SERIALNO, USERNAME)
    pair is contained in the users database.  */
-gcry_error_t usersdb_check (const char *serialno, const char *username);
+gpg_error_t usersdb_check (const char *serialno, const char *username);
 
 /* This function tries to lookup a username by it's serial number;
    this is only possible in case the specified serial number SERIALNO
    is associated with exactly one username.  The username will be
    stored in newly allocated memory in *USERNAME.  Returns proper
    error code.  */
-gcry_error_t usersdb_lookup_by_serialno (const char *serialno, char **username);
+gpg_error_t usersdb_lookup_by_serialno (const char *serialno, char **username);
 
 /* This function tries to lookup a serial number by it's username;
    this is only possible in case the specified username USERNAME is
    associated with exactly one serial number.  The serial number will
    be stored in newly allocated memory in *SERIALNO.  Returns proper
    error code.  */
-gcry_error_t usersdb_lookup_by_username (const char *username, char **serialno);
+gpg_error_t usersdb_lookup_by_username (const char *username, char **serialno);
 
-#endif
-
-/* END */
+#endif /* INCLUDED_USERSDB_H */

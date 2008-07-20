@@ -23,8 +23,11 @@
 #include <gpg-error.h>
 #include <gcrypt.h>
 
+#include <auth-support/ctx.h>
+
 /* Lookup the key belonging the card specified by SERIALNO.  Returns a
    proper error code.  */
-gpg_error_t key_lookup_by_serialno (const char *serialno, gcry_sexp_t *key);
+gpg_error_t key_lookup_by_serialno (poldi_ctx_t ctx,
+				    const char *serialno, gcry_sexp_t *key);
 
 #endif

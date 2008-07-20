@@ -131,7 +131,7 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
     }
 
   /* Retrieve key belonging to card.  */
-  err = key_lookup_by_serialno (ctx->cardinfo.serialno, &key);
+  err = key_lookup_by_serialno (ctx, ctx->cardinfo.serialno, &key);
   if (err)
     goto out;
 
@@ -139,22 +139,24 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
   err = challenge_generate (&challenge, &challenge_n);
   if (err)
     {
-      log_error ("Error: failed to generate challenge: %s\n",
-		 gpg_strerror (err));
+      log_msg_error (ctx->loghandle,
+		     "failed to generate challenge: %s",
+		     gpg_strerror (err));
       goto out;
     }
 
   /* Let card sign the challenge.  */
-  cb_data.conv = ctx->conv;
+  cb_data.poldi_ctx = ctx;
+  //cb_data.conv = ctx->conv;
   err = scd_pksign (ctx->scd, "OPENPGP.3",
 		    getpin_cb, &cb_data,
 		    challenge, challenge_n,
 		    &response, &response_n);
   if (err)
     {
-      log_error ("Error: failed to retrieve challenge signature "
-		 "from card: %s\n",
-		 gpg_strerror (err));
+      log_msg_error (ctx->loghandle,
+		     "failed to retrieve challenge signature from card: %s",
+		     gpg_strerror (err));
       goto out;
     }
 
@@ -162,7 +164,8 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
   err = challenge_verify (key, challenge, challenge_n, response, response_n);
   if (err)
     {
-      log_error ("Error: failed to verify challenge\n");
+      log_msg_error (ctx->loghandle,
+		     "failed to verify challenge");
       goto out;
     }
 
@@ -209,8 +212,9 @@ struct auth_method_s auth_method_localdb =
   {
     NULL,
     NULL,
-    NULL,
     auth_method_localdb_auth,
     auth_method_localdb_auth_as,
+    NULL,
+    NULL,
     NULL
   };

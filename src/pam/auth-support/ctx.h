@@ -23,6 +23,9 @@
 #define PAM_SM_AUTH
 #include <security/pam_modules.h>
 
+#include <util/simplelog.h>
+#include <util/simpleparse.h>
+
 #include "scd/scd.h"
 #include "auth-support/conv.h"
 
@@ -50,13 +53,13 @@ struct poldi_ctx_s
 {
   /* Options. */
 
-  char *logfile;		/* Our log file.  Actually we should
-				   have an appropriate logging handle,
-				   but logging.c does not support that
-				   currently.  */
+  char *logfile;
+  log_handle_t loghandle;	/* Our handle for simplelog.  */
+  simpleparse_handle_t parsehandle; /* Handle for simpleparse.  */
   int auth_method;		/* The ID of the authentication method
 				   in use.  */
-  void *cookie;			/* Cookie */
+  void *cookie;			/* Cookie for authentication
+				   method. */
 
   int debug;			/* Debug flag.  If true, functions
 				   should emmit debugging

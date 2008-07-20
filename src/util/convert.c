@@ -1,5 +1,5 @@
 /* convert.c - Hex conversion functions.
- *	Copyright (C) 2006 Free Software Foundation, Inc.
+ *	Copyright (C) 2006, 2008 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
  *
@@ -17,7 +17,8 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
+#include <util-local.h>
+
 #include <stdlib.h>
 #include <errno.h>
 #include <ctype.h>
@@ -26,79 +27,6 @@
 
 
 #define tohex(n) ((n) < 10 ? ((n) + '0') : (((n) - 10) + 'A'))
-
-
-/* Convert STRING consisting of hex characters into its binary
-   representation and store that at BUFFER.  BUFFER needs to be of
-   LENGTH bytes.  The function check that the STRING will convert
-   exactly to LENGTH bytes. The string is delimited by either end of
-   string or a white space character.  The function returns -1 on
-   error or the length of the parsed string.  */
-int
-hex2bin (const char *string, void *buffer, size_t length)
-{
-  int i;
-  const char *s = string;
-
-  for (i=0; i < length; )
-    {
-      if (!hexdigitp (s) || !hexdigitp (s+1))
-        return -1;           /* Invalid hex digits. */
-      ((unsigned char*)buffer)[i++] = xtoi_2 (s);
-      s += 2;
-    }
-  if (*s && (!isascii (*s) || !isspace (*s)) )
-    return -1;             /* Not followed by Nul or white space.  */
-  if (i != length)
-    return -1;             /* Not of expected length.  */
-  if (*s)
-    s++; /* Skip the delimiter. */
-  return s - string;
-}
-
-
-/* Convert STRING consisting of hex characters into its binary representation
-   and store that at BUFFER.  BUFFER needs to be of LENGTH bytes.  The
-   function check that the STRING will convert exactly to LENGTH
-   bytes. Colons inbetween the hex digits are allowed, if one colon
-   has been given a colon is expected very 2 characters. The string
-   is delimited by either end of string or a white space character.
-   The function returns -1 on error or the length of the parsed
-   string.  */
-int
-hexcolon2bin (const char *string, void *buffer, size_t length)
-{
-  int i;
-  const char *s = string;
-  int need_colon = 0;
-
-  for (i=0; i < length; )
-    {
-      if (i==1 && *s == ':')  /* Skip colons between hex digits.  */
-        {
-          need_colon = 1;
-          s++;
-        }
-      else if (need_colon && *s == ':')
-        s++;
-      else if (need_colon)
-        return -1;           /* Colon expected. */
-      if (!hexdigitp (s) || !hexdigitp (s+1))
-        return -1;           /* Invalid hex digits. */
-      ((unsigned char*)buffer)[i++] = xtoi_2 (s);
-      s += 2;
-    }
-  if (*s == ':')
-    return -1;             /* Trailing colons are not allowed.  */
-  if (*s && (!isascii (*s) || !isspace (*s)) )
-    return -1;             /* Not followed by Nul or white space.  */
-  if (i != length)
-    return -1;             /* Not of expected length.  */
-  if (*s)
-    s++; /* Skip the delimiter. */
-  return s - string;
-}
-
 
 static char *
 do_bin2hex (const void *buffer, size_t length, char *stringbuf, int with_colon)
@@ -146,17 +74,3 @@ bin2hex (const void *buffer, size_t length, char *stringbuf)
 {
   return do_bin2hex (buffer, length, stringbuf, 0);
 }
-
-/* Convert LENGTH bytes of data in BUFFER into hex encoding and store
-   that at the provided STRINGBUF.  STRINGBUF must be allocated of at
-   least (3*LENGTH+1) bytes or be NULL so that the function mallocs an
-   appropriate buffer.  Returns STRINGBUF or NULL on error (which may
-   only occur if STRINGBUF has been NULL and the internal malloc
-   failed). */
-char *
-bin2hexcolon (const void *buffer, size_t length, char *stringbuf)
-{
-  return do_bin2hex (buffer, length, stringbuf, 1);
-}
-
-

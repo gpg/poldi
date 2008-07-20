@@ -26,73 +26,21 @@
 #include <time.h>   /* We need time_t. */
 #include <errno.h>  /* We need errno.  */
 #include <gpg-error.h> /* We need gpg_error_t. */
+#include <stdio.h>
 
 /* Get all the stuff from jnlib. */
-#include "../jnlib/logging.h"
-#include "../jnlib/argparse.h"
-#include "../jnlib/stringhelp.h"
-#include "../jnlib/mischelp.h"
-#include "../jnlib/strlist.h"
-#include "../jnlib/dotlock.h"
-#include "../jnlib/utf8conv.h"
+//#include "../jnlib/logging.h"
+//#include "../jnlib/argparse.h"
+//#include "../jnlib/stringhelp.h"
+//#include "../jnlib/mischelp.h"
+//#include "../jnlib/strlist.h"
+//#include "../jnlib/utf8conv.h"
 
-
-#if __GNUC__ >= 4 
-# define GNUPG_GCC_A_SENTINEL(a) __attribute__ ((sentinel(a)))
-#else
-# define GNUPG_GCC_A_SENTINEL(a) 
-#endif
-
-/* Handy malloc macros - please use only them. */
-#define xtrymalloc(a)    gcry_malloc ((a))
-#define xtrymalloc_secure(a)  gcry_malloc_secure ((a))
-#define xtrycalloc(a,b)  gcry_calloc ((a),(b))
-#define xtrycalloc_secure(a,b)  gcry_calloc_secure ((a),(b))
-#define xtryrealloc(a,b) gcry_realloc ((a),(b))
-#define xtrystrdup(a)    gcry_strdup ((a))
-#define xfree(a)         gcry_free ((a))
-
-#define xmalloc(a)       gcry_xmalloc ((a))
-#define xmalloc_secure(a)  gcry_xmalloc_secure ((a))
-#define xcalloc(a,b)     gcry_xcalloc ((a),(b))
-#define xcalloc_secure(a,b) gcry_xcalloc_secure ((a),(b))
-#define xrealloc(a,b)    gcry_xrealloc ((a),(b))
-#define xstrdup(a)       gcry_xstrdup ((a))
-
-/* Convenience function to return a gpg-error code for memory
-   allocation failures.  This function makes sure that an error will
-   be returned even if accidently ERRNO is not set.  */
-static inline gpg_error_t
-out_of_core (void)
-{
-  return gpg_error_from_syserror ();
-}
-
-#if 0
-/* FIXME: unused? -mo  */
-/*-- sexputil.c */
-gpg_error_t keygrip_from_canon_sexp (const unsigned char *key, size_t keylen,
-                                     unsigned char *grip);
-unsigned char *make_simple_sexp_from_hexstr (const char *line,
-                                             size_t *nscanned);
-#endif
+#define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
+#define DIMof(type,member)   DIM(((type *)0)->member)
 
 /*-- convert.c --*/
-int hex2bin (const char *string, void *buffer, size_t length);
-int hexcolon2bin (const char *string, void *buffer, size_t length);
 char *bin2hex (const void *buffer, size_t length, char *stringbuf);
-char *bin2hexcolon (const void *buffer, size_t length, char *stringbuf);
-
-
-/* Same as asprintf but return an allocated buffer suitable to be
-   freed using xfree.  This function simply dies on memory failure,
-   thus no extra check is required. */
-char *xasprintf (const char *fmt, ...) JNLIB_GCC_A_PRINTF(1,2);
-/* Same as asprintf but return an allocated buffer suitable to be
-   freed using xfree.  This function returns NULL on memory failure and
-   sets errno. */
-char *xtryasprintf (const char *fmt, ...) JNLIB_GCC_A_PRINTF(1,2);
-
 
 /*-- Macros to replace ctype ones to avoid locale problems. --*/
 #define spacep(p)   (*(p) == ' ' || *(p) == '\t')

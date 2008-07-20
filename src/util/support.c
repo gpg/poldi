@@ -18,7 +18,7 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.  */
 
-#include <config.h>
+#include "util-local.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,15 +37,12 @@
 #include "support.h"
 #include "defs.h"
 
-#include <jnlib/stringhelp.h>
-#include <jnlib/xmalloc.h>
-#include <jnlib/logging.h>
-
-
-
 #define CHALLENGE_MD_ALGORITHM GCRY_MD_SHA1
 
 
+
+/* Note: it's expected that xtrymalloc, xtrystrdup and xfree are
+   defined in util-local.h. */
 
 /* This function generates a challenge; the challenge will be stored
    in newly allocated memory, which is to be stored in *CHALLENGE;
@@ -58,7 +55,7 @@ challenge_generate (unsigned char **challenge, size_t *challenge_n)
   unsigned char *challenge_new = NULL;
   size_t challenge_new_n = gcry_md_get_algo_dlen (CHALLENGE_MD_ALGORITHM);
 
-  challenge_new = malloc (challenge_new_n);
+  challenge_new = xtrymalloc (challenge_new_n);
   if (! challenge_new)
     err = gpg_err_code_from_errno (errno);
   else
@@ -77,7 +74,7 @@ void
 challenge_release (unsigned char *challenge)
 {
   if (challenge)
-    free (challenge);
+    xfree (challenge);
 }
 
 static gpg_error_t
@@ -171,7 +168,7 @@ sexp_to_string (gcry_sexp_t sexp, char **sexp_string)
     }
 
   /* Allocate memory.  */
-  buffer = malloc (buffer_n);
+  buffer = xtrymalloc (buffer_n);
   if (! buffer)
     {
       err = gpg_error_from_errno (errno);
@@ -244,7 +241,7 @@ file_to_string_internal (const char *filename, void **data, size_t *datalen)
 	  err = gpg_error_from_errno (errno);
 	  goto out;
 	}
-      data_new = malloc (statbuf.st_size + 1);
+      data_new = xtrymalloc (statbuf.st_size + 1);
       if (!data_new)
 	{
 	  err = gpg_error_from_errno (errno);
@@ -318,7 +315,7 @@ char_vector_dup (int len, const char **a, char ***b)
   c = NULL;
   err = 0;
 
-  c = malloc (sizeof (*c) * (len + 1));
+  c = xtrymalloc (sizeof (*c) * (len + 1));
   if (!c)
     {
       err = gpg_error_from_errno (errno);
@@ -330,7 +327,7 @@ char_vector_dup (int len, const char **a, char ***b)
 
   for (i = 0; i < len; i++)
     {
-      c[i] = strdup (a[i]);
+      c[i] = xtrystrdup (a[i]);
       if (!c[i])
 	{
 	  err = gpg_error_from_errno (errno);
@@ -346,8 +343,8 @@ char_vector_dup (int len, const char **a, char ***b)
       if (c)
 	{
 	  for (i = 0; c[i]; i++)
-	    free (c[i]);
-	  free (c);
+	    xfree (c[i]);
+	  xfree (c);
 	}
       *b = NULL;
     }
@@ -365,8 +362,8 @@ char_vector_free (char **a)
   if (a)
     {
       for (i = 0; a[i]; i++)
-	free (a[i]);
-      free (a);
+	xfree (a[i]);
+      xfree (a);
     }
 }
 

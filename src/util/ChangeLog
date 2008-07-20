@@ -1,3 +1,30 @@
+2008-07-20  Moritz  <moritz@gnu.org>
+
+	* Makefile.am (poldi_util_SOURCES): added util-local.h,
+	simplelog.c, simplelog.h, simpleparse.c, simpleparse.h,
+	filenames.c, filenames.h.
+	* util.h: Stripped: removed jnlib includes, unused GCC macros,
+	memory manager definitions, unused function declarations.
+	* convert.c: Removed unused functions.
+	* support.c: Removed jnlib includes, include poldi.h.
+	* util-local.h: New file.
+	* membuf.c, membuf.c: Remerged from GnuPG.
+	* membuf.c: Include util-local.h, not config.h.
+	* usersdb.c: Don't include jnlib/stringhelp.h.
+	* filenames.c, filenames.h, simplelog.c, simplelog.h,
+	simpleparse.c, simpleparse.h: New files.
+
+2008-06-20  Moritz  <moritz@gnu.org>
+
+	* support.c: Do not include <jnlib/logging.h>.
+
+2008-06-14  Moritz  <moritz@gnu.org>
+
+	* util.h: Do not include dotlock.h.
+
+	* membuf.c, membuf.h: Replace with new copy from GnuPG, no idea
+	why secure memory was disabled previously.
+
 2008-05-01  Moritz  <moritz@gnu.org>
 
 	* Makefile.am: Build a shared and a nonshared version.

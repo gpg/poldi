@@ -17,7 +17,7 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
+#include <poldi.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +36,8 @@
 #include "util/membuf.h"
 #include "dirmngr.h"
 
+#include <util/simplelog.h>
+
 /* FIXME: compare with original file, figure out why these are not
    needed. */
 //#include "i18n.h"
@@ -51,6 +53,7 @@
 struct dirmngr_ctx_s
 {
   assuan_context_t assuan;
+  log_handle_t log_handle;
 };
 
 #if 0
@@ -81,7 +84,8 @@ struct lookup_parm_s {
 gpg_error_t
 dirmngr_connect (dirmngr_ctx_t *ctx,
 		 const char *sock,
-		 unsigned int flags)
+		 unsigned int flags,
+		 log_handle_t log_handle)
 {
   dirmngr_ctx_t context;
   gpg_error_t err;
@@ -100,13 +104,14 @@ dirmngr_connect (dirmngr_ctx_t *ctx,
   if (err)
     goto out;
 
+  context->log_handle = log_handle;
   *ctx = context;
 
  out:
 
   if (err)
     free (context);
-
+  
   return err;
 }
 
@@ -127,7 +132,7 @@ dirmngr_disconnect (dirmngr_ctx_t ctx)
 /* Communication structure for the certificate inquire callback. */
 struct inq_cert_parm_s
 {
-  assuan_context_t ctx;
+  dirmngr_ctx_t ctx;
   const unsigned char *cert;
   size_t certlen;
 };
@@ -141,7 +146,7 @@ inq_cert (void *opaque, const char *line)
 
   if (!strncmp (line, "TARGETCERT", 10) && (line[10] == ' ' || !line[10]))
     {
-      err = assuan_send_data (parm->ctx, parm->cert, parm->certlen);
+      err = assuan_send_data (parm->ctx->assuan, parm->cert, parm->certlen);
     }
   else if ((!strncmp (line, "SENDCERT", 8) && (line[8] == ' ' || !line[8]))
 	   || (!strncmp (line, "SENDCERT_SKI", 12) && (line[12]==' ' || !line[12]))
@@ -150,11 +155,11 @@ inq_cert (void *opaque, const char *line)
     {
       /* We don't support this but dirmngr might ask for it.  So
          simply ignore it by sending back and empty value. */
-      err = assuan_send_data (parm->ctx, NULL, 0);
+      err = assuan_send_data (parm->ctx->assuan, NULL, 0);
     }
   else
     {
-      log_info (_("unsupported inquiry `%s'\n"), line);
+      log_msg_error (parm->ctx->log_handle, _("unsupported inquiry `%s'"), line);
       err = gpg_error (GPG_ERR_ASS_UNKNOWN_INQUIRE);
       /* Note that this error will let assuan_transact terminate
          immediately instead of return the error to the caller.  It is
@@ -183,7 +188,7 @@ dirmngr_validate (dirmngr_ctx_t ctx, ksba_cert_t cert)
     }
 
   /* Setup PARM structure.  */
-  parm.ctx = ctx->assuan;
+  parm.ctx = ctx;
   parm.cert = image;
   parm.certlen = imagelen;
 
@@ -237,7 +242,8 @@ lookup_cb (void *opaque, const void *buffer, size_t length)
   rc = ksba_cert_init_from_mem (cert, buf, len);
   if (rc)
     {
-      log_error ("failed to parse a certificate: %s\n", gpg_strerror (rc));
+      /* FIXME, moritz! */
+      //log_error ("failed to parse a certificate: %s\n", gpg_strerror (rc));
     }
   else
     {

@@ -17,7 +17,7 @@
    along with this program; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include <config.h>
+#include <poldi.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,8 +29,6 @@
 #include "usersdb.h"
 #include "util/defs.h"
 //#include "defs.h"
-
-#include <jnlib/stringhelp.h>
 
 
 
@@ -49,7 +47,7 @@ typedef int (*usersdb_cb_t) (const char *serialno, const char *username,
    a card serial number and a account, the callback function specified
    as (CB, OPAQUE) is called.  Depending on CB's return code,
    processing is continued or aborted.  */
-static gcry_error_t
+static gpg_error_t
 usersdb_process (usersdb_cb_t cb, void *opaque)
 {
   const char *delimiters = "\t\n ";
@@ -178,11 +176,11 @@ usersdb_check_cb (const char *serialno, const char *username, void *opaque)
 
 /* This functions figures out wether the provided (SERIALNO, USERNAME)
    pair is contained in the users database.  */
-gcry_error_t
+gpg_error_t
 usersdb_check (const char *serialno, const char *username)
 {
   struct check_cb_s ctx = { serialno, username, 0 };
-  gcry_error_t err;
+  gpg_error_t err;
 
   err = usersdb_process (usersdb_check_cb, &ctx);
   if (! err)
@@ -211,7 +209,7 @@ typedef struct lookup_cb_s
   const char *username;
   int matches;
   char *found;
-  gcry_error_t err;
+  gpg_error_t err;
 } *lookup_cb_t;
 
 static int
@@ -282,11 +280,11 @@ usersdb_lookup_cb (const char *serialno, const char *username, void *opaque)
    is associated with exactly one username.  The username will be
    stored in newly allocated memory in *USERNAME.  Returns proper
    error code.  */
-gcry_error_t
+gpg_error_t
 usersdb_lookup_by_serialno (const char *serialno, char **username)
 {
   struct lookup_cb_s ctx = { serialno, NULL, 0, NULL, 0 };
-  gcry_error_t err;
+  gpg_error_t err;
 
   assert (serialno);
   assert (username);
@@ -331,11 +329,11 @@ usersdb_lookup_by_serialno (const char *serialno, char **username)
    associated with exactly one serial number.  The serial number will
    be stored in newly allocated memory in *SERIALNO.  Returns proper
    error code.  */
-gcry_error_t
+gpg_error_t
 usersdb_lookup_by_username (const char *username, char **serialno)
 {
   struct lookup_cb_s ctx = { NULL, username, 0, NULL, 0 };
-  gcry_error_t err;
+  gpg_error_t err;
 
   assert (username);
   assert (serialno);

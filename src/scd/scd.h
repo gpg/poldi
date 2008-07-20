@@ -20,7 +20,10 @@
 #ifndef POLDI_SCD_H
 #define POLDI_SCD_H
 
-#include <gcrypt.h>
+#include <poldi.h>
+
+#include <util/simplelog.h>
+
 #include "assuan.h"
 
 struct scd_context;
@@ -51,7 +54,8 @@ int scd_connect (scd_context_t *scd_ctx,
 		 const char *scdaemon_socket,
 		 const char *agent_infostr,
 		 const char *scd_path,
-		 unsigned int flags);
+		 unsigned int flags,
+		 log_handle_t loghandle);
 
 /* Disconnect from SCDaemon; destroy the context SCD_CTX.  */
 int scd_disconnect (scd_context_t scd_ctx);
@@ -70,7 +74,14 @@ int scd_learn (scd_context_t ctx,
    okay.  */
 void scd_release_cardinfo (struct scd_cardinfo cardinfo);
 
-/* Create a signature using the current card */
+/* Create a signature using the current card. CTX is the handle for
+   the scd subsystem.  KEYID identifies the key on the card to use for
+   signing. GETPIN_CB is the callback, which is called for querying of
+   the PIN, GETPIN_CB_ARG is passed as opaque argument to
+   GETPIN_CB. INDATA/INDATALEN is the input for the signature
+   function.  The signature created is written into newly allocated
+   memory in *R_BUF, *R_BUFLEN will hold the length of the
+   signature. */
 int scd_pksign (scd_context_t ctx,
 		const char *keyid,
 		int (*getpin_cb)(void *, const char *, char*, size_t),
