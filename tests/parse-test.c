@@ -1,3 +1,23 @@
+/* parse-test.c - test program for simpleparse.
+   Copyright (C) 2008 g10 Code GmbH
+ 
+   This file is part of Poldi.
+ 
+   Poldi is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
+ 
+   Poldi is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+ 
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, see
+   <http://www.gnu.org/licenses/>.  */
+ 
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -22,16 +42,6 @@ static simpleparse_opt_spec_t opt_specs[] =
     { 0 }
   };
 
-static void
-logcb (void *cookie, log_level_t level, const char *fmt, va_list ap)
-{
-  const char *prefix = cookie;
-
-  fprintf (stderr, "(level %i) [%s] ", level, prefix);
-  vfprintf (stderr, fmt, ap);
-  fprintf (stderr, "\n");
-}
-
 static gpg_error_t
 parsecb (void *cookie, simpleparse_opt_spec_t spec, const char *arg)
 {
@@ -48,15 +58,22 @@ main (int argc, const char **argv)
   simpleparse_handle_t handle = NULL;
   gpg_error_t err = 0;
   const char **rest_args;
+  log_handle_t loghandle = NULL;
 
   assert (argc > 0);
 
   /* Init.  */
+  err = log_create (&loghandle);
+  assert (!err);
+
+  err = log_set_backend_stream (loghandle, stderr);
+  assert (!err);
+
   err = simpleparse_create (&handle);
   assert (!err);
 
   simpleparse_set_parse_cb (handle, parsecb, "parse-test parser");
-  simpleparse_set_log_cb (handle, logcb, "parse-test logger");
+  simpleparse_set_loghandle (handle, loghandle);
   simpleparse_set_specs (handle, opt_specs);
 
   /* Parse command-line arguments. */
@@ -69,10 +86,13 @@ main (int argc, const char **argv)
     }
 
   printf ("Rest args: ");
-  while (*rest_args)
+  if (rest_args)
     {
-      printf ("%s%s", *rest_args, *(rest_args + 1) ? ", " : "");
-      rest_args++;
+      while (*rest_args)
+	{
+	  printf ("%s%s", *rest_args, *(rest_args + 1) ? ", " : "");
+	  rest_args++;
+	}
     }
   printf ("\n");
 

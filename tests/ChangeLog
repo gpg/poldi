@@ -1,3 +1,7 @@
+2008-07-20  Moritz  <moritz@gnu.org>
+
+	* parse-test.c: Adjusted to new simpleparse API.
+
 2008-05-25  Moritz  <moritz@gnu.org>
 
 	* pam-test.c: Added GPL3 header.
