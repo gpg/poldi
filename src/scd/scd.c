@@ -340,7 +340,8 @@ scd_connect (scd_context_t *scd_ctx,
 
       i=0;
 
-      /* FIXME!! Can't we do this differently? -mo */
+      /* FIXME! Am I right in assumung that we do not need this?
+	 -mo */
 #if 0
       if (log_get_fd () != -1)
         no_close_list[i++] = log_get_fd ();
