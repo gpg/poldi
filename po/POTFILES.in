@@ -25,7 +25,6 @@
 ./src/scd/scd.h
 ./src/util/simplelog.c
 ./src/util/convert.c
-./src/util/usersdb.c
 ./src/util/support.c
 ./src/util/support.h
 ./src/util/membuf.c
@@ -35,7 +34,6 @@
 ./src/util/membuf.h
 ./src/util/util.h
 ./src/util/simplelog.h
-./src/util/usersdb.h
 ./src/util/util-local.h
 ./src/util/simpleparse.c
 ./src/util/defs.h.in
