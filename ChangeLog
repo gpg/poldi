@@ -1,5 +1,9 @@
 2008-08-04  Moritz  <moritz@gnu.org>
 
+	* Makefile.am (SUBDIRS): Added po.
+
+2008-08-04  Moritz  <moritz@gnu.org>
+
 	* configure.ac: Removed checks for libusb (we use scdaemon!).
 
 2008-08-03  Moritz  <moritz@gnu.org>

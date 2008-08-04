@@ -19,7 +19,7 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = src doc conf am m4 tests tools
+SUBDIRS = src doc conf am m4 tests tools po
 
 install-conf-skeleton:
 	$(MAKE) -C conf install-conf-skeleton
