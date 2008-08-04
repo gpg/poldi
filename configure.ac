@@ -113,17 +113,7 @@ AM_PATH_GPG_ERROR("$NEED_GPG_ERROR_VERSION",
                   have_gpg_error=yes,have_gpg_error=no)
 AM_PATH_KSBA("$NEED_KSBA_API:$NEED_KSBA_VERSION",have_ksba=yes,have_ksba=no)
 
-#
-# libusb allows us to use the integrated CCID smartcard reader driver.
-#
-LIBUSB_LIBS=""
-AC_CHECK_LIB(usb, usb_bulk_write,
-             [ LIBUSB_LIBS="$LIBUSB_LIBS -lusb"
-               AC_DEFINE(HAVE_LIBUSB,1,
-               [defined if libusb is available])
-             ])
-AC_SUBST(LIBUSB_LIBS)
-AC_CHECK_FUNCS(usb_get_busses memicmp stpcpy strlwr strtoul memmove stricmp)
+AC_CHECK_FUNCS(memicmp stpcpy strlwr strtoul memmove stricmp)
 AC_CHECK_FUNCS(fopencookie funopen nanosleep)
 
 # Checks for header files.

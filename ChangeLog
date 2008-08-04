@@ -1,3 +1,7 @@
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* configure.ac: Removed checks for libusb (we use scdaemon!).
+
 2008-08-03  Moritz  <moritz@gnu.org>
 
 	* config.h.in: Added ENABLE_NLS symbol.
