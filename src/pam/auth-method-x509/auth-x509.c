@@ -21,9 +21,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>		/* FIXME, so far only required for
-				   ksba.h. */
-#include <gpg-error.h>
-#include <gcrypt.h>
+				   old ksba.h. */
 #include <ksba.h>
 
 #define PAM_SM_AUTH
@@ -97,9 +95,9 @@ enum opt_ids
 static simpleparse_opt_spec_t x509_opt_specs[] =
   {
     { opt_dirmngr_socket, "dirmngr-socket",
-      0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify local socket for dirmngr access" },
+      0, SIMPLEPARSE_ARG_REQUIRED, 0, N_("Specify local socket for dirmngr access") },
     { opt_x509_domain, "x509-domain",
-      0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify X509 domain for this host" },
+      0, SIMPLEPARSE_ARG_REQUIRED, 0, N_("Specify X509 domain for this host") },
     { 0 }
   };
 
@@ -118,9 +116,10 @@ auth_method_x509_parsecb (void *opaque, simpleparse_opt_spec_t spec, const char 
       if (!x509_ctx->x509_domain)
 	{
 	  log_msg_error (ctx->loghandle,
-			 "failed to duplicate string (x509-domain option) (length: %i): %s",
+			 _("failed to duplicate %s (length: %i): %s"),
+			 "x509-domain option string",
 			 strlen (arg), strerror (errno));
-	  err = gpg_error_from_errno (errno);
+	  err = gpg_error_from_syserror ();
 	}
     }
   else if (!strcmp (spec.long_opt, "dirmngr-socket"))
@@ -129,9 +128,10 @@ auth_method_x509_parsecb (void *opaque, simpleparse_opt_spec_t spec, const char 
       if (!x509_ctx->dirmngr_socket)
 	{
 	  log_msg_error (ctx->loghandle,
-			 "failed to duplicate string (dirmngr-socket option) (length: %i): %s",
+			 _("failed to duplicate %s (length: %i): %s"),
+			 "dirmngr-socket option string",
 			 strlen (arg), strerror (errno));
-	  err = gpg_error_from_errno (errno);
+	  err = gpg_error_from_syserror ();
 	}
     }
 
@@ -159,7 +159,8 @@ extract_public_key_from_cert (poldi_ctx_t ctx, ksba_cert_t cert, gcry_sexp_t *pu
   sexp_len = gcry_sexp_canon_len (ksba_sexp, 0, NULL, NULL);
   if (!sexp_len)
     {
-      log_msg_error (ctx->loghandle, "libksba did not return a proper S-Exp");
+      log_msg_error (ctx->loghandle,
+		     _("libksba did not return a proper S-Exp"));
       err = GPG_ERR_BUG;
       goto out;
     }
@@ -167,7 +168,9 @@ extract_public_key_from_cert (poldi_ctx_t ctx, ksba_cert_t cert, gcry_sexp_t *pu
   err = gcry_sexp_sscan (&pubkey, NULL, (char *) ksba_sexp, sexp_len);
   if (err)
     {
-      log_msg_error (ctx->loghandle, "gcry_sexp_scan failed: %s", gpg_strerror (err));
+      log_msg_error (ctx->loghandle,
+		     _("failed to convert KSBA s-expression into s-expression object: %s"),
+		     gpg_strerror (err));
       goto out;
     }
 
@@ -458,7 +461,6 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
   char *card_username;
   ksba_cert_t cert;
   dirmngr_ctx_t dirmngr;
-  struct getpin_cb_data cb_data;
 
   dirmngr = NULL;
   challenge = NULL;
@@ -473,7 +475,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
     {
       err = gpg_error (GPG_ERR_CONFIGURATION);
       log_msg_error (ctx->loghandle,
-		     "x509 authentication method not properly configured");
+		     _("x509 authentication method not properly configured"));
       goto out;
     }
 
@@ -487,7 +489,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
 
   if (ctx->debug)
     log_msg_debug (ctx->loghandle,
-		   "public key url is: '%s'", ctx->cardinfo.pubkey_url);
+		   _("public key url is '%s'"), ctx->cardinfo.pubkey_url);
 
   /*** Fetch certificate. ***/
 
@@ -495,7 +497,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     "failed to look up certificate `%s': %s",
+		     _("failed to look up certificate `%s': %s"),
 		     ctx->cardinfo.pubkey_url, gpg_strerror (err));
       goto out;
     }
@@ -539,23 +541,19 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     "failed to generate challenge: %s\n",
+		     _("failed to generate challenge: %s"),
 		     gpg_strerror (err));
       goto out;
     }
 
   /*** Let card sign the challenge. ***/
-
-  cb_data.poldi_ctx = ctx;
-  //cb_data.conv = ctx->conv;
   err = scd_pksign (ctx->scd, "OPENPGP.3",
-		    getpin_cb, &cb_data,
 		    challenge, challenge_n,
 		    &response, &response_n);
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     "failed to retrieve challenge signature from card: %s\n",
+		     _("failed to retrieve challenge signature from card: %s"),
 		     gpg_strerror (err));
       goto out;
     }
@@ -568,7 +566,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     "failed to verify challenge\n");
+		     _("failed to verify challenge signature"));
       goto out;
     }
 
@@ -588,9 +586,9 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
 
   /* Log result.  */
   if (err)
-    log_msg_error (ctx->loghandle, "failure: %s", gpg_strerror (err));
+    log_msg_error (ctx->loghandle, _("failure: %s"), gpg_strerror (err));
   else if (ctx->debug)
-    log_msg_debug (ctx->loghandle, "success");
+    log_msg_debug (ctx->loghandle, _("success"));
 
   return !err;
 }

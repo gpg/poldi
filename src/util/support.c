@@ -169,7 +169,7 @@ sexp_to_string (gcry_sexp_t sexp, char **sexp_string)
 
   /* Allocate memory.  */
   buffer = xtrymalloc (buffer_n);
-  if (! buffer)
+  if (!buffer)
     {
       err = gpg_error_from_errno (errno);
       goto out;
@@ -177,7 +177,7 @@ sexp_to_string (gcry_sexp_t sexp, char **sexp_string)
 
   /* And write string-representation into buffer.  */
   buffer_n = gcry_sexp_sprint (sexp, fmt, buffer, buffer_n);
-  if (! buffer_n)
+  if (!buffer_n)
     {
       err = gpg_error (GPG_ERR_INV_SEXP); /* ? */
       goto out;
@@ -189,7 +189,7 @@ sexp_to_string (gcry_sexp_t sexp, char **sexp_string)
  out:
 
   if (err)
-    free (buffer);
+    xfree (buffer);
 
   return err;
 }
@@ -267,7 +267,7 @@ file_to_string_internal (const char *filename, void **data, size_t *datalen)
     fclose (fp);
 
   if (err)
-    free (data_new);
+    xfree (data_new);
 
   return err;
 }
@@ -367,5 +367,23 @@ char_vector_free (char **a)
     }
 }
 
+int
+my_strlen (const char *s)
+{
+  int ret = 0;
+  
+  while (*s)
+    {
+      if (ret == INT_MAX)
+	{
+	  ret = -1;
+	  break;
+	}
+      ret++;
+      s++;
+    }
+
+  return ret;
+}
 
 /* END */

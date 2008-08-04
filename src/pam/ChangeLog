@@ -1,3 +1,18 @@
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* pam_poldi.c (pam_sm_authenticate): New variable:
+	getpin_cb_data. Call scd_set_pincb().
+	Include "getpin-cb.h".
+
+	* auth-methods.h: Removed some disabled code.
+
+	* pam_poldi.c: Marked strings for i18n.
+
+2008-07-29  Moritz  <moritz@gnu.org>
+
+	* pam_poldi.c (i18n_cb): New function...
+	(create_context, pam_sm_authenticate): ... use it here.
+
 2008-07-14  Moritz  <moritz@gnu.org>
 
 	* auth-methods.h: Include simpleparse.h instead of argparse.h.

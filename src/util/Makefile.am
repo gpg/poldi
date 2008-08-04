@@ -27,7 +27,7 @@ poldi_util_SOURCES = \
 	util-local.h \
 	support.c support.h \
 	membuf.c membuf.h \
-	util.h i18n.h \
+	util.h \
 	convert.c \
 	simplelog.c simplelog.h \
 	simpleparse.c simpleparse.h \

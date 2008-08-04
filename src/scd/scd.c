@@ -41,7 +41,6 @@
 #include "util/membuf.h"
 #include "util/support.h"
 #include "util/simplelog.h"
-#include "i18n.h"
 
 #ifdef _POSIX_OPEN_MAX
 #define MAX_OPEN_FDS _POSIX_OPEN_MAX
@@ -61,6 +60,8 @@ struct scd_context
   assuan_context_t assuan_ctx;
   unsigned int flags;
   log_handle_t loghandle;
+  scd_pincb_t pincb;
+  void *pincb_cookie;
 };
 
 /* Callback parameter for learn card */
@@ -89,8 +90,8 @@ static assuan_error_t membuf_data_cb (void *opaque,
 
 
 
-static int scd_serialno_internal (assuan_context_t ctx,
-				  int agent, char **r_serialno);
+static gpg_error_t scd_serialno_internal (assuan_context_t ctx,
+					  int agent, char **r_serialno);
 
 
 
@@ -112,15 +113,25 @@ agent_connect_from_infostr (const char *agent_infostr,
   int rc;
   char *p;
 
-  infostr = xtrystrdup (agent_infostr);
   *agent_ctx = NULL;
   rc = 0;
 
-  if ( !(p = strchr (infostr, ':')) || p == infostr)
+  infostr = xtrystrdup (agent_infostr);
+  if (!infostr)
+    {
+      rc = gpg_error_from_syserror ();
+      log_msg_error (loghandle,
+		     _("failed to duplicate %s: %s"),
+		     "agent infostring", gpg_strerror (rc));
+      goto out;
+    }
+
+  p = strchr (infostr, ':');
+  if (!p || p == infostr)
     {
       log_msg_info (loghandle,
 		    _("malformed GPG_AGENT_INFO environment variable"));
-      /* moritz: fixme, wrong err code.  */
+      /* FIXME: what error code is more appropriate here?  -mo */
       rc = gpg_error (GPG_ERR_ASS_CONNECT_FAILED);
       goto out;
     }
@@ -134,7 +145,7 @@ agent_connect_from_infostr (const char *agent_infostr,
       log_msg_error (loghandle,
 		     _("agent protocol version %d is not supported"),
 		     prot);
-      /* moritz: fixme, wrong err code.  */
+      /* FIXME: what error code is more appropriate here?  -mo */
       rc = gpg_error (GPG_ERR_ASS_CONNECT_FAILED);
       goto out;
     
@@ -244,7 +255,7 @@ get_scd_socket_from_agent (const char *agent_infostr, char **socket_name,
    a running gpg-agent, retrieve scdaemon socket name through the
    agent and connect to that socket, third: fork of a new scdaemon.
    Returns proper error code or zero on success.  */
-int
+gpg_error_t
 scd_connect (scd_context_t *scd_ctx,
 	     const char *scdaemon_socket,
 	     const char *agent_infostr,
@@ -268,6 +279,10 @@ scd_connect (scd_context_t *scd_ctx,
   ctx->assuan_ctx = NULL;
   ctx->flags = 0;
 
+#if 0
+  /* Scdaemon is not yet able to run as a system daemon, thus this
+     code is disabled. */
+
   if (scdaemon_socket)
     {
       /* This has the highest priority; connect to system scdaemon. */
@@ -281,6 +296,7 @@ scd_connect (scd_context_t *scd_ctx,
 	  goto out;
 	}
     }
+#endif
 
   if (agent_infostr && *agent_infostr)
     {
@@ -389,7 +405,7 @@ scd_connect (scd_context_t *scd_ctx,
 }
 
 /* Disconnect from SCDaemon; destroy the context SCD_CTX.  */
-int
+void
 scd_disconnect (scd_context_t scd_ctx)
 {
   if (scd_ctx)
@@ -397,10 +413,18 @@ scd_disconnect (scd_context_t scd_ctx)
       assuan_disconnect (scd_ctx->assuan_ctx);
       xfree (scd_ctx);
     }
-
-  return 0;
 }
 
+
+void
+scd_set_pincb (scd_context_t scd_ctx,
+	       scd_pincb_t pincb, void *cookie)
+{
+  assert (scd_ctx);
+
+  scd_ctx->pincb = pincb;
+  scd_ctx->pincb_cookie = cookie;
+}
 
 
 
@@ -597,7 +621,7 @@ get_serialno_cb (void *opaque, const char *line)
   return 0;
 }
 
-static int
+static gpg_error_t
 scd_serialno_internal (assuan_context_t ctx, int agent, char **r_serialno)
 {
   char *serialno;
@@ -623,7 +647,7 @@ scd_serialno_internal (assuan_context_t ctx, int agent, char **r_serialno)
 
 /* Return the serial number of the card or an appropriate error.  The
    serial number is returned as a hexstring. */
-int
+gpg_error_t
 scd_serialno (scd_context_t ctx, char **r_serialno)
 {
   return scd_serialno_internal (ctx->assuan_ctx, 0, r_serialno);
@@ -656,6 +680,12 @@ inq_needpin (void *opaque, const char *line)
 
   if (!strncmp (line, "NEEDPIN", 7) && (line[7] == ' ' || !line[7]))
     {
+      if (!parm->getpin_cb)
+	{
+	  rc = GPG_ERR_BAD_PIN;
+	  goto out;
+	}
+
       line += 7;
       while (*line == ' ')
         line++;
@@ -676,6 +706,12 @@ inq_needpin (void *opaque, const char *line)
   else if (!strncmp (line, "POPUPKEYPADPROMPT", 17)
            && (line[17] == ' ' || !line[17]))
     {
+      if (!parm->getpin_cb)
+	{
+	  rc = GPG_ERR_BAD_PIN;
+	  goto out;
+	}
+
       line += 17;
       while (*line == ' ')
         line++;
@@ -685,6 +721,12 @@ inq_needpin (void *opaque, const char *line)
   else if (!strncmp (line, "DISMISSKEYPADPROMPT", 19)
            && (line[19] == ' ' || !line[19]))
     {
+      if (!parm->getpin_cb)
+	{
+	  rc = GPG_ERR_BAD_PIN;
+	  goto out;
+	}
+
       rc = parm->getpin_cb (parm->getpin_cb_arg, "", NULL, 0);
     }
   else
@@ -697,7 +739,7 @@ inq_needpin (void *opaque, const char *line)
 
  out:
 
-  return rc;
+  return gpg_error (rc);
 }
 
 
@@ -709,11 +751,9 @@ inq_needpin (void *opaque, const char *line)
    function.  The signature created is written into newly allocated
    memory in *R_BUF, *R_BUFLEN will hold the length of the
    signature. */
-int
+gpg_error_t
 scd_pksign (scd_context_t ctx,
 	    const char *keyid,
-	    int (*getpin_cb)(void *, const char *, char*, size_t),
-	    void *getpin_cb_arg,
 	    const unsigned char *indata, size_t indatalen,
 	    unsigned char **r_buf, size_t *r_buflen)
 {
@@ -753,8 +793,8 @@ scd_pksign (scd_context_t ctx,
   /* Setup NEEDPIN inquiry handler.  */
 
   inqparm.ctx = ctx;
-  inqparm.getpin_cb = getpin_cb;
-  inqparm.getpin_cb_arg = getpin_cb_arg;
+  inqparm.getpin_cb = ctx->pincb;
+  inqparm.getpin_cb_arg = ctx->pincb_cookie;
 
   /* Go, sign it. */
 

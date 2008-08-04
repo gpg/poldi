@@ -1,3 +1,11 @@
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.h: Include "ctx.h".
+
+2008-07-30  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.c: Do not include "i18n.h".
+
 2008-07-14  Moritz  <moritz@gnu.org>
 
 	* getpin-cb.c:

@@ -28,7 +28,6 @@
 
 #include "usersdb.h"
 #include "util/defs.h"
-//#include "defs.h"
 
 
 
@@ -188,8 +187,8 @@ usersdb_check (const char *serialno, const char *username)
       /* Now we have a result in CTX.  */
 
       if (! ctx.match)
-	err = gcry_error (GPG_ERR_NOT_FOUND); /* FIXME: not the best
-						 return code...  */
+	err = gpg_error (GPG_ERR_NOT_FOUND); /* FIXME: not the best
+						return code...  */
     }
 
   return err;
@@ -232,7 +231,7 @@ usersdb_lookup_cb (const char *serialno, const char *username, void *opaque)
 	      str = strdup (username);
 	      if (! str)
 		{
-		  ctx->err = gcry_error_from_errno (errno);
+		  ctx->err = gpg_error_from_syserror ();
 		  return 1;
 		}
 
@@ -255,7 +254,7 @@ usersdb_lookup_cb (const char *serialno, const char *username, void *opaque)
 	      str = strdup (serialno);
 	      if (! str)
 		{
-		  ctx->err = gcry_error_from_errno (errno);
+		  ctx->err = gpg_error_from_syserror ();
 		  return 1;
 		}
 
@@ -303,12 +302,12 @@ usersdb_lookup_by_serialno (const char *serialno, char **username)
 
   if (! ctx.matches)
     {
-      err = gcry_error (GPG_ERR_NOT_FOUND);
+      err = gpg_error (GPG_ERR_NOT_FOUND);
       goto out;
     }
   else if (ctx.matches > 1)
     {
-      err = gcry_error (GPG_ERR_AMBIGUOUS_NAME);
+      err = gpg_error (GPG_ERR_AMBIGUOUS_NAME);
       goto out;
     }
   else if (ctx.matches == 1)
@@ -352,12 +351,12 @@ usersdb_lookup_by_username (const char *username, char **serialno)
 
   if (! ctx.matches)
     {
-      err = gcry_error (GPG_ERR_NOT_FOUND);
+      err = gpg_error (GPG_ERR_NOT_FOUND);
       goto out;
     }
   else if (ctx.matches > 1)
     {
-      err = gcry_error (GPG_ERR_AMBIGUOUS_NAME);
+      err = gpg_error (GPG_ERR_AMBIGUOUS_NAME);
       goto out;
     }
   else if (ctx.matches == 1)

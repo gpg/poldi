@@ -17,17 +17,21 @@
    along with this program; if not, see
    <http://www.gnu.org/licenses/>.  */
 
+/* This is an assuan callback. It's called when an assuan server
+   (scdaemon) wants to retrieve the PIN from Poldi. This specific
+   implementation of the getpin callback API tries to retrieve the PIN
+   through PAM conversation. */
+
 #ifndef GETPIN_CB_H
 #define GETPIN_CB_H
+
+#include "ctx.h"
 
 /* Structure for passing data to getpin_cb. */
 struct getpin_cb_data
 {
-  poldi_ctx_t poldi_ctx;
-  /* ChangeLog: we need the full poldi_ctx, not just the conv
-     object.  */
-  //  conv_t conv;
-  
+  poldi_ctx_t poldi_ctx;	/* Poldi context; contains the PAM
+				   conversation object, etc. */
 };
 
 /* This is the Assuan callback, which is to be used for SCDaemon
@@ -35,7 +39,6 @@ struct getpin_cb_data
    conversation functions.  This function is used by authentiation
    methods.  OPAQUE is expected to be a pointer to struct
    getpin_cb_data. */
-
 int getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf);
 
 #endif

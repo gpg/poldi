@@ -19,15 +19,13 @@
  
 #include <poldi.h>
 
-#include <gcrypt.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <gpg-error.h>
+#include <gcrypt.h>
 
-//#include <jnlib/stringhelp.h>
-//#include "util/util.h"
 #include "util/defs.h"
 #include "util/support.h"
 #include "util/filenames.h"
@@ -62,8 +60,8 @@ key_lookup_by_serialno (poldi_ctx_t ctx, const char *serialno, gcry_sexp_t *key)
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     "failed to construct key file path "
-		     "for serial number `%s': %s\n",
+		     _("failed to construct key file path "
+		       "for serial number `%s': %s\n"),
 		     serialno, gpg_strerror (err));
       goto out;
     }
@@ -74,7 +72,7 @@ key_lookup_by_serialno (poldi_ctx_t ctx, const char *serialno, gcry_sexp_t *key)
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     "failed to retrieve key from key file `%s': %s\n",
+		     _("failed to retrieve key from key file `%s': %s\n"),
 		     key_path, gpg_strerror (err));
       goto out;
     }
@@ -83,8 +81,8 @@ key_lookup_by_serialno (poldi_ctx_t ctx, const char *serialno, gcry_sexp_t *key)
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     "failed to convert key "
-		     "from `%s' into S-Expression: %s\n",
+		     _("failed to convert key "
+		       "from `%s' into S-Expression: %s\n"),
 		     key_path, gpg_strerror (err));
       goto out;
     }
@@ -93,8 +91,8 @@ key_lookup_by_serialno (poldi_ctx_t ctx, const char *serialno, gcry_sexp_t *key)
 
  out:
 
-  free (key_path);
-  free (key_string);
+  xfree (key_path);
+  xfree (key_string);
 
   return err;
 }

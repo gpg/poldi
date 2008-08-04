@@ -69,22 +69,7 @@ gpg_error_t char_vector_dup (int len, const char **a, char ***b);
 
 void char_vector_free (char **a);
 
-/* List of ``conversations types''; these are passed to functions of
-   type ``conversation_cb_t''.  */
-typedef enum
-  {
-    CONVERSATION_TELL,		/* Inform the user about
-				   something.  */
-    CONVERSATION_ASK_SECRET	/* Retrieve a secret from the
-				   user.  */
-  }
-conversation_type_t;
-
-/* A function of this type is passed to authenticate().  */
-/* FIXME: encoding/utf8 - is there a problem? -mo */
-typedef gpg_error_t (*conversation_cb_t) (conversation_type_t type,
-					  void *opaque,
-					  const char *info, char **response);
+int my_strlen (const char *s);
 
 #endif
 

@@ -34,7 +34,6 @@
 #include "scd/scd.h"
 #include "util/support.h"
 #include "auth-support/ctx.h"
-#include "auth-support/getpin-cb.h"
 #include "auth-support/wait-for-card.h"
 #include "auth-support/pam-util.h"
 
@@ -44,6 +43,8 @@
 
 
 #if 0
+/* Currently, the localdb method doesn't require a special cookie. */
+
 static gpg_error_t
 auth_method_localdb_init (void **cookie)
 {
@@ -63,6 +64,7 @@ auth_method_localdb_parsecb (ARGPARSE_ARGS *parg, void *cookie)
   /* Do we support any localdb specific options?  */
   return 0;
 }
+
 #endif
 
 
@@ -81,7 +83,6 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
   gpg_error_t err;
   char *card_username;
   const char *username;
-  struct getpin_cb_data cb_data;
 
   card_username = NULL;
 
@@ -104,7 +105,8 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
       if (gcry_err_code (err) == GPG_ERR_AMBIGUOUS_NAME)
 	/* Given serialno is associated with more than one account =>
 	   ask the user for desired identity.  */
-	err = conv_ask (ctx->conv, 0, &card_username, "Need to figure out username: ");
+	err = conv_ask (ctx->conv, 0, &card_username,
+			_("Please enter username: "));
 
       if (err)
 	goto out;
@@ -116,7 +118,8 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
 
   if (ctx->debug)
     /* FIXME: quiet?  */
-    conv_tell (ctx->conv, "Trying authentication as user `%s'...", username);
+    conv_tell (ctx->conv,
+	       _("Trying authentication as user `%s'..."), username);
 
   /* FIXME: document!  */
   /* Verify (again) that the given account is associated with the
@@ -124,7 +127,8 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
   err = usersdb_check (ctx->cardinfo.serialno, username);
   if (err)
     {
-      conv_tell (ctx->conv, "Serial no %s is not associated with %s\n",
+      conv_tell (ctx->conv,
+		 _("Serial number %s is not associated with user %s\n"),
 		 ctx->cardinfo.serialno, username);
       err = gcry_error (GPG_ERR_INV_NAME);
       goto out;
@@ -140,22 +144,19 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     "failed to generate challenge: %s",
+		     _("failed to generate challenge: %s"),
 		     gpg_strerror (err));
       goto out;
     }
 
   /* Let card sign the challenge.  */
-  cb_data.poldi_ctx = ctx;
-  //cb_data.conv = ctx->conv;
   err = scd_pksign (ctx->scd, "OPENPGP.3",
-		    getpin_cb, &cb_data,
 		    challenge, challenge_n,
 		    &response, &response_n);
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     "failed to retrieve challenge signature from card: %s",
+		     _("failed to retrieve challenge signature from card: %s"),
 		     gpg_strerror (err));
       goto out;
     }
@@ -165,7 +166,7 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     "failed to verify challenge");
+		     _("failed to verify challenge"));
       goto out;
     }
 

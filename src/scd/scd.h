@@ -50,20 +50,24 @@ typedef struct scd_cardinfo scd_cardinfo_t;
 
 /* Try to connect to the agent via socket or fork it off and work by
    pipes.  Returns proper error code or zero on success.  */
-int scd_connect (scd_context_t *scd_ctx,
-		 const char *scdaemon_socket,
-		 const char *agent_infostr,
-		 const char *scd_path,
-		 unsigned int flags,
-		 log_handle_t loghandle);
+gpg_error_t scd_connect (scd_context_t *scd_ctx,
+			 const char *scdaemon_socket,
+			 const char *agent_infostr,
+			 const char *scd_path,
+			 unsigned int flags,
+			 log_handle_t loghandle);
 
 /* Disconnect from SCDaemon; destroy the context SCD_CTX.  */
-int scd_disconnect (scd_context_t scd_ctx);
+void scd_disconnect (scd_context_t scd_ctx);
+
+typedef int (*scd_pincb_t) (void *data, const char *, char *, size_t);
+
+void scd_set_pincb (scd_context_t scd_ctx,
+		    scd_pincb_t pincb, void *cookie);
 
 /* Return the serial number of the card or an appropriate error.  The
    serial number is returned as a hexstring. */
-int scd_serialno (scd_context_t ctx,
-		  char **r_serialno);
+gpg_error_t scd_serialno (scd_context_t ctx, char **r_serialno);
 
 /* Read information from card and fill the cardinfo structure
    CARDINFO.  Returns proper error code, zero on success.  */
@@ -76,18 +80,13 @@ void scd_release_cardinfo (struct scd_cardinfo cardinfo);
 
 /* Create a signature using the current card. CTX is the handle for
    the scd subsystem.  KEYID identifies the key on the card to use for
-   signing. GETPIN_CB is the callback, which is called for querying of
-   the PIN, GETPIN_CB_ARG is passed as opaque argument to
-   GETPIN_CB. INDATA/INDATALEN is the input for the signature
-   function.  The signature created is written into newly allocated
-   memory in *R_BUF, *R_BUFLEN will hold the length of the
-   signature. */
-int scd_pksign (scd_context_t ctx,
-		const char *keyid,
-		int (*getpin_cb)(void *, const char *, char*, size_t),
-		void *getpin_cb_arg,
-		const unsigned char *indata, size_t indatalen,
-		unsigned char **r_buf, size_t *r_buflen);
+   signing.  INDATA/INDATALEN is the input for the signature function.
+   The signature created is written into newly allocated memory in
+   *R_BUF, *R_BUFLEN will hold the length of the signature. */
+gpg_error_t scd_pksign (scd_context_t ctx,
+			const char *keyid,
+			const unsigned char *indata, size_t indatalen,
+			unsigned char **r_buf, size_t *r_buflen);
 
 /* Read a key with ID and return it in an allocate buffer pointed to
    by r_BUF as a valid S-expression. */

@@ -26,18 +26,30 @@
 
 #include <util/simplelog.h>
 
+/* Handle for accessing the dirmngr. */
 typedef struct dirmngr_ctx_s *dirmngr_ctx_t;
 
+/* Connect to a running dirmngr through the local socket named by
+   SOCK, using LOG_HANDLE as logging handle and flags FLAGS. The new
+   context is stored in *CTX.  Returns proper error code. */
 gpg_error_t dirmngr_connect (dirmngr_ctx_t *ctx,
 			     const char *sock,
 			     unsigned int flags,
 			     log_handle_t log_handle);
 
+/* Close the dirmngr connection associated with CTX and release all
+   related resources. */
 void dirmngr_disconnect (dirmngr_ctx_t ctx);
 
+/* Retrieve the certificate stored under the url URL through the
+   dirmngr context CTX and store it in *CERTIFICATE.  Returns proper
+   error code. */
 gpg_error_t dirmngr_lookup_url (dirmngr_ctx_t ctx,
 				const char *url, ksba_cert_t *cert);
 
+/* Validate the certificate CERT through the dirmngr context
+   CTX. Returns zero in case the certificate is considered valid, an
+   appropriate error code otherwise. */
 gpg_error_t dirmngr_validate (dirmngr_ctx_t ctx, ksba_cert_t cert);
 
 #endif

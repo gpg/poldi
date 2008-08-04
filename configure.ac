@@ -207,6 +207,9 @@ if test $ac_cv_func_funopen != yes; then
     fi
 fi
 
+# NLS:
+AM_GNU_GETTEXT([external])
+
 #
 # Decide what to build
 #
@@ -267,6 +270,7 @@ if test "$die" = "yes"; then
 fi
 
 AC_CONFIG_FILES([Makefile
+		 po/Makefile.in
 		 m4/Makefile
 		 am/Makefile
 		 src/Makefile
@@ -280,6 +284,7 @@ AC_CONFIG_FILES([Makefile
 		 src/pam/auth-method-x509/Makefile
 		 doc/Makefile
 		 tests/Makefile
+		 tools/Makefile
 		 conf/Makefile])
 AC_OUTPUT
 

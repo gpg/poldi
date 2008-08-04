@@ -38,4 +38,11 @@
 #define xtryrealloc(p,n)     gcry_realloc(p,n)
 #define xfree(p)             gcry_free(p)
 
+/* Poldi allows for NLS. */
+
+#include <libintl.h>
+#define _(String) dgettext (PACKAGE, String)
+#define gettext_noop(String) String
+#define N_(String) gettext_noop (String)
+
 #endif	/* INCLUDED_POLDI_H */

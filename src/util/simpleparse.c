@@ -32,12 +32,15 @@
 
 #include "simplelog.h"
 #include "simpleparse.h"
+#include "support.h"
 
 struct simpleparse_handle
 {
   unsigned flags;		   /* General flags. */
   simpleparse_parse_cb_t parse_cb; /* Parser callback. */
   void *parse_cookie;		   /* Cookie for parser callback. */
+  simpleparse_i18n_cb_t i18n_cb;   /* Callback for i18n. */
+  void *i18n_cookie;		   /* Cookie for i18n callback. */
   log_handle_t loghandle;
   const char *program_name;			   /* Name of the program.  */
   const char *package_name;			   /* Name of the package */
@@ -118,10 +121,20 @@ lookup_opt_spec_short (simpleparse_handle_t handle,
   return err;
 }
 
+static const char *
+translate (simpleparse_handle_t handle, const char *msg)
+{
+  if (handle->i18n_cb)
+    return (*handle->i18n_cb) (handle->i18n_cookie, msg);
+  else
+    return msg;
+}
+      
 static void
 display_bugreports (simpleparse_handle_t handle, unsigned int flags)
 {
-  fprintf (handle->stream_stdout, "Please report bugs to <%s>.\n",
+  fprintf (handle->stream_stdout,
+	   translate (handle, N_("Please report bugs to <%s>.\n")),
 	   handle->bug_address);
 }
 
@@ -140,7 +153,8 @@ display_version (simpleparse_handle_t handle, unsigned int flags)
     fprintf (handle->stream_stdout, "(%s) ", handle->package_name);
   fprintf (handle->stream_stdout, "%s\n", handle->version);
 
-  fprintf (handle->stream_stdout, "%s\n", handle->copyright_info);
+  fprintf (handle->stream_stdout, "%s\n",
+	   translate (handle, handle->copyright_info));
 }
 
 static void
@@ -172,7 +186,7 @@ display_help (simpleparse_handle_t handle, unsigned int flags)
   for (i = 0; specs[i].id; i++)
     {
       if (specs[i].description)
-	s = specs[i].description;
+	s = translate (handle, specs[i].description);
       else
 	s = NULL;
 
@@ -278,7 +292,8 @@ internal_parse_args (simpleparse_handle_t handle, unsigned int flags,
       if (err)
 	{
 	  /* Invalid option. */
-	  log_msg_error (handle->loghandle, "invalid option '%s'", *arg);
+	  log_msg_error (handle->loghandle,
+			 translate (handle, N_("invalid option '%s'")), *arg);
 	  break;
 	}
 
@@ -290,7 +305,8 @@ internal_parse_args (simpleparse_handle_t handle, unsigned int flags,
 	      if (err)
 		{
 		  log_msg_error (handle->loghandle,
-				 "parse-callback returned error '%s' for argument '%s'",
+				 translate (handle,
+					    N_("parse-callback returned error '%s' for argument '%s'")),
 				 gpg_strerror (err), spec.long_opt);
 		  goto out;
 		}
@@ -303,7 +319,8 @@ internal_parse_args (simpleparse_handle_t handle, unsigned int flags,
 	      if (err)
 		{
 		  log_msg_error (handle->loghandle,
-				 "parse-callback returned error '%s' for argument '%s'",
+				 translate (handle,
+					    N_("parse-callback returned error '%s' for argument '%s'")),
 				 gpg_strerror (err), spec.long_opt);
 		  goto out;
 		}
@@ -319,7 +336,8 @@ internal_parse_args (simpleparse_handle_t handle, unsigned int flags,
 	      if (err)
 		{
 		  log_msg_error (handle->loghandle,
-				 "parse-callback returned error '%s' for argument '%s'",
+				 translate (handle,
+					    N_("parse-callback returned error '%s' for argument '%s'")),
 				 gpg_strerror (err), spec.long_opt);
 		  goto out;
 		}
@@ -331,7 +349,8 @@ internal_parse_args (simpleparse_handle_t handle, unsigned int flags,
 	      /* Argument missing. */
 	      err = gpg_error (GPG_ERR_MISSING_VALUE);
 	      log_msg_error (handle->loghandle,
-			     "missing required argument for '%s'",
+			     translate (handle,
+					N_("missing required argument for '%s'")),
 			     spec.long_opt);
 	      goto out;
 	    }
@@ -343,7 +362,8 @@ internal_parse_args (simpleparse_handle_t handle, unsigned int flags,
 	  if (err)
 	    {
 	      log_msg_error (handle->loghandle,
-			     "parse-callback returned error '%s' for argument '%s'",
+			     translate (handle,
+					N_("parse-callback returned error '%s' for argument '%s'")),
 			     gpg_strerror (err), spec.long_opt);
 	      goto out;
 	    }
@@ -375,25 +395,6 @@ token_list_init (token_list_t *list)
   list->size = 0;
 
   return 0;
-}
-
-static int
-my_strlen (const char *s)
-{
-  int ret = 0;
-  
-  while (*s)
-    {
-      if (ret == INT_MAX)
-	{
-	  ret = -1;
-	  break;
-	}
-      ret++;
-      s++;
-    }
-
-  return ret;
 }
 
 static gpg_error_t
@@ -803,6 +804,16 @@ simpleparse_set_parse_cb (simpleparse_handle_t handle,
 
   handle->parse_cb = parse_cb;
   handle->parse_cookie = cookie;
+}
+
+void
+simpleparse_set_i18n_cb (simpleparse_handle_t handle,
+			 simpleparse_i18n_cb_t i18n_cb, void *cookie)
+{
+  assert (handle);
+
+  handle->i18n_cb = i18n_cb;
+  handle->i18n_cookie = cookie;
 }
 
 void

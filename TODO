@@ -34,10 +34,11 @@ Low priority:
 !* what does "6 characters minimum" mean in openpgp-card.pdf? is it "bytes" or really "utf8 characters"?
 * shall we really forbid to use non-digit characters in PIN?
 * improve/verify internatinalization
-* implement command in poldi-ctrl for toggling the AuthWithoutPin-Flag
+* system wide scdaemon?
+* disallow login in case of key expiration
+* diplay expiration info before key is expired
+* portability to non- GNU/Linux systems that support PAM
 
 High priority:
 * general audit
-* i18n, gettext??
-* verify it works in keypad mode
-* verify changes to logging.c (related to syslog) are okay.
+* implement command in poldi-ctrl for toggling the AuthWithoutPin-Flag

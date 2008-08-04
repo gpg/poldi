@@ -1,3 +1,22 @@
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* auth-localdb.c (auth_method_localdb_auth_do): Adjusted to new
+	scd_pksign() interface, removed variable cb_data.
+	Do not include "getpin-cb.h".
+
+	* key-lookup.c (key_lookup_by_serialno): Use xfree instead of
+	free.
+	Mark strings for i18n.
+
+	* usersdb.c: Replaced calls to gcry_error() with calls to
+	gpg_error(). Replaced calls to gpg_error_from_errno() with calls
+	to gpg_error_from_syserror().
+
+2008-07-29  Moritz  <moritz@gnu.org>
+
+	* key-lookup.c: Mark strings for i18n.
+	* auth-localdb.c: Likewise.
+
 2008-05-25  Moritz  <moritz@gnu.org>
 
 	Some cleanups, added GPL3 headers.

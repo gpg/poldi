@@ -19,9 +19,9 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = src doc conf am m4 tests
+SUBDIRS = src doc conf am m4 tests tools
 
 install-conf-skeleton:
 	$(MAKE) -C conf install-conf-skeleton
 
-EXTRA_DIST = MIGRATION
+EXTRA_DIST = config.rpath  MIGRATION

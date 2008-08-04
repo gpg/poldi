@@ -39,11 +39,6 @@ typedef gpg_error_t (*auth_method_func_init_t) (void **cookie);
    function.  */
 typedef void (*auth_method_func_deinit_t) (void *cookie);
 
-// We don't need this, we can simply use the cb type from simpleparse!
-///* This function is a callback implementing the knowledge for
-//   authentication method specific argument parsing.  */
-//typedef gpg_error_t (*auth_method_func_parsecb_t) (ARGPARSE_ARGS *parg, void *cookie);
-
 /* This function is called in order to authenticate a user.  The
    identity of the user after authentication is stored in
    *USERNAME. */
@@ -70,7 +65,6 @@ struct auth_method_s
   auth_method_func_auth_as_t func_auth_as;
   simpleparse_opt_spec_t *opt_specs;
   simpleparse_parse_cb_t parsecb;
-  //  ARGPARSE_OPTS *arg_opts;
   const char *config;
 };
 

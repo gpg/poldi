@@ -35,6 +35,13 @@
 #include "util/util.h"
 #include "scd/scd.h"
 
+/* We use the Libgcrypt memory allocator. */
+#define xtrymalloc(n)        gcry_malloc(n)
+#define xtrymalloc_secure(n) gcry_malloc_secure(n)
+#define xtrystrdup(p)        gcry_strdup(p)
+#define xtryrealloc(p,n)     gcry_realloc(p,n)
+#define xfree(p)             gcry_free(p)
+
 
 
 /* Global flags.  */
@@ -75,14 +82,15 @@ static simpleparse_opt_spec_t opt_specs[] =
   {
     /* Commands:  */
     { opt_dump, "dump",
-      'd', SIMPLEPARSE_ARG_NONE, 0, "Dump certain card information" },
+      'd', SIMPLEPARSE_ARG_NONE, 0, N_("Dump certain card information") },
     { opt_print_key, "print-key",
-      'k', SIMPLEPARSE_ARG_NONE, 0, "Print authentication key from card" },
+      'k', SIMPLEPARSE_ARG_NONE, 0, N_("Print authentication key from card") },
     { opt_print_serialno, "print-serialno",
-      's', SIMPLEPARSE_ARG_NONE, 0, "Print serial number from card" },
+      's', SIMPLEPARSE_ARG_NONE, 0, N_("Print serial number from card") },
+
     /* Options:  */
     { opt_debug, "debug",
-      0, SIMPLEPARSE_ARG_NONE, 0, "Enable debugging mode" },
+      0, SIMPLEPARSE_ARG_NONE, 0, N_("Enable debugging mode") },
     { 0 }
   };
 
@@ -261,7 +269,11 @@ cmd_print_serialno (void)
   return 0;
 }
 
-
+static const char *
+i18n_cb (void *cookie, const char *msg)
+{
+  return _(msg);
+}
 
 /* Main.  */
 int
@@ -275,6 +287,11 @@ main (int argc, char **argv)
 
   assert (argc > 0);
 
+  /* I18n. */
+  setlocale (LC_ALL, "");
+  bindtextdomain (PACKAGE, LOCALEDIR);
+  textdomain (PACKAGE);
+
   gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
 
   /* Initialize logging. */
@@ -282,7 +299,7 @@ main (int argc, char **argv)
   err = log_create (&loghandle);
   if (err)
     {
-      fprintf (stderr, "failed to initialize logging: %s\n",
+      fprintf (stderr, _("failed to initialize logging: %s\n"),
 	       gpg_strerror (err));
       exit (1);
     }
@@ -290,7 +307,7 @@ main (int argc, char **argv)
   err = log_set_backend_stream (loghandle, stderr);
   if (err)
     {
-      fprintf (stderr, "failed to set logging backend: %s\n",
+      fprintf (stderr, _("failed to set logging backend: %s\n"),
 	       gpg_strerror (err));
       exit (1);
     }
@@ -307,6 +324,7 @@ main (int argc, char **argv)
   simpleparse_set_loghandle (parsehandle, loghandle);
   simpleparse_set_streams (parsehandle, stdout, stderr);
   simpleparse_set_parse_cb (parsehandle, poldi_ctrl_options_cb, NULL);
+  simpleparse_set_i18n_cb (parsehandle, i18n_cb, NULL);
   err = simpleparse_set_specs (parsehandle, opt_specs);
   if (err)
     goto out;
@@ -328,7 +346,7 @@ main (int argc, char **argv)
   if (err)
     {
       log_msg_error (loghandle,
-		     "parsing argument vector failed: %s",
+		     _("parsing argument vector failed: %s"),
 		     gpg_strerror (err));
       goto out;
     }
@@ -340,12 +358,12 @@ main (int argc, char **argv)
   if (ncommands > 1)
     {
       log_msg_error (loghandle,
-		     "more than one command specified (try --help)");
+		     _("more than one command specified (try --help)"));
       goto out;
     }
   else if (! ncommands)
     {
-      log_msg_error (loghandle, "no command specified (try --help)");
+      log_msg_error (loghandle, _("no command specified (try --help)"));
       goto out;
     }
 
@@ -355,7 +373,7 @@ main (int argc, char **argv)
 		     NULL, 0, loghandle);
   if (err)
     {
-      log_msg_error (loghandle, "scd_connect() failed: %s",
+      log_msg_error (loghandle, _("failed to connect to scdaemon: %s"),
 		     gpg_strerror (err));
       goto out;
     }
@@ -364,7 +382,8 @@ main (int argc, char **argv)
   if (err)
     {
       log_msg_error (loghandle,
-		     "scd_learn() failed: %s", gpg_strerror (err));
+		     _("failed to retrieve smartcard data: %s"),
+		     gpg_strerror (err));
       goto out;
     }
 

@@ -1,3 +1,18 @@
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* auth-x509.c: Mark strings for i18n.
+	(auth_method_x509_auth_do): Adjust to new scd_pksign() interface;
+	removed cb_data variable.
+	Do not include "getpin-cb.h".
+
+2008-07-30  Moritz  <moritz@gnu.org>
+
+	* dirmngr.c (dirmngr_ctx_init): New static variable...
+	(dirmngr_connect): ... use it here.
+	Added some assert() checks.
+	Use x* memory functions, not malloc/free directly.
+	Cosmetic changes (added comments, etc.).
+
 2008-07-20  Moritz  <moritz@gnu.org>
 
 	* dirmngr.c: Removed two unused struct definitions.

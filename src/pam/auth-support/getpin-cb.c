@@ -37,9 +37,7 @@
 #include "assuan.h"
 #include "util/support.h"
 #include <util/defs.h>
-#include "i18n.h"
 #include "util/util.h"
-//#include "jnlib/stringhelp.h"
 #include "util/simplelog.h"
 #include "auth-support/conv.h"
 
@@ -49,6 +47,8 @@
 
 
 
+/* Returns TRUE if the string S contains only decimal digits, FALSE
+   otherwise. */
 static int
 all_digitsp (const char *s)
 {
@@ -56,7 +56,6 @@ all_digitsp (const char *s)
     ;
   return !*s;
 }  
-
 
 /* Query the user through PAM for his PIN.  Display INFO to the user.
    Store the retrieved pin in PIN, which is of size PIN_SIZE.  If it
@@ -77,19 +76,21 @@ query_user (poldi_ctx_t ctx, const char *info, char *pin, size_t pin_size)
       if (rc)
 	goto out;
 
-      /* Do some basic checks on the entered PIN - shall we really
-	 forbid to use non-digit characters in PIN? */
+      /* Do some basic checks on the entered PIN. FIXME: hard-coded
+	 values! Is this really the correct place for these checks?
+	 Shouldn't they be done in scdaemon itself?  -mo */
+
       if (strlen (buffer) < 6)	/* FIXME? is it really minimum of 6 bytes? */
-	log_msg_error (ctx->loghandle, "invalid PIN"); /* FIXME: i18n. */
+	log_msg_error (ctx->loghandle, _("invalid PIN"));
       else if (!all_digitsp (buffer))
-	log_msg_error (ctx->loghandle, "invalid characters in PIN");
+	log_msg_error (ctx->loghandle, _("invalid characters in PIN"));
       else
 	break;
     }
 
   if (strlen (buffer) >= pin_size)
     {
-      log_msg_error (ctx->loghandle, "PIN too long for buffer!");
+      log_msg_error (ctx->loghandle, _("PIN too long for buffer!"));
       rc = gpg_error (GPG_ERR_INV_DATA); /* ? */
       goto out;
     }
@@ -113,7 +114,7 @@ keypad_mode_enter (poldi_ctx_t ctx)
 {
   int rc;
 
-  rc = conv_tell (ctx->conv, "Please enter PIN on keypad");
+  rc = conv_tell (ctx->conv, _("Please enter PIN on keypad"));
 
   return rc;
 }
@@ -216,7 +217,8 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
 	      /* Weird that we received flags - they are neither expected nor
 		 implemented here.  */
 	      log_msg_error (ctx->loghandle,
-			 "getpin_cb called with flags set in info string `%s'\n", info);
+			     _("getpin_cb called with flags set in info string `%s'\n"),
+			     info);
 	      err = gpg_error (GPG_ERR_INV_VALUE); /* FIXME? */
 	      goto out;
 	    }
@@ -225,8 +227,8 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
       if (err)
 	{
 	  log_msg_error (ctx->loghandle,
-		     "frob_info_msg failed for info msg of size of size %u\n",
-		     (unsigned int) strlen (info));
+			 _("frob_info_msg failed for info msg of size of size %u\n"),
+			 (unsigned int) strlen (info));
 	  goto out;
 	}
     }

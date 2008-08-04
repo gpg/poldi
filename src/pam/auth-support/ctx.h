@@ -34,13 +34,12 @@
    multithreaded application to authenticate users concurrently.
 
    There are certain objects which are to be accessed by many
-   functions contained in Poldi, like: debug flag, pam_handle, scd, (a
-   logging handle! Arg, logging.c does not support such a handle
-   concept, should be fixed...).
+   functions contained in Poldi, like: debug flag, pam_handle, scd,
+   logging stream, etc.
 
    So we have two choices: either these variables are globally visible
    or they are allocated in pam_sm_authenticate() and passed down to
-   each function. For the above mentioned reasons, solution one is
+   each function. For the above mentioned reasons, solution one is not
    applicable for a PAM module.  Therefore we need go down route two.
    But surely we do not want to pass each and every of the useful
    variables down to every function, thus we encapsulate everything

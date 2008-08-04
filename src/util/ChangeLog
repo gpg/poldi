@@ -1,3 +1,30 @@
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* support.c (file_to_string_internal, sexp_to_string): Use xfree()
+	instead of free().
+
+	* optparse.c, optparse.h: Removed.
+	* simpleparse.c: Marked strings for i18n.
+
+2008-08-03  Moritz  <moritz@gnu.org>
+
+	* Makefile.am (poldi_util_SOURCES): Removed i18n.h.
+	(i18n.h): Removed file.
+
+	* simpleparse.c: Include support.h.
+	* support.h (conversation_cb_t): Removed unused type.
+	(enum conversation_type_t): Likewise.
+	* simpleparse.c (my_strlen): Moved funtion ...
+	* support.c (my_strlen): ... here.
+
+2008-07-29  Moritz  <moritz@gnu.org>
+
+	* simpleparse.h: New type: simpleparse_i18n_cb_t.
+	Declare new function simpleparse_set_i18n_cb.
+	* simpleparse.c (simpleparse_set_i18n_cb): New function.
+	(translate): New function.
+	Added calls to function translate() throughout the code for i18n.
+
 2008-07-20  Moritz  <moritz@gnu.org>
 
 	* sexputil, sexp-parse.h: Removed files.

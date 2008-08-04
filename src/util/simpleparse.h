@@ -63,6 +63,11 @@ typedef gpg_error_t (*simpleparse_parse_cb_t) (void *cookie, simpleparse_opt_spe
 void simpleparse_set_parse_cb (simpleparse_handle_t handle,
 			       simpleparse_parse_cb_t parse_cb, void *cookie);
 
+typedef const char *(*simpleparse_i18n_cb_t) (void *cookie, const char *msg);
+
+void simpleparse_set_i18n_cb (simpleparse_handle_t handle,
+			      simpleparse_i18n_cb_t i18n_cb, void *cookie);
+
 gpg_error_t simpleparse_set_specs (simpleparse_handle_t handle, simpleparse_opt_spec_t *specs);
 
 void simpleparse_set_name (simpleparse_handle_t handle, const char *program_name);

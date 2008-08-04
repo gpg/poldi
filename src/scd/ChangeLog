@@ -1,3 +1,25 @@
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* scd.c: Mark strings for i18n.
+
+2008-08-03  Moritz  <moritz@gnu.org>
+
+	* scd.c (scd_pksign): Remove getpin parameter from scd_pksign.
+	(inq_needpin): Return error code in case no pincb has been
+	installed in ctx.
+	(agent_connect_from_infostr): Don't forget to do error checking
+	after call to xtrystrdup.
+	(scd_connect): Disable code for system daemon for now.
+
+	* scd.c (scd_set_pincb): New function.
+
+	* scd.h (scd_pincb_t): New type; declare scd_set_pincb.
+	Remove getpin argument from scd_pksign.
+
+	* scd.c: Do not include i18n.h.
+	(scd_disconnect): Declare void.
+	Change return type of most functions from int to gpg_error_t.
+
 2008-07-20  Moritz  <moritz@gnu.org>
 
 	* scd.c: Include simplelog.h and poldi.h.
