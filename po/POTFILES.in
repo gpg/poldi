@@ -20,7 +20,6 @@
 ./src/pam/auth-method-x509/dirmngr.c
 ./src/pam/auth-method-x509/auth-x509.c
 ./src/pam/pam_poldi.c
-./src/pam-test/pam-test.c
 ./src/poldi.h
 ./src/scd/scd.c
 ./src/scd/scd.h
