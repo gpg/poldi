@@ -1,3 +1,9 @@
+2008-08-07  Moritz  <moritz@gnu.org>
+
+	* poldi.conf.skel: New file.
+	* Makefile.am (install-conf-skeleton): Install poldi.conf.skel.
+	* users.skel: Removed example entry.
+
 2008-04-13  Moritz  <moritz@gnu.org>
 
 	* README.keys: Cosmetics.

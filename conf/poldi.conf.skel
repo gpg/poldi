@@ -1,0 +1,14 @@
+# This is the main configuration file of Poldi.
+
+# Specify authentication method:
+# (supported methods: localdb, x509)
+auth-method localdb
+
+# Specify the log file:
+log-file /home/moritz/logs/poldi.txt
+
+# Enable debugging messages
+debug
+
+# Specify SCDaemon executable
+scdaemon-program /usr/bin/scdaemon

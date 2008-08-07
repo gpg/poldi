@@ -27,5 +27,11 @@ install-conf-skeleton:
 		install -m 644 -T $(top_srcdir)/conf/users.skel \
                   $(POLDI_CONF_DIRECTORY)/localdb/users; \
 	fi
+	if test -e $(POLDI_CONF_DIRECTORY)/poldi.conf; then \
+		echo "$(POLDI_CONF_DIRECTORY)/poldi.conf exists, doing nothing here"; \
+	else \
+		install -m 644 -T $(top_srcdir)/conf/poldi.conf.skel \
+                  $(POLDI_CONF_DIRECTORY)/poldi.conf; \
+	fi
 
-EXTRA_DIST = users.skel README.keys
+EXTRA_DIST = poldi.conf.skel users.skel README.keys
