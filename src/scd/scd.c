@@ -232,7 +232,7 @@ get_scd_socket_from_agent (const char *agent_infostr, char **socket_name,
     goto out;
 
 #if 1
-  /* FIXME, what is this? -mo */
+  /* FIXME: is this the best way?  -mo */
   rc = scd_serialno_internal (ctx, 1, NULL);
   if (rc)
     goto out;

@@ -1,44 +1,33 @@
-Dunno:
-* dirmngr!
-
 Final:
 * allow for Dirmngr to be started on demand (in pipe mode) (NO <- Why?!)
 
 Low priority:
-* poldi mit anderen karten!
 * figure out what exactly the dependencies on the OpenPGP smartcard are.
 * improve doc
 * work on MIGRATION text
 * fix install-conf-skeleton (does nothing for x509?)
 * better (new?) error codes
-* poldi-ctrl --print-config?
 * verify we don't need pam_sm_setcred; i still don't get what this
   call is needed for - most PAM modules in Linux-PAM implement it as a
   dummy.
-* Note: currently Poldi ignores the expired flag on authentication keys.
 * poldi shouldn't contain any global state (explain why), reference
   needed: as far as i understand it, PAM modules should be rather
   reentrant; at least thread safe.  so that applications do can call
   pam_authenticate without danger.
 * conf skeleton for x509 method?
-* decide on pam-poldi.h common header file for all poldi sources
-* add logging prefix "[Poldi]" automatically? how about conv calls?
 * do we want to respect conv_tell error codes or should it be void?
 * give user a chance to enter PIN twice?
-!* PIN-less authentication mechanism?
 * check if information on Applications in the manual are still uptodate.
-!* figure what needs to be done for enabling LTSP logins through Poldi (interesting!)
+* figure what needs to be done for enabling LTSP logins through Poldi (interesting!)
 * allow user to override scdaemon to use through environment variables
   or something (probably required for ltsp).
-* print signature counter on login?
-!* what does "6 characters minimum" mean in openpgp-card.pdf? is it "bytes" or really "utf8 characters"?
+* what does "6 characters minimum" mean in openpgp-card.pdf? is it "bytes" or really "utf8 characters"?
 * shall we really forbid to use non-digit characters in PIN?
-* improve/verify internatinalization
 * system wide scdaemon?
 * disallow login in case of key expiration
 * diplay expiration info before key is expired
 * portability to non- GNU/Linux systems that support PAM
+* workaround for older cards regarding public key retrival?
 
 High priority:
 * general audit
-* implement command in poldi-ctrl for toggling the AuthWithoutPin-Flag

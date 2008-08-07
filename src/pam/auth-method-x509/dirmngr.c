@@ -58,6 +58,7 @@ struct lookup_parm_s {
   void *cb_value;
   membuf_t data;
   gpg_error_t err;
+  dirmngr_ctx_t ctx;
 };
 
 
@@ -253,8 +254,10 @@ lookup_cb (void *opaque, const void *buffer, size_t length)
       rc = ksba_cert_init_from_mem (cert, buf, len);
       if (rc)
 	{
-	  /* FIXME, moritz! */
-	  //log_error ("failed to parse a certificate: %s\n", gpg_strerror (rc));
+	  log_msg_error (parm->ctx->log_handle,
+			 _("failed to create new ksba certificate object: %s"),
+			 gpg_strerror (rc));
+	  /* FIXME: better error handling?  -mo */
 	}
       else
 	{
@@ -306,6 +309,7 @@ dirmngr_lookup_url (dirmngr_ctx_t ctx,
   parm.cb_value = &cert;
   parm.err = 0;
   init_membuf (&parm.data, 4096);
+  parm.ctx = ctx;
 
   /* Execute command.  */
 
@@ -320,7 +324,7 @@ dirmngr_lookup_url (dirmngr_ctx_t ctx,
     }
   if (!cert)
     {
-      err = GPG_ERR_GENERAL;	/* FIXME? */
+      err = GPG_ERR_GENERAL;	/* FIXME: better error code? -mo */
       goto out;
     }
 

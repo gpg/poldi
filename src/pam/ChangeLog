@@ -1,3 +1,9 @@
+2008-08-07  Moritz  <moritz@gnu.org>
+
+	* pam_poldi.c (pam_sm_authenticate): Removed second call to
+	log_set_flags().
+	Some cosmetic changes.
+
 2008-08-04  Moritz  <moritz@gnu.org>
 
 	* pam_poldi.c (pam_sm_authenticate): New variable:

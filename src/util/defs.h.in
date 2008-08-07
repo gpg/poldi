@@ -29,12 +29,4 @@
 #define POLDI_USERS_DB_FILE  POLDI_CONF_DIRECTORY "/users"
 #define POLDI_KEY_DIRECTORY  POLDI_CONF_DIRECTORY "/keys"
 
-#define POLDI_PIN2_QUERY_MSG "Enter PIN (CHV2): "
-#define POLDI_PIN3_QUERY_MSG "Enter Admin PIN (CHV3): " /* Do we still need this? */
-
-/* And this? FIXME. -mo */
-#define POLDI_OLD_CARD_KEY_RETRIVAL_EXPLANATION \
- "Card of version 0x%X detected, Admin PIN (CHV3) " \
- "is necessary for retrieving the public key from the card\n"
-
 #endif

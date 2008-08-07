@@ -1,3 +1,16 @@
+2008-08-07  Moritz  <moritz@gnu.org>
+
+	* auth-localdb.c (auth_method_localdb_auth_do): Use xfree instead
+	of free for card_username.
+
+	* usersdb.c: Include <string.h>. Use strtok_r instead of
+	strtok (requires new local variable save_ptr). Improved some
+	comments. Do not include <errno.h>; use gpg_error_from_syserror()
+	instead of gpg_error_from_errno().
+	(usersdb_lookup_cb): Use xtrystrdup instead of strdup.
+	(usersdb_lookup_by_serialno, usersdb_lookup_by_username): Use
+	xfree instead of free.
+
 2008-08-04  Moritz  <moritz@gnu.org>
 
 	* auth-localdb.c (auth_method_localdb_auth_do): Adjusted to new

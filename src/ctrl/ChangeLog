@@ -1,3 +1,8 @@
+2008-08-07  Moritz  <moritz@gnu.org>
+
+	* poldi-ctrl.c (cmd_dump): Removed (disabled) workaround for older
+	cards for now.
+
 2008-08-04  Moritz  <moritz@gnu.org>
 
 	* poldi-ctrl.c: Mark strings for i18n.

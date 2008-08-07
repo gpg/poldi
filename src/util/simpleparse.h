@@ -58,7 +58,8 @@ void simpleparse_destroy (simpleparse_handle_t handle);
 void simpleparse_set_loghandle (simpleparse_handle_t handle,
 				log_handle_t loghandle);
 
-typedef gpg_error_t (*simpleparse_parse_cb_t) (void *cookie, simpleparse_opt_spec_t spec, const char *arg);
+typedef gpg_error_t (*simpleparse_parse_cb_t) (void *cookie,
+					       simpleparse_opt_spec_t spec, const char *arg);
 
 void simpleparse_set_parse_cb (simpleparse_handle_t handle,
 			       simpleparse_parse_cb_t parse_cb, void *cookie);

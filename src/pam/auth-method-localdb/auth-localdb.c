@@ -117,18 +117,16 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
     username = username_desired;
 
   if (ctx->debug)
-    /* FIXME: quiet?  */
     conv_tell (ctx->conv,
 	       _("Trying authentication as user `%s'..."), username);
 
-  /* FIXME: document!  */
   /* Verify (again) that the given account is associated with the
      serial number.  */
   err = usersdb_check (ctx->cardinfo.serialno, username);
   if (err)
     {
       conv_tell (ctx->conv,
-		 _("Serial number %s is not associated with user %s\n"),
+		 _("Serial number %s is not associated with user %s"),
 		 ctx->cardinfo.serialno, username);
       err = gcry_error (GPG_ERR_INV_NAME);
       goto out;
@@ -180,12 +178,11 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
   /* Release resources.  */
   gcry_sexp_release (key);
 
-  /* FIXME: correct free in this file?  */
   challenge_release (challenge);
   xfree (response);
 
   if (err)
-    free (card_username);
+    xfree (card_username);
 
   return !err;
 }

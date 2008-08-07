@@ -1,3 +1,8 @@
+2008-08-07  Moritz  <moritz@gnu.org>
+
+	* auth-x509.c: Some minor cosmetic changes.
+	* dirmngr.c (struct lookup_parm_s): New member: dirmngr_ctx_t ctx.
+
 2008-08-04  Moritz  <moritz@gnu.org>
 
 	* auth-x509.c: Mark strings for i18n.

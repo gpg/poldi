@@ -122,7 +122,9 @@ poldi_ctrl_options_cb (void *cookie,
 
 
 
-/* Implementation of `dump' command; dumps information from card.  */
+/* Retrieve authentication key from card through the SCDaemon context
+   CTX and store it as a S-Expression c-string in *KEY_STRING.
+   Returns proper error code. */
 static gpg_error_t
 retrieve_key (scd_context_t ctx, char **key_string)
 {
@@ -170,43 +172,9 @@ cmd_dump (void)
 {
   char *key_s;
   gpg_error_t err;
-  //unsigned int version;
   char fpr[41];
 
   key_s = NULL;
-  //pin = NULL;
-
-#if 0
-
-  /* FIXME, moritz, dunno wether we still need this with
-     gpg-agent.  */
-
-  if (version <= 0x0100)
-    {
-      /* These cards contain a bug, which makes it necessary to pass
-	 CHV3 to the card before reading out the public key.  */
-
-      printf (POLDI_OLD_CARD_KEY_RETRIVAL_EXPLANATION, version);
-
-      pin = getpass (POLDI_PIN3_QUERY_MSG);
-      if (! pin)
-	{
-	  err = gpg_error_from_errno (errno);
-	  log_error ("Error: failed to retrieve PIN from user: %s\n",
-		     gpg_strerror (err));
-	  goto out;
-	}
-	
-      err = card_pin_provide (slot, 3, pin);
-      if (err)
-	{
-	  log_error ("Error: failed to send PIN to card: %s\n",
-		     gpg_strerror (err));
-	  goto out;
-	}
-    }
-
-#endif
 
   /* Retrieve key from card.  */
 
@@ -228,7 +196,6 @@ cmd_dump (void)
  out:
 
   gcry_free (key_s);
-  //free (pin);
 
   return err;
 }

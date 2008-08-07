@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <errno.h>
+#include <string.h>
 
 #include <gcrypt.h>
 
@@ -32,7 +32,7 @@
 
 
 /* This is the type for callbacks functions, which need to be passed
-   to usersdb_process().  The callback function receives the one
+   to usersdb_process().  The callback function receives one
    (SERIALNO, USERNAME) pair per invocation.  OPAQUE is the opaque
    arugment passed to usersdb_process().  The return code of such a
    callback functions has the following meanings:
@@ -58,6 +58,7 @@ usersdb_process (usersdb_cb_t cb, void *opaque)
   size_t line_n;
   ssize_t ret;
   int cb_ret;
+  char *save_ptr;		/* For strtok_r. */
 
   line_serialno = NULL;
   line_username = NULL;
@@ -68,22 +69,22 @@ usersdb_process (usersdb_cb_t cb, void *opaque)
   usersdb = fopen (POLDI_USERS_DB_FILE, "r");
   if (! usersdb)
     {
-      err = gpg_error_from_errno (errno);
+      err = gpg_error_from_syserror ();
       goto out;
     }
 
   /* Process lines.  */
-
   while (1)
     {
       /* Get next line.  */
+      save_ptr = NULL;
       line = NULL;
       line_n = 0;
       ret = getline (&line, &line_n, usersdb);
       if (ret == -1)
 	{
 	  if (ferror (usersdb))
-	    err = gpg_error_from_errno (errno);
+	    err = gpg_error_from_syserror ();
 	  /* else EOF.  */
 	  break;
 	}
@@ -95,21 +96,23 @@ usersdb_process (usersdb_cb_t cb, void *opaque)
 	  *comment = '\0';
       }
 
-      line_serialno = strtok (line, delimiters);
+      /* Extract first token: the card serial number. */
+      line_serialno = strtok_r (line, delimiters, &save_ptr);
       if (!line_serialno)
+	/* Ignore this incomplete entry.  */
 	goto skip;
 
-      line_username = strtok (NULL, delimiters);
+      /* Extract second token: the username. */
+      line_username = strtok_r (NULL, delimiters, &save_ptr);
+      if (!line_username)
+	/* Ignore this incomplete entry.  */
+	goto skip;
 
-      /* FIXME: we need error handling/reporting here!  */
-      if (line_serialno && line_username)
-	{
-	  /* Looks like a valid entry, pass to callback function.  */
-	  cb_ret = (*cb) (line_serialno, line_username, opaque);
-	  if (cb_ret)
-	    /* Callback functions wants us to stop.  */
-	    break;
-	}
+      /* Looks like a valid entry, pass to callback function.  */
+      cb_ret = (*cb) (line_serialno, line_username, opaque);
+      if (cb_ret)
+	/* Callback functions wants us to stop.  */
+	break;
 
     skip:
       free (line);
@@ -124,8 +127,8 @@ usersdb_process (usersdb_cb_t cb, void *opaque)
 
   if (usersdb)
     fclose (usersdb);
-  free (line);
-
+  free (line);			/* Allocated by getline, thus standard
+				   free. */
   return err;
 }
 
@@ -228,7 +231,7 @@ usersdb_lookup_cb (const char *serialno, const char *username, void *opaque)
 	{
 	  if (! ctx->matches)
 	    {
-	      str = strdup (username);
+	      str = xtrystrdup (username);
 	      if (! str)
 		{
 		  ctx->err = gpg_error_from_syserror ();
@@ -251,7 +254,7 @@ usersdb_lookup_cb (const char *serialno, const char *username, void *opaque)
 	{
 	  if (! ctx->matches)
 	    {
-	      str = strdup (serialno);
+	      str = xtrystrdup (serialno);
 	      if (! str)
 		{
 		  ctx->err = gpg_error_from_syserror ();
@@ -318,7 +321,7 @@ usersdb_lookup_by_serialno (const char *serialno, char **username)
 
  out:
 
-  free (ctx.found);
+  xfree (ctx.found);
 
   return err;
 }
@@ -367,7 +370,7 @@ usersdb_lookup_by_username (const char *username, char **serialno)
 
  out:
 
-  free (ctx.found);
+  xfree (ctx.found);
 
   return err;
 }

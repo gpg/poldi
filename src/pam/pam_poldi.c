@@ -270,7 +270,7 @@ destroy_context (poldi_ctx_t ctx)
       xfree (ctx->scdaemon_program);
       scd_disconnect (ctx->scd);
       scd_release_cardinfo (ctx->cardinfo);
-      /* FIXME: conv_t conv?! */
+      /* FIXME: not very consistent: conv is (de-)allocated by caller. -mo */
       xfree (ctx);
     }
 }
@@ -328,16 +328,6 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 		 LOG_FLAG_WITH_PREFIX | LOG_FLAG_WITH_TIME | LOG_FLAG_WITH_PID);
   log_set_prefix (ctx->loghandle, "Poldi");
   log_set_backend_syslog (ctx->loghandle);
-
-  //log_set_prefix ("[Poldi] ",
-  //JNLIB_LOG_WITH_PREFIX | JNLIB_LOG_WITH_TIME | JNLIB_LOG_WITH_PID);
-
-  /* FIXME: I guess we should also call log_set_syslog() here - but
-     i'm not sure if logging.c works fine when calling log_set_foo()
-     and later on log_set_bar(). -mo */
-
-  log_set_flags (ctx->loghandle,
-		 LOG_FLAG_WITH_TIME | LOG_FLAG_WITH_PID | LOG_FLAG_WITH_PREFIX);
 
   /*** Parse auth-method independent options.  ***/
 
@@ -539,17 +529,6 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   if (pam_username)
     {
       /* Try to authenticate user as PAM_USERNAME.  */
-
-#if 0
-      /* FIXME?? do we need this?  */
-      err = conv_tell (ctx->conv,
-		       "Trying to authenticate as user `%s'", pam_username);
-      if (err)
-	{
-	  log_error ("failed to inform user: %s\n", gpg_strerror (err));
-	  goto out;
-	}
-#endif
 
       if (!(*auth_methods[ctx->auth_method].method->func_auth_as) (ctx, ctx->cookie,
 								   pam_username))

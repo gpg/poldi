@@ -417,7 +417,6 @@ lookup_cert (poldi_ctx_t ctx, dirmngr_ctx_t dirmngr, const char *url,
 
   if (!url)
     {
-      //log_error ("[Poldi] ")
       err = GPG_ERR_INV_CARD;
       goto out;
     }
@@ -428,7 +427,8 @@ lookup_cert (poldi_ctx_t ctx, dirmngr_ctx_t dirmngr, const char *url,
     err = lookup_cert_from_file (ctx->cardinfo.pubkey_url + 7, &cert);
   else
     {
-      /* FIXME, log/conv? */
+      log_msg_error (ctx->loghandle,
+		     _("invalid certificate URL on card"));
       err = GPG_ERR_INV_CARD;
     }
   if (err)
@@ -505,7 +505,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
   /*** Valide cert. ***/
 
   /* FIXME: implement mechanism which allows for specifying the
-     issuer? */
+     issuer? -mo */
 
   err = dirmngr_validate (dirmngr, cert);
   if (err)
@@ -517,7 +517,6 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
   if (err)
     goto out;
 
-  //
 
   if (username_desired)
     {
@@ -527,8 +526,6 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
 	{
 	  /* Current card's cert is not setup for authentication as
 	     PAM_USERNAME.  */
-
-	  //log_error ("FIXME\n");
 	  err = GPG_ERR_INV_USER_ID; /* FIXME, I guess we need a
 					better err code. -mo */
 	  goto out;
@@ -615,5 +612,5 @@ struct auth_method_s auth_method_x509 =
     auth_method_x509_auth_as,
     x509_opt_specs,
     auth_method_x509_parsecb,
-    POLDI_CONF_DIRECTORY "/" "poldi-x509.conf" /* FIXME? */
+    POLDI_CONF_DIRECTORY "/" "poldi-x509.conf"
   };
