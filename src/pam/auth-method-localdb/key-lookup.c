@@ -26,10 +26,10 @@
 #include <gpg-error.h>
 #include <gcrypt.h>
 
-#include "util/defs.h"
 #include "util/support.h"
 #include "util/filenames.h"
 #include "key-lookup.h"
+#include "defs-localdb.h"
 
 
 

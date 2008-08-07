@@ -39,14 +39,18 @@ typedef gpg_error_t (*auth_method_func_init_t) (void **cookie);
    function.  */
 typedef void (*auth_method_func_deinit_t) (void *cookie);
 
-/* This function is called in order to authenticate a user.  The
-   identity of the user after authentication is stored in
-   *USERNAME. */
+/* Try to authenticate a user. The user's identity on the system is
+   figured out during the authentication process.  COOKIE is the
+   cookie for this authentication method.  CTX is the Poldi context
+   object. On successful authentication, the newly allocated username
+   as which the user has been authenticated is stored in *USERNAME.
+   Returns TRUE on success, FALSE on failure. */
 typedef int (*auth_method_func_auth_t) (poldi_ctx_t ctx, void *cookie,
 					char **username);
 
-/* This function is called in order to authenticate a user as
-   USERNAME.  */
+/* Try to authenticate a user as USERNAME.  COOKIE is the cookie for
+   this authentication method. CTX is the Poldi context object.
+   Returns TRUE on success, FALSE on failure. */
 typedef int (*auth_method_func_auth_as_t) (poldi_ctx_t ctx, void *cookie,
 					   const char *username);
 

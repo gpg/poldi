@@ -1,3 +1,13 @@
+2008-08-07  Moritz  <moritz@gnu.org>
+
+	* scd.c (scd_reset): Removed
+	(restart_scd): New static function.
+	(scd_disconnect): Call restart_scd -- it seems, GnuPG does also
+	send a RESTART command after card access.
+	* scd.h: Adjust declaration.
+	Include "util/simplelog.h", instead of <util/simplelog.h>.
+	Do not include "assuan.h".
+
 2008-08-04  Moritz  <moritz@gnu.org>
 
 	* scd.c: Mark strings for i18n.

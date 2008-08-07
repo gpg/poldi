@@ -1,5 +1,10 @@
 2008-08-07  Moritz  <moritz@gnu.org>
 
+	* defs.h.in (POLDI_USERS_DB_FILE, POLDI_KEY_DIRECTORY): Removed
+	definitions.
+
+	* usersdb.c, usersdb.h: Removed files.
+
 	* defs.h.in (POLDI_OLD_CARD_KEY_RETRIVAL_EXPLANATION): Removed
 	definition.
 	(POLDI_PIN2_QUERY_MSG): Likewise.

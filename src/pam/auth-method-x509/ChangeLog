@@ -1,6 +1,10 @@
 2008-08-07  Moritz  <moritz@gnu.org>
 
 	* auth-x509.c: Some minor cosmetic changes.
+	(extract_username_from_cert): New parameter: poldi_ctx_t ctx....
+	(auth_method_x509_auth_do): ... change caller.
+	(extract_username_from_cert): Added some logging.
+
 	* dirmngr.c (struct lookup_parm_s): New member: dirmngr_ctx_t ctx.
 
 2008-08-04  Moritz  <moritz@gnu.org>

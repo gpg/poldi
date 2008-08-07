@@ -1,8 +1,12 @@
 2008-08-07  Moritz  <moritz@gnu.org>
 
 	* pam_poldi.c (pam_sm_authenticate): Removed second call to
-	log_set_flags().
-	Some cosmetic changes.
+	log_set_flags().  Some cosmetic changes.
+	(pam_sm_authenticate): Only free username_authenticated in case
+	the authentication method returns success. Use xfree instead of
+	free. Changed two messages.
+	(destroy_context): Do not free ctx->cookie -- that's the
+	responsibility of the authentication methods _deinit function.
 
 2008-08-04  Moritz  <moritz@gnu.org>
 

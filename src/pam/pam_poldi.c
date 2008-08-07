@@ -265,7 +265,6 @@ destroy_context (poldi_ctx_t ctx)
       xfree (ctx->logfile);
       simpleparse_destroy (ctx->parsehandle);
       log_destroy (ctx->loghandle);
-      xfree (ctx->cookie);
       xfree (ctx->scdaemon_socket);
       xfree (ctx->scdaemon_program);
       scd_disconnect (ctx->scd);
@@ -547,20 +546,21 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 	/* Authentication failed.  */
 	err = GPG_ERR_GENERAL;
       else
-	/* Send username received during authentication process back
-	   to PAM.  */
-	err = send_username_to_pam (ctx->pam_handle, username_authenticated);
-
-      free (username_authenticated);
+	{
+	  /* Send username received during authentication process back
+	     to PAM.  */
+	  err = send_username_to_pam (ctx->pam_handle, username_authenticated);
+	  xfree (username_authenticated);
+	}
     }
 
  out:
 
   /* Log result.  */
   if (err)
-    log_msg_error (ctx->loghandle, _("login failed: %s"), gpg_strerror (err));
+    log_msg_error (ctx->loghandle, _("authentication failed: %s"), gpg_strerror (err));
   else if (ctx->debug)
-    log_msg_debug (ctx->loghandle, _("login succeeded"));
+    log_msg_debug (ctx->loghandle, _("authentication succeeded"));
 
   /* Call authentication method's deinit callback. */
   if ((ctx->auth_method >= 0)

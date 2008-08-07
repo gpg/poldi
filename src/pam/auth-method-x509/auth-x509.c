@@ -50,6 +50,8 @@ struct x509_ctx_s
 
 typedef struct x509_ctx_s *x509_ctx_t;
 
+/* Initialize this authentication methods; create a method specific
+   cookie, which is stored in *OPAQUE. Returns proper error code. */
 static gpg_error_t
 auth_method_x509_init (void **opaque)
 {
@@ -71,6 +73,8 @@ auth_method_x509_init (void **opaque)
   return err;
 }
 
+/* Release any resources associated with this authentication
+   method. Takes care of releasing the cookie. */
 static void
 auth_method_x509_deinit (void *opaque)
 {
@@ -84,6 +88,7 @@ auth_method_x509_deinit (void *opaque)
     }
 }
 
+/* IDs for supported options. */
 enum opt_ids
   {
     opt_none,
@@ -348,7 +353,7 @@ email_address_extract_account (const char *address, char **account)
    the first address with the domain part being X509_DOMAIN.  Returns
    proper error code.  */
 static gpg_error_t
-extract_username_from_cert (ksba_cert_t cert,
+extract_username_from_cert (poldi_ctx_t ctx, ksba_cert_t cert,
 			    const char *x509_domain, char **username)
 {
   gpg_error_t err;
@@ -399,12 +404,19 @@ extract_username_from_cert (ksba_cert_t cert,
 	*username = account;
     }
   else
-    err = gpg_error (GPG_ERR_UNSUPPORTED_CERT); /* FIXME: wrong err
-						   code?  */
+    {
+      log_msg_error (ctx->loghandle,
+		     _("failed to extract username from certificate"));
+      err = gpg_error (GPG_ERR_UNSUPPORTED_CERT);
+    }
 
   return err;
 }
 
+/* Lookup the certificate identified by URL (supported schemes are
+   "ldap://" and "file://") through the dirmngr connection identified
+   by DIRMNGR and store the certificate in *CERTIFICATE. CTX is the
+   Poldi context to use. Returns proper error code. */
 static gpg_error_t
 lookup_cert (poldi_ctx_t ctx, dirmngr_ctx_t dirmngr, const char *url,
 	     ksba_cert_t *certificate)
@@ -513,7 +525,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
 
   /*** Check username. ***/
 
-  err = extract_username_from_cert (cert, cookie->x509_domain, &card_username);
+  err = extract_username_from_cert (ctx, cert, cookie->x509_domain, &card_username);
   if (err)
     goto out;
 
@@ -590,12 +602,21 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
   return !err;
 }
 
+/* Try to authenticate a user. The user's identity on the system is
+   figured out during the authentication process.  COOKIE is the
+   cookie for this authentication method.  CTX is the Poldi context
+   object. On successful authentication, the newly allocated username
+   as which the user has been authenticated is stored in *USERNAME.
+   Returns TRUE on success, FALSE on failure. */
 static int
 auth_method_x509_auth (poldi_ctx_t ctx, void *cookie, char **username)
 {
   return auth_method_x509_auth_do (ctx, cookie, NULL, username);
 }
 
+/* Try to authenticate a user as USERNAME.  COOKIE is the cookie for
+   this authentication method. CTX is the Poldi context object.
+   Returns TRUE on success, FALSE on failure. */
 static int
 auth_method_x509_auth_as (poldi_ctx_t ctx, void *cookie, const char *username)
 {

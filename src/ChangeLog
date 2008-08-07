@@ -1,3 +1,7 @@
+2008-08-07  Moritz  <moritz@gnu.org>
+
+	* poldi.h: Also include <locale.h>, not only <libintl.h>.
+
 2008-07-14  Moritz  <moritz@gnu.org>
 
 	* Makefile.am (SUBDIRS): Removed pam-test; added poldi.h to

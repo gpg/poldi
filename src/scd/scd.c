@@ -231,13 +231,6 @@ get_scd_socket_from_agent (const char *agent_infostr, char **socket_name,
   if (rc)
     goto out;
 
-#if 1
-  /* FIXME: is this the best way?  -mo */
-  rc = scd_serialno_internal (ctx, 1, NULL);
-  if (rc)
-    goto out;
-#endif
-
   rc = agent_scd_getinfo_socket_name (ctx, socket_name, loghandle);
 
  out:
@@ -247,6 +240,13 @@ get_scd_socket_from_agent (const char *agent_infostr, char **socket_name,
   return rc;
 }
 
+/* Send a RESTART to SCDaemon.  */
+static void
+restart_scd (scd_context_t ctx)
+{
+  assuan_transact (ctx->assuan_ctx, "RESTART",
+		   NULL, NULL, NULL, NULL, NULL, NULL);
+}
 
 
 
@@ -391,7 +391,10 @@ scd_connect (scd_context_t *scd_ctx,
     }
   else
     {
+      /* FIXME: is this the best way?  -mo */
+      //reset_scd (assuan_ctx);
       scd_serialno_internal (assuan_ctx, 0, NULL);
+
       ctx->assuan_ctx = assuan_ctx;
       ctx->flags = flags;
       ctx->loghandle = loghandle;
@@ -410,6 +413,7 @@ scd_disconnect (scd_context_t scd_ctx)
 {
   if (scd_ctx)
     {
+      restart_scd (scd_ctx);
       assuan_disconnect (scd_ctx->assuan_ctx);
       xfree (scd_ctx);
     }
@@ -650,7 +654,13 @@ scd_serialno_internal (assuan_context_t ctx, int agent, char **r_serialno)
 gpg_error_t
 scd_serialno (scd_context_t ctx, char **r_serialno)
 {
-  return scd_serialno_internal (ctx->assuan_ctx, 0, r_serialno);
+  gpg_error_t err;
+
+  err = scd_serialno_internal (ctx->assuan_ctx, 0, r_serialno);
+  log_msg_debug (ctx->loghandle, "scd_serialno_internal returned: %s",
+		 gpg_strerror (err));
+
+  return err;
 }
 
 /* CMD: PKSIGN.  */
@@ -931,16 +941,6 @@ scd_getinfo (scd_context_t ctx, const char *what, char **result)
   xfree (get_membuf (&data, &datalen));
 
   return rc;
-}
-
-/* Reset the SCD if it has been used.  */
-int
-scd_reset (scd_context_t ctx)
-{
-  assuan_transact (ctx->assuan_ctx, "RESTART",
-		   NULL, NULL, NULL, NULL, NULL, NULL);
-
-  return 0;
 }
 
 /* END */

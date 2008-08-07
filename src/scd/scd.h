@@ -22,9 +22,7 @@
 
 #include <poldi.h>
 
-#include <util/simplelog.h>
-
-#include "assuan.h"
+#include "util/simplelog.h"
 
 struct scd_context;
 
@@ -97,9 +95,6 @@ int scd_readkey (scd_context_t ctx,
    newly allocated result is stored in *RESULT.  Returns proper error
    code, zero on success.  */
 int scd_getinfo (scd_context_t ctx, const char *what, char **result);
-
-/* Reset the SCD if it has been used.  */
-int scd_reset (scd_context_t ctx);
 
 /* Initializer objet for struct scd_cardinfo instances.  */
 extern struct scd_cardinfo scd_cardinfo_null;

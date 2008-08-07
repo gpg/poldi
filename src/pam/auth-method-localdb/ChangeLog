@@ -1,5 +1,13 @@
 2008-08-07  Moritz  <moritz@gnu.org>
 
+	* usersdb.c: Include defs-localdb.h instead of util/defs.h.
+	* key-lookup.c: Likewise.
+
+	* Makefile.am (libpoldi_auth_localdb_a_SOURCES): Added
+	defs-localdb.h.
+
+	* defs-localdb.h: New file.
+
 	* auth-localdb.c (auth_method_localdb_auth_do): Use xfree instead
 	of free for card_username.
 

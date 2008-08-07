@@ -20,13 +20,10 @@
    02111-1307, USA.  */
 
 /* General internal build-time definitions.  */
-
 #ifndef POLDI_DEFS_H
 #define POLDI_DEFS_H
 
 #define POLDI_CONF_DIRECTORY "@POLDI_CONF_DIRECTORY@"
 #define POLDI_CONF_FILE      POLDI_CONF_DIRECTORY "/poldi.conf"
-#define POLDI_USERS_DB_FILE  POLDI_CONF_DIRECTORY "/users"
-#define POLDI_KEY_DIRECTORY  POLDI_CONF_DIRECTORY "/keys"
 
 #endif

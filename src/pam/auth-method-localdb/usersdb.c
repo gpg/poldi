@@ -27,7 +27,7 @@
 #include <gcrypt.h>
 
 #include "usersdb.h"
-#include "util/defs.h"
+#include "defs-localdb.h"
 
 
 

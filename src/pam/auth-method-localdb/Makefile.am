@@ -32,7 +32,7 @@ include $(top_srcdir)/am/cmacros.am
 noinst_LIBRARIES = libpoldi-auth-localdb.a
 
 libpoldi_auth_localdb_a_SOURCES = \
- auth-localdb.c \
+ auth-localdb.c defs-localdb.h \
  key-lookup.c key-lookup.h \
  usersdb.h usersdb.c
 

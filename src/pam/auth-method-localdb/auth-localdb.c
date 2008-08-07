@@ -187,16 +187,21 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
   return !err;
 }
 
-/* Entry point for the local-db authentication method. Returns TRUE
-   (1) if authentication succeeded and FALSE (0) otherwise. */
+/* Try to authenticate a user. The user's identity on the system is
+   figured out during the authentication process.  COOKIE is the
+   cookie for this authentication method.  CTX is the Poldi context
+   object. On successful authentication, the newly allocated username
+   as which the user has been authenticated is stored in *USERNAME.
+   Returns TRUE on success, FALSE on failure. */
 static int
 auth_method_localdb_auth (poldi_ctx_t ctx, void *cookie, char **username)
 {
   return auth_method_localdb_auth_do (ctx, NULL, username);
 }
 
-/* Entry point for the local-db authentication method. Returns TRUE
-   (1) if authentication succeeded and FALSE (0) otherwise. */
+/* Try to authenticate a user as USERNAME.  COOKIE is the cookie for
+   this authentication method. CTX is the Poldi context object.
+   Returns TRUE on success, FALSE on failure. */
 static int
 auth_method_localdb_auth_as (poldi_ctx_t ctx, void *cookie, const char *username)
 {
