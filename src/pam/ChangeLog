@@ -1,3 +1,260 @@
+2008-08-07  Moritz  <moritz@gnu.org>
+
+	* pam_poldi.c (pam_sm_authenticate): Removed second call to
+	log_set_flags().  Some cosmetic changes.
+	(pam_sm_authenticate): Only free username_authenticated in case
+	the authentication method returns success. Use xfree instead of
+	free. Changed two messages.
+	(destroy_context): Do not free ctx->cookie -- that's the
+	responsibility of the authentication methods _deinit function.
+
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* pam_poldi.c (pam_sm_authenticate): New variable:
+	getpin_cb_data. Call scd_set_pincb().
+	Include "getpin-cb.h".
+
+	* auth-methods.h: Removed some disabled code.
+
+	* pam_poldi.c: Marked strings for i18n.
+
+2008-07-29  Moritz  <moritz@gnu.org>
+
+	* pam_poldi.c (i18n_cb): New function...
+	(create_context, pam_sm_authenticate): ... use it here.
+
+2008-07-14  Moritz  <moritz@gnu.org>
+
+	* auth-methods.h: Include simpleparse.h instead of argparse.h.
+	(auth_method_func_parsecb_t): Removed type.
+	(struct auth_method_parse_cookie): New struct.
+	(struct auth_method_s): Dropped members func_parsecb, arg_otps,
+	new members opt_specs, parsecb.
+
+	* pam_poldi.c: Include poldi.h, simplelog.h, simpleparse.h instead
+	of not config.h, jnlib/logging.h, optparse.h.
+	Replace parsing/logging related code in favour of new
+	simplelog/simpleparse subsystem.
+	
+
+2008-05-25  Moritz  <moritz@gnu.org>
+
+	Some cleanups, added GPL3 headers.
+
+	* pam_poldi.c: New conf options: arg_scdaemon_socket, arg_scdaemon_program.
+	(pam_poldi_options_cb): Handle new options.
+	(create_context): Initialize new context struct members.
+	(destroy_context): Release them.
+	(pam_sm_authenticate): Pass scdaemon_socket and scdaemon_program to scd_connect.
+	(auth_method_lookup): Return -1 in case the auth method could not be found.
+
+2008-05-03  Moritz  <moritz@gnu.org>
+
+	* Makefile.am: Link pam_poldi.so against shared library version of
+	internal libraries.  Link against internal libassuan.  Use gcc for
+	linking, not ld.
+
+2008-04-05  Moritz  <moritz@gnu.org>
+
+	* pam_poldi.so: Slightly reorganized.
+
+	* auth-method-localdb, auth-method-x509, auth-support: New
+	directories.
+	* auth-simpledb.c, auth-test.c, auth-x509.c, conv.c, conv.h,
+	getpin-cb.c, pam-util.c, pam-util.h, wait-for-card.c,
+	wait-for-card.h: Removed (or rather: moved into other
+	directories).
+
+	* auth-methods.h: Mostly rewritten.
+
+2008-02-21  Moritz Schulte  <moritz@gnu.org>
+
+	* Makefile.am: Use new variables SCD, DIRMNGR to implement
+	conditional linking of scdaemon/dirmngr.
+
+	* auth-methods.h: Include <gpg-error.h>, <jnlib/argparse.h>; new
+	types: auth_method_func_init_t, auth_method_func_deinit_t,
+	auth_method_func_parsecb_t, auth_method_func_auth_t;
+	auth_method_t; removed type: auth_method_func_t.
+	
+
+2008-02-15  Moritz Schulte  <moritz@gnu.org>
+
+	* auth-x509.c (email_address_match)
+	(email_address_extract_account): New functions.
+	(extract_username_from_cert): Rewritten to use above function.
+
+2008-01-04  Moritz Schulte  <moritz@gnu.org>
+
+	* pam_poldi.c (arg_opts): Cosmetic change in description of
+	logfile option.
+
+2007-12-15  Moritz Schulte  <moritz@g10code.com>
+
+	* pam_poldi.c (enum arg_opt_ids): New entry for arg_dirmngr_socket.
+	(arg_opts): Likewise.
+	(pam_poldi_options_cb): Handle arg_dirmngr_socket.  Use strdup
+	instead of xstrdup.
+	(destroy_context, create_context): New functions ...
+	(pam_sm_authenticate): ... use them here.
+
+	* auth-x509.c: Include <config.h>.
+	(auth_method_x509): Removed pubkey url overwriting debug code.
+	(auth_method_x509): modified conv_tell interaction with application.
+
+	* getpin-cb.c (getpin_cb): Use gcry_free instead of xfree.
+	(agent_popup_message_start, agent_popup_message_stop): Declare static.
+	(agent_popup_message_start): Removed extra args.
+	(agent_popup_message_stop): Return error code.
+	Do not include jnlib/xmalloc.h.
+
+2007-11-25  Moritz  <moritz@g10code.com>
+
+	* Makefile.am (libpam_poldi_a_SOURCES): Added files: conv.h,
+	wait-for-card.h, getpin-cb.h, pam-util.c, pam-util.h.
+
+	* auth-simpledb.c (auth_method_simpledb): Removed local variable
+	username_void.  Use retrieve_username_from_pam instead of
+	pam_get_item directly.  Use send_username_to_pam instead of
+	pam_set_item.
+
+	* pam-util.h, pam-util.c: New file.
+	* auth-x509.c, auth-simpledb.c: Include "pam-util.h" and use
+	functions contained in pam-util.c for retrieving username from PAM
+	and sending username to PAM.
+	(extract_username_from_cert): New DUMMY(!) function.
+	(lookup_cert_from_file): New function.
+
+	(auth_method_x509): Some cleanups; use retrieve_username_from_pam,
+	allow pubkey_url to be prefixed with "file://" using
+	looking_cert_from_file in that case.  Use poldi_dirmngr_validate
+	instead of poldi_dirmngr_isvalid.  Handle username.
+
+	* auth-x509.c (auth_method_x509): Call poldi_dirmngr_validate
+	instead of poldi_dirmngr_isvalid.
+
+007-11-18  Moritz  <moritz@g10code.com>
+
+	* auth-x509.c (auth_method_x509): In case of a invalid pubkey_url,
+	return GPG_ERR_INV_CARD, not GPG_ERR_GENERAL.
+	(auth_method_x509): Don't forget to release CERT.
+
+2007-11-11  Moritz  <moritz@g10code.com>
+
+	* auth-x509.c (auth_method_x509): adjust call to
+	poldi_dirmngr_connect; pass return value from getenv.
+	(extract_public_key_from_cert, verify_challenge_sig): New
+	functions.
+
+2007-11-10  Moritz  <moritz@g10code.com>
+
+	* auth-simpledb.c (auth_method_simpledb): Uuuh: return !err,
+	instead of !!err.  Currently the semantics for the auth_method_*
+	functions are: they return TRUE for success and FALSE for failure.
+
+	* Makefile.am (AM_CFLAGS): Added: KSBA_CFLAGS.
+	(pam_poldi.so): Added: KSBA_LIBS.
+
+	* pam_poldi.c (pam_sm_authenticate): Connect/disconnect to/from
+	scdaemon.
+
+	* auth-simpledb.c: Added plenty of missing includes.
+	(cardinfo_null): New static variable.
+
+	* pam_poldi.c (pam_sm_authenticate): Use options_parse_argv_const
+	instead of options_parse_argv.
+
+2007-11-04  Moritz  <moritz@g10code.com>
+
+	* Makefile.am: Changed the way the pam module gets built.  No, a
+	static library libpam_poldi.a is built.  Based on conditionals,
+	decide which auth-*.c files shall be built.
+
+	* auth-x509.c: New file.
+	* auth-test.c: New file.
+	* auth-simpledb.c (auth_method_simpledb): New file.  Basically
+	contains the former pam_sm_authenticate().
+
+	* auth-methods.h: New file.
+
+	* pam_poldi.c (parse_argv): Removed function.
+	(pam_sm_authenticate): Call options_parse_argv instead of
+	parse_argv.
+	Include auth-methods.h.
+	Added declarations for authentication method functions.
+	(struct auth_method): New.
+	(auth_methods): New array.
+	(struct pam_poldi_opt): Removed.
+	(enum arg_opt_ids): New: arg_auth_method, arg_debug.
+	(arg_opts): New entries for new args.
+	(auth_method_lookup): New function.
+	(pam_poldi_options_cb): Handle new arguments.
+	(pam_sm_authenticate): Heavily stripped.  Calls authentication
+	method.
+
+2007-10-28  Moritz  <moritz@g10code.com>
+
+	* Makefile.am (pam_poldi.so): Removed reference to
+	libscd-support.a.
+
+2007-10-27  Moritz  <moritz@g10code.com>
+
+	* pam_poldi.c (poldi_ctx_NULL): New static variable.
+	(pam_poldi_opt): Removed static structure.
+	(enum arg_opt_ids): Removed all args except arg_logfile,
+	arg_wait_timeout.  Note: debug/verbose option handling will
+	be reintegrated soon.
+	(arg_opts): See above.
+	(pam_poldi_options_cb): See above.
+	
+	(pam_sm_authenticate): Removed scd_context_t ctx.  New variable:
+	poldi_ctx_t ctx; allocate and initialize.  Use poldi_scd_*
+	functions instead of scd_*.  Use new conv_tell/conv_ask functions
+	instead of old tell_user/ask_user.  Removed old conv_opaque
+	struct.  Simplified PAM conv calling, no idea why it was written
+	the way it was written before.
+
+	(parse_argv): Made a dummy function for now, proper argument
+	parsing will be integrated soon.
+
+	* Makefile.am (pam_poldi.so): Include conv.o, wait-for-card.o,
+	getpin-cb.o.  Removed libscd-support.
+	* Makefile.am: Added new implicit rule for compiling .c objects.
+	(CLEANFILES): Added new object files.
+
+	* conv.c, conv.h: New files, contains slightly modified PAM
+	conversation functions formerly contained in pam_poldi.c.  Uses
+	new poldi_ctx_t.
+	
+	* getpin-cb.c, getpin-cb.h: New files, contain slightly modified
+	code formerly contained in ../common.  Uses new poldi_ctx_t.
+	
+	* wait-for-card.c, wait-for-card.h: New files, contain slightly
+	modified code formerly contained in ../common.  Uses new
+	poldi_ctx_t.
+
+2007-08-17  Moritz  <moritz@g10code.com>
+
+	* pam_poldi.c (pam_sm_authenticate): Call wait_for_card().
+
+2007-07-13  Moritz  <moritz@g10code.com>
+
+	* pam_poldi.c (pam_sm_authenticate): Lookup GPG_AGENT_INFO, not
+	SCDAEMON_INFO, error checking after scd_connect.
+
+2007-06-30  Moritz  <moritz@g10code.com>
+
+	* pam_poldi.c: Removed includes: <common/options.h>,
+	<libscd/scd.h>; added includes: <common/optparse.h>, <scd/scd.h>,
+	<scd/scd-support.h>.  Removed option switches: debug-sc,
+	ctapi-driver, pscs-driver, reader-port, disable-opensc,
+	disable-ccid, debug-ccid-driver
+	(cardinfo_null): New static variable.
+	(pam_sm_authenticate): Quasi rewrite, uses new scd interface.
+	
+	* Makefile.am: include $(top_srcdir)/am/cmacros.am.
+	(pam_poldi.so): Removed $(LIBUSB_LIBS) from linking command.
+
 2006-03-31  Moritz Schulte  <moritz@g10code.com>
 
 	* pam_poldi.c (pam_sm_authenticate): Adjust call to log_set_syslog

@@ -1,5 +1,29 @@
                                                                 -*- outline -*-
 
+Changes since version 0.3:
+
+* Many parts have been rewritten and/or reorganized
+
+* GPLv3+
+  Changed License to GPL v3 or later.
+
+* SCdaemon support
+  Poldi uses the scdaemon from now on instead of talking to the
+  smartcard directly.
+
+* Authentication methods
+  Implemented abstraction layer for "authentication methods".  The
+  previous authentication process is now encapsulated in an
+  authentication method named "localdb".
+
+* X509
+  Added another authentication method named "x509", which interacts
+  with Dirmngr in order to provide authentication through a X509 PKI.
+
+* i18n
+  Added support for internationalization.
+  Added german translation.
+
 Changes since version 0.2:
 
 * Smartcard to account mapping:

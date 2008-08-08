@@ -1,5 +1,5 @@
 # configure.ac - Configure script for Poldi
-# Copyright (C) 2004, 2005 g10 Code GmbH
+# Copyright (C) 2004, 2005, 2007, 2008 g10 Code GmbH
 # 
 # This file is part of Poldi.
 #
@@ -24,13 +24,17 @@ min_automake_version="1.7.9"
 
 # Version number: Remember to change it immediately *after* a release.
 #                 Add a "-cvs" prefix for non-released code.
-AC_INIT(poldi, 0.4-cvs, gnupg-devel@gnupg.org)
+AC_INIT(poldi, 0.4, gnupg-devel@gnupg.org)
 
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 
 NEED_LIBGCRYPT_VERSION=0
 NEED_GPG_ERROR_VERSION=0.7
+
+NEED_KSBA_API=1
+NEED_KSBA_VERSION=1.0.2
+
 	
 AC_CONFIG_SRCDIR(src/pam/pam_poldi.c)
 AM_CONFIG_HEADER(config.h)
@@ -51,21 +55,32 @@ AC_SUBST(PAM_MODULE_DIRECTORY)
 
 AC_GNU_SOURCE
 
-# Some status variables to give feedback at the end of a configure run
-#have_gpg_error=no
-#have_libgcrypt=no 
+have_gpg_error=no
+have_libgcrypt=no 
+have_ksba=no
 
+POLDI_ENABLE_FEATURE(enable_auth_x509, yes, x509-auth, support for X509 authentication)
+POLDI_ENABLE_FEATURE(enable_auth_localdb, yes, localdb-auth, support for local-db authentication)
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
 AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
 AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
 AC_DEFINE_UNQUOTED(PACKAGE_BUGREPORT, "$PACKAGE_BUGREPORT",
                                         [Bug report address])
+AC_DEFINE_UNQUOTED(NEED_LIBGCRYPT_VERSION, "$NEED_LIBGCRYPT_VERSION",
+                                       [Required version of Libgcrypt])
+AC_DEFINE_UNQUOTED(NEED_KSBA_VERSION, "$NEED_KSBA_VERSION",
+                                       [Required version of Libksba])
+
 
 AH_BOTTOM([
-/* Tell the sources taken from GnuPG's SCD what header file they
-   should use. */
-#define GNUPG_SCD_MAIN_HEADER "scd.h"
+/* Setup the hardwired names of modules. */
+#ifndef GNUPG_DEFAULT_SCD
+#define GNUPG_DEFAULT_SCD    ( GNUPG_BINDIR "/scdaemon" )
+#endif
+#ifndef GNUPG_DEFAULT_DIRMNGR
+#define GNUPG_DEFAULT_DIRMNGR    ( GNUPG_BINDIR "/dirmngr" )
+#endif
 ])
 
 AM_MAINTAINER_MODE
@@ -81,6 +96,7 @@ AM_MISSING_PROG(AUTOHEADER, autoheader, $missing_dir)
 AM_MISSING_PROG(MAKEINFO, makeinfo, $missing_dir)
 AC_PROG_AWK
 AC_PROG_CC
+AM_PROG_CC_C_O
 AC_PROG_CPP
 AC_PROG_RANLIB
 AC_PROG_INSTALL
@@ -91,27 +107,14 @@ AC_SYS_LARGEFILE
 # Checks for libraries.
 #
 
-have_libgcrypt=no
 AM_PATH_LIBGCRYPT("$NEED_LIBGCRYPT_VERSION",
                   have_libgcrypt=yes,have_libgcrypt=no)
-
-have_gpg_error=no
 AM_PATH_GPG_ERROR("$NEED_GPG_ERROR_VERSION",
                   have_gpg_error=yes,have_gpg_error=no)
+AM_PATH_KSBA("$NEED_KSBA_API:$NEED_KSBA_VERSION",have_ksba=yes,have_ksba=no)
 
-
-#
-# libusb allows us to use the integrated CCID smartcard reader driver.
-#
-LIBUSB_LIBS=""
-AC_CHECK_LIB(usb, usb_bulk_write,
-             [ LIBUSB_LIBS="$LIBUSB_LIBS -lusb"
-               AC_DEFINE(HAVE_LIBUSB,1,
-               [defined if libusb is available])
-             ])
-AC_SUBST(LIBUSB_LIBS)
-AC_CHECK_FUNCS(usb_get_busses memicmp stpcpy strlwr strtoul memmove stricmp)
-AC_CHECK_FUNCS(fopencookie funopen)
+AC_CHECK_FUNCS(memicmp stpcpy strlwr strtoul memmove stricmp)
+AC_CHECK_FUNCS(fopencookie funopen nanosleep)
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -164,8 +167,55 @@ if test "$GCC" = yes; then
 fi
 
 # We use jnlib, so tell other modules about it
-AC_DEFINE(HAVE_JNLIB_LOGGING, 1,
-         [Defined if jnlib style logging fucntions are available])
+#AC_DEFINE(HAVE_JNLIB_LOGGING, 1,
+#         [Defined if jnlib style logging fucntions are available])
+# Disabled, since we don't use jnlib anymore.
+
+#
+# Taken from libassuan source package
+#
+
+#AC_DEFINE(HAVE_DOSISH_SYSTEM,0,[We do not run here])
+#AC_UNDEFINE(HAVE_W32_SYSTEM),0, [We do not run here])
+AC_CHECK_HEADERS([string.h locale.h sys/uio.h])
+AC_TYPE_SIGNAL
+#AC_DEFINE(USE_DESCRIPTOR_PASSING, 0, [We do not need this feature])
+AC_REPLACE_FUNCS(setenv)
+# Check for funopen
+AC_CHECK_FUNCS(funopen)
+if test $ac_cv_func_funopen != yes; then
+    # No funopen but we can implement that in terms of fopencookie.
+    AC_CHECK_FUNCS(fopencookie)
+    if test $ac_cv_func_fopencookie = yes; then
+        AC_LIBOBJ([funopen])
+    else
+        AC_MSG_WARN([
+***
+*** No implementation of fopencookie or funopen available.
+*** The assuan_get_data_fp feature won't work.
+***])
+    fi
+fi
+
+# NLS:
+AM_GNU_GETTEXT([external])
+
+#
+# Decide what to build
+#
+
+if test $have_ksba = no; then
+  enable_auth_x509=no
+fi
+AM_CONDITIONAL(AUTH_METHOD_X509, test "$enable_auth_x509" = "yes")
+AM_CONDITIONAL(AUTH_METHOD_LOCALDB, test "$enable_auth_localdb" = "yes")
+
+if test "$enable_auth_x509" = "yes"; then
+   AC_DEFINE(ENABLE_AUTH_METHOD_X509, 1, [Enable X509 authentication method])
+fi
+if test "$enable_auth_localdb" = "yes"; then
+   AC_DEFINE(ENABLE_AUTH_METHOD_LOCALDB, 1, [Enable local-db authentication method])
+fi
 
 #
 # Print errors here so that they are visible all
@@ -192,6 +242,15 @@ if test "$have_libgcrypt" = "no"; then
 *** (at least version $NEED_LIBGCRYPT_VERSION is required.)
 ***]])
 fi
+if test "$have_ksba" = "no"; then
+   AC_MSG_NOTICE([[
+***
+*** libksba not found, building with X.509 authentication support.
+*** libksba can be retrieved from:
+***   URL FIXME
+*** (at least version $NEED_KSBA_VERSION (API $NEED_KSBA_API) is required).
+***]])
+fi
 if test "$die" = "yes"; then
     AC_MSG_ERROR([[
 ***
@@ -201,13 +260,21 @@ if test "$die" = "yes"; then
 fi
 
 AC_CONFIG_FILES([Makefile
-		 doc/Makefile
+		 po/Makefile.in
+		 m4/Makefile
+		 am/Makefile
 		 src/Makefile
-		 src/jnlib/Makefile
-		 src/libscd/Makefile
-		 src/common/Makefile
-		 src/pam/Makefile
+		 src/assuan/Makefile
+		 src/util/Makefile
+		 src/scd/Makefile
 		 src/ctrl/Makefile
+		 src/pam/Makefile
+		 src/pam/auth-support/Makefile
+		 src/pam/auth-method-localdb/Makefile
+		 src/pam/auth-method-x509/Makefile
+		 doc/Makefile
+		 tests/Makefile
+		 tools/Makefile
 		 conf/Makefile])
 AC_OUTPUT
 
@@ -221,3 +288,13 @@ if test "$PAM_MODULE_DIRECTORY" = "$DEFAULT_PAM_MODULE_DIRECTORY"; then
 else
   AC_MSG_NOTICE([PAM module installation directory: $PAM_MODULE_DIRECTORY])
 fi
+
+echo "
+        Poldi v${VERSION} has been configured as follows:
+
+        installation directory for PAM module: $PAM_MODULE_DIRECTORY
+        
+             X509 authentication: $enable_auth_x509
+         local-db authentication: $enable_auth_localdb
+
+"

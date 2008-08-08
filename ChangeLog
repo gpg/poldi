@@ -1,3 +1,126 @@
+2008-08-08  Moritz  <moritz@gnu.org>
+
+	* configure.ac: Bump version number up to 0.4.
+
+	* EXPERIMENTAL: New file.
+	* Makefile.am (EXTRA_DIST): Updated.
+
+	* BUGS: Updated, mentioend scdaemon problems.
+
+2008-08-07  Moritz  <moritz@gnu.org>
+
+	* TODO: Updated.
+
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* Makefile.am (SUBDIRS): Added po.
+
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* configure.ac: Removed checks for libusb (we use scdaemon!).
+
+2008-08-03  Moritz  <moritz@gnu.org>
+
+	* config.h.in: Added ENABLE_NLS symbol.
+
+2008-08-03  gettextize  <bug-gnu-gettext@gnu.org>
+
+	* Makefile.am (EXTRA_DIST): Add config.rpath.
+	* configure.ac (AC_CONFIG_FILES): Add po/Makefile.in.
+
+2008-07-20  Moritz  <moritz@gnu.org>
+
+	* configure.ac: Removed AC_DEFINE for jnlib
+	(AC_OUTPUT): removed src/jnlib/Makefile, src/pam-test/Makefile;
+	added tests/Makefile.
+
+2008-05-24  Moritz  <moritz@gnu.org>
+
+	Some build fixes related to Assuan (mostly correctings include paths in Makefile.am's).
+
+2008-05-03  Moritz  <moritz@gnu.org>
+
+	* configure.ac: Added tests for included libassuan.  Removed code
+	for installed libassuan.
+
+2008-04-05  Moritz  <moritz@gnu.org>
+
+	* configure.ac: Renamed auth method simpledb to localdb.  Removed
+	auth method test.  Adjust AC_CONFIG_FILES to new source tree
+	layout.
+
+2007-12-13  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac (AC_CONFIG_FILES): New: src/test/Makefile.
+
+2007-11-11  Moritz  <moritz@g10code.com>
+
+	* configure.ac: Add hardwired dirmngr path to AH_BOTTOM call.
+
+2007-11-04  Moritz  <moritz@g10code.com>
+
+	* configure.ac: AC_DEFINE ENABLE_AUTH_METHOD_SIMPLEDB if simpledb
+	authentication is enabled.  Same for the new "test" authentication
+	method.
+
+2007-11-03  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: AC_DEFINE ENABLE_AUTH_METHOD_X509 if x509
+	authentication is enabled.
+
+2007-10-28  Moritz  <moritz@g10code.com>
+
+	* Makefile.am (ACLOCAL_AMFLAGS): New.
+	(SUBDIRS): Added: m4.
+
+	* configure.ac (AC_CONFIG_FILES): Added src/dirmngr/Makefile.
+
+2007-10-28  Moritz  <moritz@g10code.com>
+
+	* configure.ac: Integrated KSBA support; call AM_PATH_KSBA.  Use
+	POLDI_ENABLE_FEATURE macro for --enable-x509-auth and
+	--enable-simpledb-auth arguments.  AC_DEFINE_UNQUOTED the symbols
+	NEED_LIBGCRYPT_VERSION and NEED_KSBA_VERSION.  Define
+	AM_CONDITIONAL for symbols AUTH_METHOD_X509 and
+	AUTH_METHOD_SIMPLEDB.  Print final status message.
+
+	* acinclude.m4: Added quoting; removed gpg-error and libgcrypt
+	related macros; new macro: POLDI_ENABLE_FEATURE.
+
+2007-10-27  Moritz  <moritz@g10code.com>
+
+	* configure.ac (AC_CONFIG_FILES): Removed reference to
+	scd-support.
+
+2007-08-17  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac (AC_CHECK_FUNCS): Added nanosleep.
+
+2007-06-30  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac (AC_CONFIG_FILES): Added am/Makefile.
+	* autogen,sh: New file.
+	* Makefile.am (SUBDIRS): Added "am".
+	* am: New directory.
+
+2007-06-29  Moritz  <moritz@g10code.com>
+
+	* BUGS: New file.
+	* NEWS: Updated.
+
+	* m4: New directory.
+	* m4/libassuan.m4: New file.
+	* configure.ac: Require libassuan.
+	(AH_BOTTOM): Cleared, define GNUPG_DEFAULT_SCD.
+	Use AM_PROG_CC_C_O.
+	(AC_CONFIG_FILES): Added: m4/Makefile, src/scd-support/Makefile,
+	src/scd/Makefile; removed: src/libscd/Makefile.
+
+2007-03-03  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Integrate assuan; it's a new dependency from now
+	on.
+
 2005-12-12  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac: Bumped version number up to 0.4-cvs.

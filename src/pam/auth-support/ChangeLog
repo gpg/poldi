@@ -1,0 +1,74 @@
+2008-08-08  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.c (keypad_mode_enter): New argument: INFO. Send INFO
+	to conv_tell() instead of the old hard-coded string...
+	(getpin_cb): ... change caller.
+	(getpin_cb): Only frob info string if it is not "PIN", use
+	hard-coded string as argument to query_user()/keypad_mode_enter()
+	if the info string was "PIN".
+	Use xtrymalloc/xfree instead of gcry_malloc/gcry_free.
+
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.h: Include "ctx.h".
+
+2008-07-30  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.c: Do not include "i18n.h".
+
+2008-07-14  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.c:
+
+2008-07-06  Moritz  <moritz@gnu.org>
+
+	* ctx.h: Include simplelog.h, simpleparse.h.
+	(struct poldi_ctx_s): New members: loghandle, parsehandle; removed
+	old member logfile.
+
+2008-06-14  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.c (getpin_cb): New local variable: info_frobbed; use
+	frob_info_msg.
+	(frob_info_msg): New function.
+	(strcpy_escaped): New function, taken from Pinentry.
+
+2008-05-25  Moritz  <moritz@gnu.org>
+
+	Some cleanups, added GPL 3 headers.
+
+	* ctx.h: Added comments.
+
+	* getpin-cb.c (query_user): Make sure that returned buffer is
+	padded with zeros.  It seems (at least some) zero padding is
+	required by scdaemon (utf8 related).
+
+	* ctx.h (struct poldi_ctx_s): New members: scdaemon_socket,
+	scdaemon_program.
+
+	* getpin-cb.c (keypad_mode_enter, keypad_mode_leave): changed user
+	messages.
+	Include "i18n.h", not <i18n.h>.
+
+2008-04-21  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.c: Include "getpin-cb.h"; heavily stripped, needs more
+	thinking.
+
+2008-04-20  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.h: New struct: getpin_cb_data.
+
+2008-04-19  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.c (getpin_cb): Removed flag handling, removed
+	variables: ends, any_flags, again_text.
+	(agent_popup_message_start, agent_popup_message_stop): Removed to
+	...
+	(keypad_mode_enter, keypad_mode_leave): ... this.
+
+2008-04-05  Moritz  <moritz@gnu.org>
+
+	* conv.c, conf.h, ctx.h, getpin-cb.c, getpin-cb.h, Makefile.am,
+	pam-util.c, pam-util.h, wait-for-card.h, wait-for-card.c: New.
+

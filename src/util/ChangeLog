@@ -1,0 +1,346 @@
+2008-08-07  Moritz  <moritz@gnu.org>
+
+	* defs.h.in (POLDI_USERS_DB_FILE, POLDI_KEY_DIRECTORY): Removed
+	definitions.
+
+	* usersdb.c, usersdb.h: Removed files.
+
+	* defs.h.in (POLDI_OLD_CARD_KEY_RETRIVAL_EXPLANATION): Removed
+	definition.
+	(POLDI_PIN2_QUERY_MSG): Likewise.
+	(POLDI_PIN3_QUERY_MSG): Likewise.
+
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* support.c (file_to_string_internal, sexp_to_string): Use xfree()
+	instead of free().
+
+	* optparse.c, optparse.h: Removed.
+	* simpleparse.c: Marked strings for i18n.
+
+2008-08-03  Moritz  <moritz@gnu.org>
+
+	* Makefile.am (poldi_util_SOURCES): Removed i18n.h.
+	(i18n.h): Removed file.
+
+	* simpleparse.c: Include support.h.
+	* support.h (conversation_cb_t): Removed unused type.
+	(enum conversation_type_t): Likewise.
+	* simpleparse.c (my_strlen): Moved funtion ...
+	* support.c (my_strlen): ... here.
+
+2008-07-29  Moritz  <moritz@gnu.org>
+
+	* simpleparse.h: New type: simpleparse_i18n_cb_t.
+	Declare new function simpleparse_set_i18n_cb.
+	* simpleparse.c (simpleparse_set_i18n_cb): New function.
+	(translate): New function.
+	Added calls to function translate() throughout the code for i18n.
+
+2008-07-20  Moritz  <moritz@gnu.org>
+
+	* sexputil, sexp-parse.h: Removed files.
+	* Makefile.am: dito.
+
+2008-07-20  Moritz  <moritz@gnu.org>
+
+	* Makefile.am (poldi_util_SOURCES): added util-local.h,
+	simplelog.c, simplelog.h, simpleparse.c, simpleparse.h,
+	filenames.c, filenames.h.
+	* util.h: Stripped: removed jnlib includes, unused GCC macros,
+	memory manager definitions, unused function declarations.
+	* convert.c: Removed unused functions.
+	* support.c: Removed jnlib includes, include poldi.h.
+	* util-local.h: New file.
+	* membuf.c, membuf.c: Remerged from GnuPG.
+	* membuf.c: Include util-local.h, not config.h.
+	* usersdb.c: Don't include jnlib/stringhelp.h.
+	* filenames.c, filenames.h, simplelog.c, simplelog.h,
+	simpleparse.c, simpleparse.h: New files.
+
+2008-06-20  Moritz  <moritz@gnu.org>
+
+	* support.c: Do not include <jnlib/logging.h>.
+
+2008-06-14  Moritz  <moritz@gnu.org>
+
+	* util.h: Do not include dotlock.h.
+
+	* membuf.c, membuf.h: Replace with new copy from GnuPG, no idea
+	why secure memory was disabled previously.
+
+2008-05-01  Moritz  <moritz@gnu.org>
+
+	* Makefile.am: Build a shared and a nonshared version.
+
+2008-04-05  Moritz  <moritz@gnu.org>
+
+	* support.c, support.h (convert_to_hex): Removed function.
+
+	* poldi-ctx.h, poldi-ctx-opaque.h: Removed.
+	
+	* support.c: New function: challenge_release; don't include scd.h;
+	removed functions: key_filename_construct, lookup_own_username,
+	key_lookup_by_serialno, directory_process.
+
+	* usersdb.c: Removed functions: usersdb_remove, usersdb_add,
+	usersdb_list.
+	* usersdb.h: Adjusted.
+
+	* util.h: Removed unused definition of HASH_FNC.
+
+2007-12-15  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctx.h (struct poldi_ctx_s): Remove const attribute from
+	member: logfile. New member: dirmngr_socket.
+	Added copyright notice.
+
+	* util.h: Removed unused replacement dummy function for ttyname().
+
+	* sexputil.c (cmp_simple_canon_sexp): Removed unused function.
+	(make_simple_sexp_from_hexstr): Likewise.
+
+	* util.h (xmalloc_secure_clear, xmalloc_clear): Removed these
+	compat macro for gpg 1.4.
+	* util.h: Removed declaration for cmp_simple_canon_sexp.
+
+2007-11-25  Moritz  <moritz@g10code.com>
+
+	* support.h: Declare function file_to_binstring.
+	* support.c (file_to_string_internal): New function, based in
+	former function file_to_string.
+	(file_to_string): is now a wrapper on top of
+	file_to_string_internal.
+	(file_to_binstring): New function, wrapper on top of
+	file_to_string_internal.
+
+2007-11-11  Moritz  <moritz@g10code.com>
+
+	* util.h: Cleanup: removed plenty of unnecessary declarations.
+
+2007-11-10  Moritz  <moritz@g10code.com>
+
+	* optparse.c (options_parse_argv): Removed const qualifier from
+	argv.  Removed argv_cp related snippets.
+	(options_parse_argv_const): New function, wrapper for
+	options_parse_argv, using char_vector_dup.
+	* optparse.h (options_parse_argv, options_parse_argv, const):
+	Adjusted declarations.
+
+	* support.c (char_vector_dup): Removed unused variable s. Set c[i]
+	to NULL, not to a[i] (which is also NULL), because of const
+	qualifier.
+
+2007-11-04  Moritz  <moritz@g10code.com>
+
+	* poldi-ctx.h (struct poldi_ctx_s): New members: auth_method,
+	debug.
+
+	* optparse.c (options_parse_argv): New parameter: flags; declare
+	argv parameter const.  New local variable: argv_cp; use
+	char_vector_dup/char_vector_free to create temporary non-const
+	argv.  Include "support.h".
+	* optparse.h (OPTPARSE_FLAG_DONT_SKIP_FIRST): New symbol.
+	(options_parse_argv): Adjust declaration.
+	* support.c (char_vector_dup, char_vector_free): New functions.
+	* support.h: Declare new functions.
+
+2007-11-03  Moritz Schulte  <moritz@g10code.com>
+
+	* poldi-ctx.h: Include config.h.  In case ENABLE_AUTH_METHOD_X509
+	is defined: include dirmngr.h, define dirmngr_ctx_t member in
+	struct poldi_ctx_s.
+	* sexputil.c: New file, taken from GnuPG.
+	* sexp-parse.h: Likewise.
+	* convert.c: Likewise.
+	* Makefile.am (libpoldi_common_a_SOURCES): Added new files.
+
+2007-10-27  Moritz  <moritz@g10code.com>
+
+	* poldi-ctx.h, poldi-ctx-opaque.h: New files.
+	* Makefile.am (libpoldi_common_a_SOURCES): Added: poldi-ctx.h,
+	poldi-ctx-opaque.h.
+
+2007-08-16  Moritz  <moritz@g10code.com>
+
+	* defs.h.in: Cosmetics.
+
+2007-06-29  Moritz  <moritz@g10code.com>
+
+	* Makefile.am (libpoldi_common_a_SOURCES): Adjusted.
+	* card.c, card.h: Removed.
+	* i18n.h, membuf.c, membuf.h, util.h, README: New files.
+	* options.c, options.h: Renamed to optparse.c, optparse.h;
+	adjusted ifndef and include line.
+	* support.c: Include scd.h instead of card.h.
+	(authenticate): Removed function.
+	(wait_for_card): Likewise.
+	(convert_to_hex): New function.
+	* support.h: Added declaration for convert_to_hex, removed
+	declarations for authenticate and wait_for_card. Include scd.h
+	instead of card.h.
+	* usersdb.c: Added some assertions.
+
+2005-12-11  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (authenticate): Use card_auth() instead of
+	card_sign().
+
+	* usersdb.c, usersdb.h: Added documentation.
+
+2005-12-10  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (directory_process): New function.
+	Include <dirent.h>.
+
+	* support.h (directory_process_cb_t): New type.
+	(directory_process): Declare new function.
+
+2005-12-03  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (key_lookup_by_username): Removed function.
+	(key_lookup_by_serialno): New function.
+	(wait_for_card): New parameter: type; pass to card_info.
+
+	* support.h: Include <card.h>.
+	(wait_for_card): New parameter: card_key_t type.
+	(key_lookup_by_username): Removed function.
+	(key_lookup_by_serialno): New function.
+
+	* card.c: Include <card.h>.
+	(key_identifier_codes): New array.
+	(card_info): Adjust API; read-out fingerprint depending on new
+	TYPE parameter.
+	(card_decrypt, card_auth): New functions.
+
+	* card.h (card_key_t): New enumeration list.
+	(card_info): New parameter: card_kye_t type.
+	(card_decrypt, card_auth): Declare new functions.
+
+	* support.c, support.h: Moved usersdb-related code ...
+	* usersdb.c, usersdb.h: ... into these new files.
+	* Makefile.am (libpoldo_common_a_SOURCES): Added new files.
+
+2005-11-19  Moritz Schulte  <moritz@g10code.com>
+
+	* card.c (card_read_key): New parameter: *KEY_NBITS, fill with
+	size of RSA modulus in case it is non-NULL.
+	* card.h (card_read_key): Adjust API.
+
+2005-11-12  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (wait_for_card): New parameter: card_key_t type; pass
+	to card_info().
+	* support.h (wait_for_card): Adjust to new API.
+	Include <card.h>.
+
+	* card.h (card_key_t): New type.
+	(card_read_key): New parameter: card_key_t type.
+	(card_info): Likewise.
+
+	* card.c (key_identifier_codes): New static array.
+	(card_read_key): Adjust to new API; return error in case TYPE
+	contains an unknown type; lookup key code in KEY_IDENTIFIER_CODES
+	instead of hard-coding the code for the signature key.
+	Include <card.h>.
+	
+
+2005-10-31  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c, support.h, card.c, card.h: Added code documentation.
+
+	* support.c (challenge_verify): Renamed parameter KEY to
+	PUBLIC_KEY.
+
+2005-10-29  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (sexp_to_string): Initialize FMT directly, declare
+	const.  Added even more comments.
+	(key_lookup_by_username): New function (formerly: lookup_key from
+	pam_poldi.c).
+	Include <jnlib/logging.h>.
+	(authenticate): New function (formerly: do_auth from pam_poldi.c).
+	(wait_for_card): New function (based on former wait_for_card from
+	pam_poldi.c)
+
+	* support.h (key_lookup_by_username): Declare new function.
+	(authenticate): Declare new function.
+	(wait_for_card): New function.
+
+2005-10-26  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (usersdb_remove_entry): Use assert to make verify to
+	enforce calling convention.
+	(usersdb_remove_entry): New argument: NENTRIES; new local variable
+	NENTRIES_REMOVED; count number of removed entries in
+	NENTRIES_REMOVED, store number in NENTRIES on success.
+	* support.h (usersdb_remove_entry): Adjust declaration.
+
+2005-10-23  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (lookup_own_username): New function.
+	* support.h (lookup_own_username): Declare.
+
+2005-10-16  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (key_filename_construct): New function.
+	Include <jnlib/string.h>.
+	Include <jnlib/xmalloc.h> instead of <../jnlib/xmalloc.h>.
+	* support.h (key_filename_construct): Declare function.
+
+2005-09-26  Moritz Schulte  <moritz@g10code.com>
+
+	Thanks to Alessandro Rubini:
+
+	* card.c: Include <time.h>.
+	(wait_for_card): New parameter: TIMEOUT; new variables T0, T;
+	return 1 in case the specified timeout elapsed without any card
+	being inserted.
+	(card_init): New parameter: TIMEOUT; new variable: RET; pass
+	TIMEOUT to wait_for_card();
+	* card.h (card_sign): Updated card_init API.
+
+2005-07-26  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (username_to_serialno): Renamed function to ...
+	(usersdb_lookup_by_username): ... this; changed callers.
+	(serialno_to_username): Renamed function to ...
+	(usersdb_lookup_by_serialno): ... this; changed callers.
+	(usersdb_translate): Remove const attribute for FOUND argument;
+	only fill FOUND if non-NULL.
+	(usersdb_lookup_by_serialno): Remove const attreibute for USERNAME
+	argument.
+	(usersdb_lookup_by_username): Remove const attreibute for SERIALNO
+	argument.
+	* support.h: Updated API.
+
+	* card.c: Some cosmetic changes.
+
+2005-07-13  Moritz Schulte  <moritz@g10code.com>
+
+	* defs.h.in (POLDI_OLD_CARD_KEY_RETRIVAL_EXPLANATION): New symbol.
+	(POLDI_PIN2_QUERY_MSG, POLDI_PIN3_QUERY_MSG): Change strings.
+
+	* card.c: Include <assert.h>
+	(card_info): New API, return card version information, if
+	requested.
+	* card.h: Update card_info() API.
+
+2004-11-27  Moritz Schulte  <moritz@g10code.com>
+
+	* options.c (options_parse_conf): Do not fail if file does not
+	exist.
+
+	* card.c (wait_for_new_card): Renamed to ...
+	(wait_for_card): ... this; new argument: require_card_switch;
+	adjust function accordingly; adjust callers.
+	(card_init): Rename argument `wait_for_card' to `wait'; new
+	argument: require_card_switch; pass to wait_for_card.
+	* card.h (card_open): Update declaration.
+
+2004-11-13  Moritz Schulte  <moritz@g10code.com>
+
+	* support.c (file_to_string): NUL-terminate string.
+	* card.c (wait_for_new_card): New function, merged from gscutils ...
+	(card_init): ... use it here.
+

@@ -1,3 +1,49 @@
+2008-08-07  Moritz  <moritz@gnu.org>
+
+	* poldi.h: Also include <locale.h>, not only <libintl.h>.
+
+2008-07-14  Moritz  <moritz@gnu.org>
+
+	* Makefile.am (SUBDIRS): Removed pam-test; added poldi.h to
+	EXTRA_DIST.
+
+2008-05-02  Moritz  <moritz@gnu.org>
+
+	* Makefile.am: Build assuan.
+
+	* assuan: New directory, contains a copy of libassuan source.
+
+2008-04-05  Moritz  <moritz@gnu.org>
+
+	Renamed directory "common" to "util".
+	Renamed directory "test" to "pam-test".
+	Removed directory "dirmngr".
+	* Makefile.am: adjusted.
+
+2007-12-13  Moritz Schulte  <moritz@g10code.com>
+
+	* test: New directory.
+	* Makefile.am (SUBDIRS): Added test.
+
+2007-10-28  Moritz  <moritz@g10code.com>
+
+	* Makefile.am (dirmngr): Depending on conditional
+	AUTH_METHOD_X509, add directory dirmngr to SUBDIRS.
+
+2007-10-27  Moritz  <moritz@g10code.com>
+
+	* scd-support: Removed directory.
+	* Makefile.am (SUBDIRS): Likewise.
+
+2007-06-29  Moritz  <moritz@g10code.com>
+
+	* libscd: Directory removed.
+	* scd: New directory.
+	* scd-support: Likewise.
+	* README: New file.
+	* Makefile.am (SUBDIRS): Adjusted to new directory tree.
+	(EXTRA_DIST): README.
+
 2005-10-08  Moritz Schulte  <moritz@g10code.com>
 
 	* Makefile.am: Remove install-pam-module target.

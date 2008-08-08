@@ -1,0 +1,372 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR g10Code GmbH
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: poldi 0.4\n"
+"Report-Msgid-Bugs-To: gnupg-devel@gnupg.org\n"
+"POT-Creation-Date: 2008-08-08 01:50+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/ctrl/poldi-ctrl.c:85
+msgid "Dump certain card information"
+msgstr ""
+
+#: src/ctrl/poldi-ctrl.c:87
+msgid "Print authentication key from card"
+msgstr ""
+
+#: src/ctrl/poldi-ctrl.c:89
+msgid "Print serial number from card"
+msgstr ""
+
+#: src/ctrl/poldi-ctrl.c:93
+msgid "Enable debugging mode"
+msgstr ""
+
+#: src/ctrl/poldi-ctrl.c:269
+#, c-format
+msgid "failed to initialize logging: %s\n"
+msgstr ""
+
+#: src/ctrl/poldi-ctrl.c:277
+#, c-format
+msgid "failed to set logging backend: %s\n"
+msgstr ""
+
+#: src/ctrl/poldi-ctrl.c:316
+#, c-format
+msgid "parsing argument vector failed: %s"
+msgstr ""
+
+#: src/ctrl/poldi-ctrl.c:328
+msgid "more than one command specified (try --help)"
+msgstr ""
+
+#: src/ctrl/poldi-ctrl.c:333
+msgid "no command specified (try --help)"
+msgstr ""
+
+#: src/ctrl/poldi-ctrl.c:343
+#, c-format
+msgid "failed to connect to scdaemon: %s"
+msgstr ""
+
+#: src/ctrl/poldi-ctrl.c:352
+#, c-format
+msgid "failed to retrieve smartcard data: %s"
+msgstr ""
+
+#: src/pam/auth-method-localdb/auth-localdb.c:109
+msgid "Please enter username: "
+msgstr ""
+
+#: src/pam/auth-method-localdb/auth-localdb.c:121
+#, c-format
+msgid "Trying authentication as user `%s'..."
+msgstr ""
+
+#: src/pam/auth-method-localdb/auth-localdb.c:129
+#, c-format
+msgid "Serial number %s is not associated with user %s"
+msgstr ""
+
+#: src/pam/auth-method-localdb/auth-localdb.c:145
+#: src/pam/auth-method-x509/auth-x509.c:553
+#, c-format
+msgid "failed to generate challenge: %s"
+msgstr ""
+
+#: src/pam/auth-method-localdb/auth-localdb.c:157
+#: src/pam/auth-method-x509/auth-x509.c:565
+#, c-format
+msgid "failed to retrieve challenge signature from card: %s"
+msgstr ""
+
+#: src/pam/auth-method-localdb/auth-localdb.c:167
+msgid "failed to verify challenge"
+msgstr ""
+
+#: src/pam/auth-method-localdb/key-lookup.c:63
+#, c-format
+msgid "failed to construct key file path for serial number `%s': %s\n"
+msgstr ""
+
+#: src/pam/auth-method-localdb/key-lookup.c:75
+#, c-format
+msgid "failed to retrieve key from key file `%s': %s\n"
+msgstr ""
+
+#: src/pam/auth-method-localdb/key-lookup.c:84
+#, c-format
+msgid "failed to convert key from `%s' into S-Expression: %s\n"
+msgstr ""
+
+#: src/pam/auth-support/getpin-cb.c:84
+msgid "invalid PIN"
+msgstr ""
+
+#: src/pam/auth-support/getpin-cb.c:86
+msgid "invalid characters in PIN"
+msgstr ""
+
+#: src/pam/auth-support/getpin-cb.c:93
+msgid "PIN too long for buffer!"
+msgstr ""
+
+#: src/pam/auth-support/getpin-cb.c:214
+#, c-format
+msgid "getpin_cb called with flags set in info string `%s'\n"
+msgstr ""
+
+#: src/pam/auth-support/getpin-cb.c:224
+#, c-format
+msgid "frob_info_msg failed for info msg of size of size %u\n"
+msgstr ""
+
+#: src/pam/auth-support/getpin-cb.c:238 src/pam/auth-support/getpin-cb.c:257
+msgid "||Please enter the PIN"
+msgstr ""
+
+#: src/pam/auth-method-x509/dirmngr.c:153
+#, c-format
+msgid "ignored inquiry from dirmngr: `%s'"
+msgstr ""
+
+#: src/pam/auth-method-x509/dirmngr.c:157
+#, c-format
+msgid "failed to send back empty value to dirmngr: %s"
+msgstr ""
+
+#: src/pam/auth-method-x509/dirmngr.c:162
+#, c-format
+msgid "unsupported assuan inquiry `%s'"
+msgstr ""
+
+#: src/pam/auth-method-x509/dirmngr.c:258
+#, c-format
+msgid "failed to create new ksba certificate object: %s"
+msgstr ""
+
+#: src/pam/auth-method-x509/auth-x509.c:103
+msgid "Specify local socket for dirmngr access"
+msgstr ""
+
+#: src/pam/auth-method-x509/auth-x509.c:105
+msgid "Specify X509 domain for this host"
+msgstr ""
+
+#: src/pam/auth-method-x509/auth-x509.c:124
+#: src/pam/auth-method-x509/auth-x509.c:136
+#, c-format
+msgid "failed to duplicate %s (length: %i): %s"
+msgstr ""
+
+#: src/pam/auth-method-x509/auth-x509.c:168
+msgid "libksba did not return a proper S-Exp"
+msgstr ""
+
+#: src/pam/auth-method-x509/auth-x509.c:177
+#, c-format
+msgid "failed to convert KSBA s-expression into s-expression object: %s"
+msgstr ""
+
+#: src/pam/auth-method-x509/auth-x509.c:409
+msgid "failed to extract username from certificate"
+msgstr ""
+
+#: src/pam/auth-method-x509/auth-x509.c:443
+msgid "invalid certificate URL on card"
+msgstr ""
+
+#: src/pam/auth-method-x509/auth-x509.c:490
+msgid "x509 authentication method not properly configured"
+msgstr ""
+
+#: src/pam/auth-method-x509/auth-x509.c:504
+#, c-format
+msgid "public key url is '%s'"
+msgstr ""
+
+#: src/pam/auth-method-x509/auth-x509.c:512
+#, c-format
+msgid "failed to look up certificate `%s': %s"
+msgstr ""
+
+#: src/pam/auth-method-x509/auth-x509.c:578
+msgid "failed to verify challenge signature"
+msgstr ""
+
+#: src/pam/auth-method-x509/auth-x509.c:598
+#, c-format
+msgid "failure: %s"
+msgstr ""
+
+#: src/pam/auth-method-x509/auth-x509.c:600
+msgid "success"
+msgstr ""
+
+#: src/pam/pam_poldi.c:135 src/pam/pam_poldi.c:148 src/pam/pam_poldi.c:162
+#: src/scd/scd.c:124
+#, c-format
+msgid "failed to duplicate %s: %s"
+msgstr ""
+
+#: src/pam/pam_poldi.c:177
+#, c-format
+msgid "unknown authentication method '%s'"
+msgstr ""
+
+#: src/pam/pam_poldi.c:338
+#, c-format
+msgid "failed to parse configuration file: %s"
+msgstr ""
+
+#: src/pam/pam_poldi.c:350
+#, c-format
+msgid "failed to parse PAM argument vector: %s"
+msgstr ""
+
+#: src/pam/pam_poldi.c:379
+msgid "no authentication method specified"
+msgstr ""
+
+#: src/pam/pam_poldi.c:393
+#, c-format
+msgid "using authentication method `%s'"
+msgstr ""
+
+#: src/pam/pam_poldi.c:397
+#, c-format
+msgid "using system scdaemon; socket is '%s'"
+msgstr ""
+
+#: src/pam/pam_poldi.c:409
+#, c-format
+msgid "failed to initialize authentication method %i: %s"
+msgstr ""
+
+#: src/pam/pam_poldi.c:423
+#, c-format
+msgid ""
+"failed to initialize parsing of configuration file for authentication method "
+"%s: %s"
+msgstr ""
+
+#: src/pam/pam_poldi.c:444
+#, c-format
+msgid "failed to parse configuration for authentication method %i: %s"
+msgstr ""
+
+#: src/pam/pam_poldi.c:463
+msgid "failed to retrieve PAM conversation structure"
+msgstr ""
+
+#: src/pam/pam_poldi.c:481
+#, c-format
+msgid "failed to retrieve username from PAM: %s"
+msgstr ""
+
+#: src/pam/pam_poldi.c:502
+#, c-format
+msgid "Waiting for card for user `%s'..."
+msgstr ""
+
+#: src/pam/pam_poldi.c:504
+msgid "Waiting for card..."
+msgstr ""
+
+#: src/pam/pam_poldi.c:510
+#, c-format
+msgid "failed to wait for card insertion: %s"
+msgstr ""
+
+#: src/pam/pam_poldi.c:523
+#, c-format
+msgid "connected to card; serial number is: %s"
+msgstr ""
+
+#: src/pam/pam_poldi.c:561
+#, c-format
+msgid "authentication failed: %s"
+msgstr ""
+
+#: src/pam/pam_poldi.c:563
+msgid "authentication succeeded"
+msgstr ""
+
+#: src/scd/scd.c:133
+msgid "malformed GPG_AGENT_INFO environment variable"
+msgstr ""
+
+#: src/scd/scd.c:146
+#, c-format
+msgid "agent protocol version %d is not supported"
+msgstr ""
+
+#: src/scd/scd.c:197 src/scd/scd.c:925
+#, c-format
+msgid "warning: can't store getinfo data: %s"
+msgstr ""
+
+#: src/scd/scd.c:294
+#, c-format
+msgid "connected to system scdaemon through socket '%s'"
+msgstr ""
+
+#: src/scd/scd.c:314
+#, c-format
+msgid "got scdaemon socket name from gpg-agent, connected to socket '%s'"
+msgstr ""
+
+#: src/scd/scd.c:335
+msgid "no running scdaemon - starting one"
+msgstr ""
+
+#: src/scd/scd.c:341
+#, c-format
+msgid "error flushing pending output: %s"
+msgstr ""
+
+#: src/scd/scd.c:374
+#, c-format
+msgid "spawned a new scdaemon (path: '%s')"
+msgstr ""
+
+#: src/scd/scd.c:381
+#, c-format
+msgid "could not connect to any scdaemon: %s"
+msgstr ""
+
+#: src/scd/scd.c:404
+msgid "connection to scdaemon established"
+msgstr ""
+
+#: src/util/simpleparse.c:137
+#, c-format
+msgid "Please report bugs to <%s>.\n"
+msgstr ""
+
+#: src/util/simpleparse.c:296
+#, c-format
+msgid "invalid option '%s'"
+msgstr ""
+
+#: src/util/simpleparse.c:309 src/util/simpleparse.c:323
+#: src/util/simpleparse.c:340 src/util/simpleparse.c:366
+#, c-format
+msgid "parse-callback returned error '%s' for argument '%s'"
+msgstr ""
+
+#: src/util/simpleparse.c:353
+#, c-format
+msgid "missing required argument for '%s'"
+msgstr ""

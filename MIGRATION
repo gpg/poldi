@@ -1,0 +1,28 @@
+Migration from Poldi 0.3
+========================
+
+Several things have changed with the release of Poldi 0.4.  This
+document explains how to upgrade smoothly from Poldi 0.3 to Poldi 0.4.
+
+* Authentication Methods
+
+  Poldi 0.3 only supported one mechanism to authenticate a user: a
+  challenge-response protocol in combination with a smartcard<-->user
+  mapping stored in a plain text file. Now, Poldi supports two
+  so-called "authentication methods" with the Poldi 0.3 way of
+  authenticating being one such method, which is named "localdb".
+
+  The other supported authentication method named "x509" implements
+  authentication against a X509 PKI with the help of Dirmngr.
+
+  There is no default authentication method, thus if you want to use
+  the new Poldi just like Poldi 0.3, you need to specify "auth-method
+  localdb" in the configuration file poldi.conf.
+
+* Configuration
+
+  With Poldi 0.3 it was possible to "register" smartcards and control
+  the mapping between users and smartcards with the poldi-ctrl
+  utility. As of Poldi 0.4 poldi-ctrl has been stripped in this
+  respect; it does not contain this functionality anymore. Instead the
+  system administrator has to edit the appropriate files manually.

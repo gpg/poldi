@@ -1,0 +1,136 @@
+2008-08-08  Moritz  <moritz@gnu.org>
+
+	* scd.c (scd_serialno): Removed debugging message.
+
+2008-08-07  Moritz  <moritz@gnu.org>
+
+	* scd.c (scd_reset): Removed
+	(restart_scd): New static function.
+	(scd_disconnect): Call restart_scd -- it seems, GnuPG does also
+	send a RESTART command after card access.
+	* scd.h: Adjust declaration.
+	Include "util/simplelog.h", instead of <util/simplelog.h>.
+	Do not include "assuan.h".
+
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* scd.c: Mark strings for i18n.
+
+2008-08-03  Moritz  <moritz@gnu.org>
+
+	* scd.c (scd_pksign): Remove getpin parameter from scd_pksign.
+	(inq_needpin): Return error code in case no pincb has been
+	installed in ctx.
+	(agent_connect_from_infostr): Don't forget to do error checking
+	after call to xtrystrdup.
+	(scd_connect): Disable code for system daemon for now.
+
+	* scd.c (scd_set_pincb): New function.
+
+	* scd.h (scd_pincb_t): New type; declare scd_set_pincb.
+	Remove getpin argument from scd_pksign.
+
+	* scd.c: Do not include i18n.h.
+	(scd_disconnect): Declare void.
+	Change return type of most functions from int to gpg_error_t.
+
+2008-07-20  Moritz  <moritz@gnu.org>
+
+	* scd.c: Include simplelog.h and poldi.h.
+	(struct scd_context): New member: loghandle.
+	Use xtrystrdup instead of strdup.
+	Use xtrymalloc instead of malloc.
+	Use xfree instead of free.
+	Use log_msg_* functions.
+	Pass loghandle to several functions.
+	(struct inq_needpin_s): Replace assuan_ctx_t ctx member with
+	scd_context_t ctx. Adjusted callers.
+
+	* scd.h: Include simplelog.h and poldi.h; adjusted for new
+	scd_connect API.
+
+	* scd.c (get_serialno_cb): Do not call out_of_core(); just return
+	errno on oom.
+
+2008-06-14  Moritz  <moritz@gnu.org>
+
+	* scd.c (agent_connect_from_infostr): Use xtrystrdup/xfree instead
+	strdup/free.
+
+2008-05-24  Moritz  <moritz@gnu.org>
+
+	* scd.c (scd_connect): Slightly rewritten; now allows for
+	connecting to specified scdaemon socket directly.
+	* scd.h (scd_connect): New parameter: scdaemon_socket.
+
+2008-05-01  Moritz  <moritz@gnu.org>
+
+	* Makefile.am: Build a shared and a nonshared version.
+
+2008-04-05  Moritz  <moritz@gnu.org>
+
+	* scd.c: Include "util/support.h".
+	(scd_pksign): Use bin2hex.
+	(scd_pksign): Removed unused code.
+
+2008-04-05  Moritz  <moritz@gnu.org>
+
+	* scd.c, scd.h: Minor changes/cleanup.
+
+	* poldi-scd.c, poldi-scd.h: Removed.
+
+2007-12-15  Moritz Schulte  <moritz@g10code.com>
+
+	* scd.c (scd_release_cardinfo): Don't forget to release
+	PUBKEY_URL.
+	(inq_needpin): Use xtrymalloc_secure instead of gcry_malloc_secure
+	directly (it's more consistent this way, I think).
+	Removed disabled getattr related code.
+	(agent_connect_from_infostr): Use strdup/free instead of
+	xstrdup/xfree.
+
+2007-11-10  Moritz  <moritz@g10code.com>
+
+	* scd.c (learn_status_cb): Handle PUBKEY_URL.
+
+2007-10-27  Moritz  <moritz@g10code.com>
+
+	* poldi-scd.c, poldi-scd.h: New files.  Layer on top of scd.c.
+	* Makefile.am (libscd_a_SOURCES): Added poldi-scd.c, poldi-scd.h.
+
+2007-08-16  Moritz  <moritz@g10code.com>
+
+	* scd.c (scd_serialno_internal): New function, it's basically the
+	old scd_serialno() with a new parameter.
+	(scd_serialno): Ripped; simply call scd_serialno_internal().
+	(get_scd_socket_from_agent): Call scd_serialno_internal in order
+	to select the OpenPGP app on the card.
+	Comments.
+	(scd_reset): Unused variable.
+	(scd_readkey): Likewise; initialize *KEY to NULL.
+	* scd.h: Comments.
+
+2007-08-16  Moritz  <moritz@g10code.com>
+
+	* scd.c (agent_connect_from_infostr): New function.
+	(agent_scd_getinfo_socket_name): New function.
+	(scd_connect): Use above functions for connecting to the agent and
+	receiving scdaemons socket from the agent instead of connecting to
+	the agent directly.
+	(scd_serialno): Allow for R_SERIALNO being NULL so that the
+	serialno is NOT returned to the caller.
+
+2007-08-16  Moritz  <moritz@g10code.com>
+
+	* scd.c (scd_connect): Send a RESTART instead of a RESET command
+	to scdaemon.
+
+
+2007-08-10  Moritz  <moritz@euler>
+
+	* scd.c (scd_reset): New function.
+	* scd.h: Declare it.
+
+2007-06-29  Moritz  <moritz@g10code.com>
+
+	* README, scd.c, scd.h: New files.

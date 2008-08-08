@@ -1,4 +1,4 @@
-# Copyright (C) 2004, 2005 g10 Code GmbH
+# Copyright (C) 2004, 2005, 2007, 2008 g10 Code GmbH
 #
 # This file is part of Poldi.
 #
@@ -17,7 +17,11 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA
 
-SUBDIRS = src doc conf
+ACLOCAL_AMFLAGS = -I m4
+
+SUBDIRS = src doc conf am m4 tests tools po
 
 install-conf-skeleton:
 	$(MAKE) -C conf install-conf-skeleton
+
+EXTRA_DIST = config.rpath MIGRATION EXPERIMENTAL

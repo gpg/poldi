@@ -1,0 +1,78 @@
+2008-08-07  Moritz  <moritz@gnu.org>
+
+	* auth-x509.c: Some minor cosmetic changes.
+	(extract_username_from_cert): New parameter: poldi_ctx_t ctx....
+	(auth_method_x509_auth_do): ... change caller.
+	(extract_username_from_cert): Added some logging.
+
+	* dirmngr.c (struct lookup_parm_s): New member: dirmngr_ctx_t ctx.
+
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* auth-x509.c: Mark strings for i18n.
+	(auth_method_x509_auth_do): Adjust to new scd_pksign() interface;
+	removed cb_data variable.
+	Do not include "getpin-cb.h".
+
+2008-07-30  Moritz  <moritz@gnu.org>
+
+	* dirmngr.c (dirmngr_ctx_init): New static variable...
+	(dirmngr_connect): ... use it here.
+	Added some assert() checks.
+	Use x* memory functions, not malloc/free directly.
+	Cosmetic changes (added comments, etc.).
+
+2008-07-20  Moritz  <moritz@gnu.org>
+
+	* dirmngr.c: Removed two unused struct definitions.
+
+2008-07-20  Moritz  <moritz@gnu.org>
+
+	* dirmngr.c: Include poldi.h and simplelog.h.
+	(struct dirmngr_ctx_s): New member: log_handle.
+	(dirmngr_connect): Tages new parameter: log_handle; insteall
+	log_handle in new context.
+	(struct inq_cert_parm_s): Replaced assuan_context_t ctx member
+	with dirmngr_ctx_t ctx.
+
+	* dirmngr.h: Adjusted for new dirmngr_connect API; include
+	simplelog.h.
+
+2008-07-14  Moritz  <moritz@gnu.org>
+
+	* auth-x509.c: Include simpleparse.h, simplelog.h, poldi.h.
+	Use x* memory allocator.
+	Use simpleparse subsystem, not ARGPARSE, adjust parsing cb, etc.
+	Use simplelog subsystem.
+
+2008-05-25  Moritz  <moritz@gnu.org>
+
+	Minor cleanups.
+
+2008-05-01  Moritz  <moritz@gnu.org>
+
+	* Makefile.am (libpoldi_auth_x509_a_CFLAGS): Use -fPIC.
+
+2008-04-21  Moritz  <moritz@gnu.org>
+
+	* auth-x509.c (auth_method_x509_auth_do): New local variable:
+	cb_data, fill and pass to scd_pksign instead of conv object
+	directly.
+
+2008-04-13  Moritz  <moritz@gnu.org>
+
+	* auth-x509.c (auth_method_x509_auth_do): Initialize DIRMNGR to
+	NULL.
+	(auth_method_x509_parsecb): Added missing "break".
+	(email_address_match): Fix logic.
+	(auth_method_x509_auth_do): on success, set
+	(auth_method_x509_auth_do): Pass ctx->conv to scd_pksign, not ctx.
+
+	*username_authenticated, only free card_username in case of error.
+	* dirmngr.c (dirmngr_connect): Rename parameter PATH to SOCK.
+	* dirmngr.h: Likewise.
+	* dirmngr.c (dirmngr_connect_socket): Removed dummy function.
+	* dirmngr.h: Likewise.
+	* dirmngr.c (dirmngr_connect): Use assuan_socket_connect to
+	connect to dirmngr, not connect_pipe().
+	(connect_pipe): Removed function.

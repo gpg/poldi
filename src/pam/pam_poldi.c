@@ -1,24 +1,23 @@
 /* pam_poldi.c - PAM authentication via OpenPGP smartcards.
-   Copyright (C) 2004, 2005 g10 Code GmbH
+   Copyright (C) 2004, 2005, 2007, 2008 g10 Code GmbH
  
    This file is part of Poldi.
-  
+ 
    Poldi is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
+   the Free Software Foundation; either version 3 of the License, or
    (at your option) any later version.
-  
+ 
    Poldi is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
-  
-   You should have received a copy of the GNU Lesser General Public
-   License along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-   02111-1307, USA.  */
+ 
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, see
+   <http://www.gnu.org/licenses/>.  */
 
-#include <config.h>
+#include <poldi.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -26,341 +25,253 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <pwd.h>
+#include <assert.h>
 
 #define PAM_SM_AUTH
 #include <security/pam_modules.h>
 
-#include <gcrypt.h>
+#include "util/simplelog.h"
+#include "util/simpleparse.h"
+#include "util/defs.h"
+#include "scd/scd.h"
 
-#include <jnlib/xmalloc.h>
-#include <jnlib/logging.h>
-#include <common/support.h>
-#include <common/options.h>
-#include <common/card.h>
-#include <common/defs.h>
-#include <common/usersdb.h>
-#include <libscd/scd.h>
-
-
-
-/* Macros.  */
+#include "auth-support/wait-for-card.h"
+#include "auth-support/pam-util.h"
+#include "auth-support/conv.h"
+#include "auth-support/getpin-cb.h"
+#include "auth-methods.h"
 
 
 
-/* Option structure layout.  */
-struct pam_poldi_opt
+/*** Auth methods declarations. ***/
+
+/* Declare authentication methods.  */
+extern struct auth_method_s auth_method_localdb;
+extern struct auth_method_s auth_method_x509;
+
+/* List element type for AUTH_METHODS list below.  */
+struct auth_method
 {
-  unsigned int debug; /* Enable debugging.  */
-  int debug_sc;
-  int verbose;
-  const char *ctapi_driver; /* Library to access the ctAPI. */
-  const char *pcsc_driver;  /* Library to access the PC/SC system. */
-  const char *reader_port;  /* NULL or reder port to use. */
-  int disable_opensc;  /* Disable the use of the OpenSC framework. */
-  int disable_ccid;    /* Disable the use of the internal CCID driver. */
-  int debug_ccid_driver;	/* Debug the internal CCID driver.  */
-  int require_card_switch;
-  const char *logfile;
-  unsigned int wait_timeout;
+  const char *name;
+  auth_method_t method;
 };
 
-/* Option structure definition.  */
-struct pam_poldi_opt pam_poldi_opt =
+/* List associating authenting method definitions with their
+   names.  */
+static struct auth_method auth_methods[] =
   {
-    0,
-    0,
-    0,
-    NULL,
-    NULL,
-    NULL,
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    0
+#ifdef ENABLE_AUTH_METHOD_LOCALDB
+    { "localdb", &auth_method_localdb },
+#endif
+#ifdef ENABLE_AUTH_METHOD_X509
+    { "x509", &auth_method_x509 },
+#endif
+    { NULL }
   };
 
-/* Option IDs.  */
-enum arg_opt_ids
+
+
+/*** Option parsing. ***/
+
+/* IDs for supported options. */
+enum opt_ids
   {
-    arg_debug = 500,
-    arg_debug_sc,
-    arg_verbose,
-    arg_ctapi_driver,
-    arg_pcsc_driver,
-    arg_reader_port,
-    arg_disable_opensc,
-    arg_disable_ccid,
-    arg_debug_ccid_driver,
-    arg_require_card_switch,
-    arg_logfile,
-    arg_wait_timeout
+    opt_none,
+    opt_logfile,
+    opt_auth_method,
+    opt_debug,
+    opt_scdaemon_socket,
+    opt_scdaemon_program
   };
 
-/* Option specifications. */
-static ARGPARSE_OPTS arg_opts[] =
+/* Full specifications for options. */
+static simpleparse_opt_spec_t opt_specs[] =
   {
-    { arg_debug,
-      "debug", 256, "Debug PAM-Poldi" },
-    { arg_debug_sc,
-      "debug-sc", 256, "Debug sc FIXME" },
-    { arg_ctapi_driver,
-      "ctapi-driver", 2, "|NAME|use NAME as ct-API driver" },
-    { arg_pcsc_driver,
-      "pcsc-driver", 2,  "|NAME|use NAME as PC/SC driver" },
-    { arg_reader_port,
-      "reader-port", 2, "|N|connect to reader at port N" },
-#ifdef HAVE_LIBUSB
-    { arg_disable_ccid,
-      "disable-ccid", 0, "do not use the internal CCID driver" },
-    { arg_debug_ccid_driver,
-      "debug-ccid-driver", 0, "debug the  internal CCID driver" },
-#endif
-#ifdef HAVE_OPENSC
-    { arg_disable_opensc,
-      "disable-opensc", 0, "do not use the OpenSC layer" },
-#endif
-    { arg_require_card_switch,
-      "require-card-switch", 0, "Require re-insertion of card" },
-    { arg_logfile,
-      "log-file", 2, "Specify file to use for logging" },
-    { arg_wait_timeout,
-      "wait-timeout", 1, "|SEC|Specify timeout for waiting" },
+    { opt_logfile, "log-file",
+      0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify file to user for logging" },
+    { opt_auth_method, "auth-method",
+      0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify authentication method" },
+    { opt_debug, "debug",
+      0, SIMPLEPARSE_ARG_NONE,     0, "Enable debugging mode" },
+    { opt_scdaemon_socket, "scdaemon-socket",
+      0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify socket of system scdaemon" },
+    { opt_scdaemon_program, "scdaemon-program",
+      0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify scdaemon executable to use" },
     { 0 }
   };
 
-/* Option parser callback.  */
+/* Lookup an auth_method struct by it's NAME, return it's index in
+   AUTH_METHODS list or -1 if lookup failed.  */
+static int
+auth_method_lookup (const char *name)
+{
+  int i;
+
+  for (i = 0; auth_methods[i].name; i++)
+    if (strcmp (auth_methods[i].name, name) == 0)
+      break;
+
+  if (auth_methods[i].name)
+    return i;
+  else
+    return -1;
+}
+
+/* Callback for authentication method independent option parsing. */
 static gpg_error_t
-pam_poldi_options_cb (ARGPARSE_ARGS *parg, void *opaque)
+pam_poldi_options_cb (void *cookie, simpleparse_opt_spec_t spec, const char *arg)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  poldi_ctx_t ctx = cookie;
 
-  switch (parg->r_opt)
+  if (!strcmp (spec.long_opt, "log-file"))
     {
-    case arg_debug:
-      pam_poldi_opt.debug = 1;
-      break;
+      /* LOG-FILE.  */
+      ctx->logfile = xtrystrdup (arg);
+      if (!ctx->logfile)
+	{
+	  err = gpg_error_from_errno (errno);
+	  log_msg_error (ctx->loghandle,
+			 _("failed to duplicate %s: %s"),
+			 "logfile name", gpg_strerror (err));
+	}
+    }
+  else if (!strcmp (spec.long_opt, "scdaemon-socket"))
+    {
+      /* SCDAEMON-SOCKET.  */
 
-    case arg_debug_sc:
-      pam_poldi_opt.debug_sc = 1;
-      break;
+      ctx->scdaemon_socket = xtrystrdup (arg);
+      if (!ctx->scdaemon_socket)
+	{
+	  err = gpg_error_from_errno (errno);
+	  log_msg_error (ctx->loghandle,
+			 _("failed to duplicate %s: %s"),
+			 "scdaemon socket name",
+			 gpg_strerror (err));
+	}
+    }
+  else if (!strcmp (spec.long_opt, "scdaemon-program"))
+    {
+      /* SCDAEMON-PROGRAM.  */
 
-    case arg_ctapi_driver:
-      pam_poldi_opt.ctapi_driver = xstrdup (parg->r.ret_str);
-      break;
+      ctx->scdaemon_program = strdup (arg);
+      if (!ctx->scdaemon_program)
+	{
+	  err = gpg_error_from_errno (errno);
+	  log_msg_error (ctx->loghandle,
+			 _("failed to duplicate %s: %s"),
+			 "scdaemon program name",
+			 gpg_strerror (err));
+	}
+    }
+  else if (!strcmp (spec.long_opt, "auth-method"))
+    {
+      /* AUTH-METHOD.  */
 
-    case arg_pcsc_driver:
-      pam_poldi_opt.pcsc_driver = xstrdup (parg->r.ret_str);
-      break;
-
-    case arg_reader_port:
-      pam_poldi_opt.reader_port = xstrdup (parg->r.ret_str);
-      break;
-
-    case arg_disable_ccid:
-      pam_poldi_opt.disable_ccid = 1;
-      break;
-
-    case arg_disable_opensc:
-      pam_poldi_opt.disable_opensc = 1;
-      break;
-
-    case arg_debug_ccid_driver:
-      pam_poldi_opt.debug_ccid_driver = 1;
-      break;
-
-    case arg_require_card_switch:
-      pam_poldi_opt.require_card_switch = 1;
-      break;
-
-    case arg_logfile:
-      pam_poldi_opt.logfile = xstrdup (parg->r.ret_str);
-      break;
-
-    case arg_wait_timeout:
-      pam_poldi_opt.wait_timeout = parg->r.ret_int;
-      break;
-
-    default:
-      err = GPG_ERR_INTERNAL;	/* FIXME?  */
-      break;
+      int method = auth_method_lookup (arg);
+      if (method >= 0)
+	ctx->auth_method = method;
+      else
+	{
+	  log_msg_error (ctx->loghandle,
+			 _("unknown authentication method '%s'"),
+			 arg);
+	  err = GPG_ERR_INV_VALUE;
+	}
+    }
+  else if (!strcmp (spec.long_opt, "debug"))
+    {
+      /* DEBUG.  */
+      ctx->debug = 1;
+      log_set_min_level (ctx->loghandle, LOG_LEVEL_DEBUG);
     }
 
   return gpg_error (err);
 }
 
-
-
-/*
- * PAM user interaction through PAM conversation functions.
- */
-
-/* We need this wrapper type, since PAM's CONV function is declared
-   const, but Poldi's conversation callback interface includes a
-   non-const "void *opaque" argument.  */
-typedef struct conv_opaque
+/* This callback is used for simpleparse. */
+static const char *
+i18n_cb (void *cookie, const char *msg)
 {
-  const struct pam_conv *conv;
-} conv_opaque_t;
-
-/* This function queries the PAM user for input through the
-   conversation function CONV; TEXT will be displayed as prompt, the
-   user's response will be stored in *RESPONSE.  Returns proper error
-   code.  */
-static gpg_error_t
-ask_user (int secret,
-	  const struct pam_conv *conv, const char *text, char **response)
-{
-  struct pam_message messages[1] = { { 0, text } };
-  const struct pam_message *pmessages[1] = { &messages[0] };
-  struct pam_response *responses = NULL;
-  char *response_new;
-  gpg_error_t err;
-  int ret;
-
-  if (secret)
-    messages[0].msg_style = PAM_PROMPT_ECHO_OFF;
-  else
-    messages[0].msg_style = PAM_PROMPT_ECHO_ON;
-  
-  response_new = NULL;
-
-  ret = (*conv->conv) (sizeof (messages) / (sizeof (*messages)), pmessages,
-		       &responses, conv->appdata_ptr);
-  if (ret != PAM_SUCCESS)
-    {
-      err = gpg_error (GPG_ERR_INTERNAL);
-      goto out;
-    }
-
-  if (response)
-    {
-      response_new = strdup (responses[0].resp);
-      if (! response_new)
-	{
-	  err = gpg_error_from_errno (errno);
-	  goto out;
-	}
-    }
-
-  err = 0;
-  if (response)
-    *response = response_new;
-
- out:
-
-  return err;
+  return _(msg);
 }
 
-/* This function queries the PAM user for input through the
-   conversation function CONV; TEXT will be displayed as prompt, the
-   user's response will be stored in *RESPONSE.  Returns proper error
-   code.  */
+
+
+static struct poldi_ctx_s poldi_ctx_NULL; /* For initialization
+					     purpose. */
+
+/* Create new, empty Poldi context.  Return proper error code.   */
 static gpg_error_t
-tell_user (const struct pam_conv *conv, const char *fmt, ...)
+create_context (poldi_ctx_t *context, pam_handle_t *pam_handle)
 {
-  struct pam_message messages[1] = { { PAM_TEXT_INFO, NULL } };
-  const struct pam_message *pmessages[1] = { &messages[0] };
-  struct pam_response *responses = NULL;
   gpg_error_t err;
-  char *string;
-  va_list ap;
-  int ret;
+  poldi_ctx_t ctx;
 
-  string = NULL;
+  err = 0;
 
-  va_start (ap, fmt);
-  ret = vasprintf (&string, fmt, ap);
-  if (ret < 0)
+  /* Allocate. */
+  ctx = xtrymalloc (sizeof (*ctx));
+  if (!ctx)
     {
       err = gpg_error_from_errno (errno);
       goto out;
     }
-  va_end (ap);
 
-  messages[0].msg = string;
-  
-  ret = (*conv->conv) (sizeof (messages) / (sizeof (*messages)), pmessages,
-		       &responses, conv->appdata_ptr);
-  if (ret != PAM_SUCCESS)
-    {
-      err = gpg_error (GPG_ERR_INTERNAL);
-      goto out;
-    }
+  /* Initialize. */
 
-  err = 0;
+  *ctx = poldi_ctx_NULL;
+
+  ctx->auth_method = -1;
+  ctx->cardinfo = scd_cardinfo_null;
+  ctx->pam_handle = pam_handle;
+
+  err = log_create (&ctx->loghandle);
+  if (err)
+    goto out;
+
+  err = simpleparse_create (&ctx->parsehandle);
+  if (err)
+    goto out;
+
+  simpleparse_set_loghandle (ctx->parsehandle, ctx->loghandle);
+  simpleparse_set_parse_cb (ctx->parsehandle, pam_poldi_options_cb, ctx);
+  simpleparse_set_specs (ctx->parsehandle, opt_specs);
+  simpleparse_set_i18n_cb (ctx->parsehandle, i18n_cb, NULL);
+
+  *context = ctx;
 
  out:
 
-  free (string);
-
-  return err;
-}
-
-static gpg_error_t
-pam_conversation (conversation_type_t type, void *opaque,
-		  const char *info, char **response)
-{
-  conv_opaque_t *conv_opaque = opaque;
-  gpg_error_t err;
-
-  switch (type)
+  if (err)
     {
-    case CONVERSATION_TELL:
-      err = tell_user (conv_opaque->conv, info, response);
-      break;
-
-    case CONVERSATION_ASK_SECRET:
-      err = ask_user (1, conv_opaque->conv, info, response);
-      break;
-
-    default:
-      /* This CANNOT happen.  */
-      abort ();
+      if (ctx)
+	{
+	  simpleparse_destroy (ctx->parsehandle);
+	  log_destroy (ctx->loghandle);
+	  xfree (ctx);
+	}
     }
 
   return err;
 }
 
-
-
-/*
- * Helper functions.
- */
-
-/* This function parses the PAM argument vector ARGV of size ARGV */
-static gpg_error_t
-parse_argv (int argc, const char **argv)
+/* Deallocates resources associated with context CTX. */
+static void
+destroy_context (poldi_ctx_t ctx)
 {
-  gpg_error_t err;
-  unsigned int i;
-
-  err = 0;
-  for (i = 0; i < argc; i++)
+  if (ctx)
     {
-      if (! strcmp (argv[i], "debug"))
-	{
-	  /* Handle "debug" option.  */
-	  pam_poldi_opt.debug = ~0;
-	  pam_poldi_opt.debug_sc = 1;
-	  pam_poldi_opt.verbose = 1;
-	  pam_poldi_opt.debug_ccid_driver = 1;
-	}
-      else if (! strncmp (argv[i], "timeout=", 8))
-	/* Handle "timeout=" option.  */
-	pam_poldi_opt.wait_timeout = atoi (argv[i] + 8);
-      else
-	{
-	  log_error ("Error: Unknown PAM argument: %s", argv[i]);
-	  err = gpg_error (GPG_ERR_UNKNOWN_NAME);
-	}
-
-      if (err)
-	break;
+      xfree (ctx->logfile);
+      simpleparse_destroy (ctx->parsehandle);
+      log_destroy (ctx->loghandle);
+      xfree (ctx->scdaemon_socket);
+      xfree (ctx->scdaemon_program);
+      scd_disconnect (ctx->scd);
+      scd_release_cardinfo (ctx->cardinfo);
+      /* FIXME: not very consistent: conv is (de-)allocated by caller. -mo */
+      xfree (ctx);
     }
-
-  return err;
 }
 
 
@@ -376,208 +287,301 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 		     int flags, int argc, const char **argv)
 {
   const void *conv_void;
-  conv_opaque_t conv_opaque;
-  const struct pam_conv *conv;
-  gcry_sexp_t key;
-  gpg_error_t err;
-  const void *username_void;
-  const char *username;
-  char *serialno;
-  char *account;
-  int slot;
+  gpg_error_t err; 
+  poldi_ctx_t ctx;
+  conv_t conv;
+  scd_context_t scd_ctx;
   int ret;
+  const char *pam_username;
+  struct auth_method_parse_cookie method_parse_cookie = { NULL, NULL };
+  simpleparse_handle_t method_parse;
+  struct getpin_cb_data getpin_cb_data;
 
-  username = NULL;
-  serialno = NULL;
-  account = NULL;
-  slot = -1;
-  key = NULL;
+  pam_username = NULL;
+  scd_ctx = NULL;
+  conv = NULL;
+  ctx = NULL;
+  method_parse = NULL;
+  err = 0;
 
-  /* Parse options.  */
-  err = options_parse_conf  (pam_poldi_options_cb, NULL,
-			     arg_opts, POLDI_CONF_FILE);
-  if (err)
-    {
-      log_error ("Error: failed to parse configuration file: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
+  /*** Basic initialization. ***/
 
-  /* Parse argument vector provided by PAM.  */
-  err = parse_argv (argc, argv);
-  if (err)
-    {
-      log_error ("Error: failed to parse PAM argument vector: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
+  bindtextdomain (PACKAGE, LOCALEDIR);
 
-  /* Initialize logging: in case `logfile' has been set in the
-     configuration file, initialize jnlib-logging the traditional
-     file, loggin to the file (or socket special file) specified in
-     the configuration file; in case `logfile' has NOT been set in the
-     configuration file, log through Syslog.  */
+  /* Initialize Libgcrypt.  Disable secure memory for now; because of
+     the implicit priviledge dropping, having secure memory enabled
+     causes the following error:
 
-  if (pam_poldi_opt.logfile)
-    {
-      log_set_file (pam_poldi_opt.logfile);
-      if (! strcmp (pam_poldi_opt.logfile, "-"))
-	/* We need to disable bufferring on stderr, since it might
-	   have been enabled by log_set_file().  Buffering on stderr
-	   will complicate PAM interaction, since e.g. libpam-misc's
-	   misc_conv() function does expect stderr to be
-	   unbuffered.  */
-	setvbuf (stderr, NULL, _IONBF, 0);
-    }
-  else
-    log_set_syslog ();
+     su: Authentication service cannot retrieve authentication
+     info. */
+  gcry_control (GCRYCTL_DISABLE_SECMEM);
 
-  log_set_prefix ("[Poldi] ",
-		  JNLIB_LOG_WITH_PREFIX | JNLIB_LOG_WITH_TIME | JNLIB_LOG_WITH_PID);
+  /*** Setup main context.  ***/
 
-  /* Initialize libscd.  */
-  scd_init (pam_poldi_opt.debug,
-	    pam_poldi_opt.debug_sc,
-	    pam_poldi_opt.verbose,
-	    pam_poldi_opt.ctapi_driver,
-	    pam_poldi_opt.reader_port,
-	    pam_poldi_opt.pcsc_driver,
-	    pam_poldi_opt.disable_opensc,
-	    pam_poldi_opt.disable_ccid,
-	    pam_poldi_opt.debug_ccid_driver);
-
-  /*
-   * Retrieve information from PAM.
-   */
-
-  /* Ask PAM for username.  */
-  ret = pam_get_item (pam_handle, PAM_USER, &username_void);
-  if (ret != PAM_SUCCESS)
-    {
-      err = gpg_error (GPG_ERR_INTERNAL);
-      goto out;
-    }
-  username = username_void;
-
-  /* Ask PAM for conv structure.  */
-  ret = pam_get_item (pam_handle, PAM_CONV, &conv_void);
-  if (ret != PAM_SUCCESS)
-    {
-      log_error ("Failed to retrieve conversation structure");
-      err = GPG_ERR_INTERNAL;
-      goto out;
-    }
-  conv = conv_void;
-  conv_opaque.conv = conv;
-
-  /* Open card slot.  */
-  err = card_open (NULL, &slot);
+  err = create_context (&ctx, pam_handle);
   if (err)
     goto out;
 
-  /*
-   * Process authentication request.
-   */
+  /* Setup logging prefix.  */
+  log_set_flags (ctx->loghandle,
+		 LOG_FLAG_WITH_PREFIX | LOG_FLAG_WITH_TIME | LOG_FLAG_WITH_PID);
+  log_set_prefix (ctx->loghandle, "Poldi");
+  log_set_backend_syslog (ctx->loghandle);
 
-  /* Wait for card.  */
-  err = wait_for_card (slot, pam_poldi_opt.require_card_switch,
-		       pam_poldi_opt.wait_timeout,
-		       pam_conversation, &conv_opaque, &serialno,
-		       NULL, CARD_KEY_NONE, NULL);
+  /*** Parse auth-method independent options.  ***/
+
+  /* ... from configuration file:  */
+  err = simpleparse_parse_file (ctx->parsehandle, 0, POLDI_CONF_FILE);
   if (err)
-    goto out;
-
-  if (! username)
     {
-      /* We didn't receive a username from PAM, therefore we need to
-	 figure it out somehow...  */
+      log_msg_error (ctx->loghandle,
+		     _("failed to parse configuration file: %s"),
+		     gpg_strerror (err));
+      goto out;
+    }
 
-      err = usersdb_lookup_by_serialno (serialno, &account);
-      if (gcry_err_code (err) == GPG_ERR_AMBIGUOUS_NAME)
-	err = ask_user (0, conv, "Need to figure out username: ", &account);
-
+  /* ... and from argument vector provided by PAM: */
+  if (argc)
+    {
+      err = simpleparse_parse (ctx->parsehandle, 0, argc, argv, NULL);
       if (err)
-	goto out;
-
-      username = account;
-    }
-
-  /* FIXME: quiet?  */
-  tell_user (conv, "Trying authentication as user `%s'...", username);
-
-  /* Check if the given account is associated with the serial
-     number.  */
-  err = usersdb_check (serialno, username);
-  if (err)
-    {
-      tell_user (conv, "Serial no %s is not associated with %s\n",
-		 serialno, username);
-      err = gcry_error (GPG_ERR_INV_NAME);
-      goto out;
-    }
-
-  /* Retrieve key belonging to card.  */
-  err = key_lookup_by_serialno (serialno, &key);
-  if (err)
-    goto out;
-
-  /* Inform user about inserted card.  */
-
-  err = tell_user (conv, "Serial no: %s", serialno);
-  if (err)
-    {
-      /* FIXME?? do we need this?  */
-      log_error ("Error: failed to inform user about inserted card: %s\n",
-		 gpg_strerror (err));
-      goto out;
-    }
-
-  err = authenticate (slot, key, pam_conversation, &conv_opaque);
-  if (err)
-    goto out;
-
-  if (username == account)
-    {
-      /* Make username available to application.  */
-      ret = pam_set_item (pam_handle, PAM_USER, username);
-      if (ret != PAM_SUCCESS)
 	{
-	  err = gpg_error (GPG_ERR_INTERNAL);
+	  log_msg_error (ctx->loghandle,
+			 _("failed to parse PAM argument vector: %s"),
+			 gpg_strerror (err));
 	  goto out;
 	}
     }
 
-  /* Done.  */
+  /*** Initialize logging. ***/
+
+  /* In case `logfile' has been set in the configuration file,
+     initialize jnlib-logging the traditional file, loggin to the file
+     (or socket special file) specified in the configuration file; in
+     case `logfile' has NOT been set in the configuration file, log
+     through Syslog.  */
+  if (ctx->logfile)
+    {
+      gpg_error_t rc;
+
+      rc = log_set_backend_file (ctx->loghandle, ctx->logfile);
+      if (rc != 0)
+	/* Last try...  */
+	log_set_backend_syslog (ctx->loghandle);
+    }
+
+  /*** Sanity checks. ***/
+
+  /* Authentication method to use must be specified.  */
+  if (ctx->auth_method < 0)
+    {
+      log_msg_error (ctx->loghandle,
+		     _("no authentication method specified"));
+      err = GPG_ERR_CONFIGURATION;
+      goto out;
+    }
+
+  /* Authentication methods must provide a parser callback in case
+     they have specific a configuration file.  */
+  assert ((!auth_methods[ctx->auth_method].method->config)
+	  || (auth_methods[ctx->auth_method].method->parsecb
+	      && auth_methods[ctx->auth_method].method->opt_specs));
+
+  if (ctx->debug)
+    {
+      log_msg_debug (ctx->loghandle,
+		     _("using authentication method `%s'"),
+		     auth_methods[ctx->auth_method].name);
+      if (ctx->scdaemon_socket)
+	log_msg_debug (ctx->loghandle,
+		       _("using system scdaemon; socket is '%s'"),
+		       ctx->scdaemon_socket);
+    }
+
+  /*** Init authentication method.  ***/
+  
+  if (auth_methods[ctx->auth_method].method->func_init)
+    {
+      err = (*auth_methods[ctx->auth_method].method->func_init) (&ctx->cookie);
+      if (err)
+	{
+	  log_msg_error (ctx->loghandle,
+			 _("failed to initialize authentication method %i: %s"),
+			 -1, gpg_strerror (err));
+	  goto out;
+	}
+    }
+
+  if (auth_methods[ctx->auth_method].method->config)
+    {
+      /* Do auth-method specific parsing. */
+
+      err = simpleparse_create (&method_parse);
+      if (err)
+	{
+	  log_msg_error (ctx->loghandle,
+			 _("failed to initialize parsing of configuration file for authentication method %s: %s"),
+			 auth_methods[ctx->auth_method].name, gpg_strerror (err));
+	  goto out_parsing;
+	}
+
+      method_parse_cookie.poldi_ctx = ctx;
+      method_parse_cookie.method_ctx = ctx->cookie;
+
+      simpleparse_set_loghandle (method_parse, ctx->loghandle);
+      simpleparse_set_parse_cb (method_parse,
+				auth_methods[ctx->auth_method].method->parsecb,
+				&method_parse_cookie);
+      simpleparse_set_i18n_cb (method_parse, i18n_cb, NULL);
+      simpleparse_set_specs (method_parse,
+			     auth_methods[ctx->auth_method].method->opt_specs);
+
+      err = simpleparse_parse_file (method_parse, 0, 
+				    auth_methods[ctx->auth_method].method->config);
+      if (err)
+	{
+	  log_msg_error (ctx->loghandle,
+			 _("failed to parse configuration for authentication method %i: %s"),
+			 auth_methods[ctx->auth_method].name, gpg_strerror (err));
+	  goto out_parsing;
+	}
+
+    out_parsing:
+
+      simpleparse_destroy (method_parse);
+      if (err)
+	goto out;
+    }
+
+  /*** Prepare PAM interaction.  ***/
+
+  /* Ask PAM for conv structure.  */
+  ret = pam_get_item (ctx->pam_handle, PAM_CONV, &conv_void);
+  if (ret != PAM_SUCCESS)
+    {
+      log_msg_error (ctx->loghandle,
+		     _("failed to retrieve PAM conversation structure"));
+      err = GPG_ERR_INTERNAL;
+      goto out;
+    }
+
+  /* Init conv subsystem by creating a conv_t object.  */
+  err = conv_create (&conv, conv_void);
+  if (err)
+    goto out;
+
+  ctx->conv = conv;
+
+  /*** Retrieve username from PAM.  ***/
+
+  err = retrieve_username_from_pam (ctx->pam_handle, &pam_username);
+  if (err)
+    {
+      log_msg_error (ctx->loghandle,
+		     _("failed to retrieve username from PAM: %s"),
+		     gpg_strerror (err));
+    }
+
+  /*** Connect to Scdaemon. ***/
+
+  err = scd_connect (&scd_ctx,
+		     ctx->scdaemon_socket, getenv ("GPG_AGENT_INFO"),
+		     ctx->scdaemon_program, 0, ctx->loghandle);
+  if (err)
+    goto out;
+
+  ctx->scd = scd_ctx;
+
+  /* Install PIN retrival callback. */
+  getpin_cb_data.poldi_ctx = ctx;
+  scd_set_pincb (ctx->scd, getpin_cb, &getpin_cb_data);
+
+  /*** Wait for card insertion.  ***/
+
+  if (pam_username)
+    conv_tell (ctx->conv, _("Waiting for card for user `%s'..."), pam_username);
+  else
+    conv_tell (ctx->conv, _("Waiting for card..."));
+
+  err = wait_for_card (ctx->scd, 0);
+  if (err)
+    {
+      log_msg_error (ctx->loghandle,
+		     _("failed to wait for card insertion: %s"),
+		     gpg_strerror (err));
+      goto out;
+    }
+
+  /*** Receive card info. ***/
+
+  err = scd_learn (ctx->scd, &ctx->cardinfo);
+  if (err)
+    goto out;
+
+  if (ctx->debug)
+    log_msg_debug (ctx->loghandle,
+		   _("connected to card; serial number is: %s"),
+		   ctx->cardinfo.serialno);
+
+  /*** Authenticate.  ***/
+
+  if (pam_username)
+    {
+      /* Try to authenticate user as PAM_USERNAME.  */
+
+      if (!(*auth_methods[ctx->auth_method].method->func_auth_as) (ctx, ctx->cookie,
+								   pam_username))
+	/* Authentication failed.  */
+	err = GPG_ERR_GENERAL;
+    }
+  else
+    {
+      /* Try to authenticate user, choosing an identity is up to the
+	 user.  */
+
+      char *username_authenticated = NULL;
+
+      if (!(*auth_methods[ctx->auth_method].method->func_auth) (ctx, ctx->cookie,
+								&username_authenticated))
+	/* Authentication failed.  */
+	err = GPG_ERR_GENERAL;
+      else
+	{
+	  /* Send username received during authentication process back
+	     to PAM.  */
+	  err = send_username_to_pam (ctx->pam_handle, username_authenticated);
+	  xfree (username_authenticated);
+	}
+    }
 
  out:
 
-  /* Release resources.  */
-  gcry_sexp_release (key);
-  free (serialno);
-  if (username == account)
-    free (account);
-  if (slot != -1)
-    card_close (slot);
-
   /* Log result.  */
   if (err)
-    log_error ("Failure: %s\n", gpg_strerror (err));
-  else
-    log_info ("Success\n");
+    log_msg_error (ctx->loghandle, _("authentication failed: %s"), gpg_strerror (err));
+  else if (ctx->debug)
+    log_msg_debug (ctx->loghandle, _("authentication succeeded"));
 
-  log_close ();
+  /* Call authentication method's deinit callback. */
+  if ((ctx->auth_method >= 0)
+      && auth_methods[ctx->auth_method].method->func_deinit)
+    (*auth_methods[ctx->auth_method].method->func_deinit) (ctx->cookie);
+
+  /* FIXME, cosmetics? */
+  conv_destroy (conv);
+  destroy_context (ctx);
 
   /* Return to PAM.  */
 
   return err ? PAM_AUTH_ERR : PAM_SUCCESS;
 }
 
-
 /* PAM's `set-credentials' interface.  */
 PAM_EXTERN int
 pam_sm_setcred (pam_handle_t *pam_handle,
 		int flags, int argc, const char **argv)
 {
+  /* FIXME: do we need this?  -mo */
   return PAM_SUCCESS;
 }
 

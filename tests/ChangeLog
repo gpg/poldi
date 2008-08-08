@@ -1,0 +1,15 @@
+2008-07-20  Moritz  <moritz@gnu.org>
+
+	* parse-test.c: Adjusted to new simpleparse API.
+
+2008-05-25  Moritz  <moritz@gnu.org>
+
+	* pam-test.c: Added GPL3 header.
+
+2007-12-15  Moritz Schulte  <moritz@g10code.com>
+
+	* pam-test.c: Slightly polished, uses getopt now.
+
+2007-12-13  Moritz Schulte  <moritz@g10code.com>
+
+	* pam-test.c, Makefile.am: New files.

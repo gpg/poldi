@@ -1,0 +1,53 @@
+2008-08-07  Moritz  <moritz@gnu.org>
+
+	* usersdb.c: Include defs-localdb.h instead of util/defs.h.
+	* key-lookup.c: Likewise.
+
+	* Makefile.am (libpoldi_auth_localdb_a_SOURCES): Added
+	defs-localdb.h.
+
+	* defs-localdb.h: New file.
+
+	* auth-localdb.c (auth_method_localdb_auth_do): Use xfree instead
+	of free for card_username.
+
+	* usersdb.c: Include <string.h>. Use strtok_r instead of
+	strtok (requires new local variable save_ptr). Improved some
+	comments. Do not include <errno.h>; use gpg_error_from_syserror()
+	instead of gpg_error_from_errno().
+	(usersdb_lookup_cb): Use xtrystrdup instead of strdup.
+	(usersdb_lookup_by_serialno, usersdb_lookup_by_username): Use
+	xfree instead of free.
+
+2008-08-04  Moritz  <moritz@gnu.org>
+
+	* auth-localdb.c (auth_method_localdb_auth_do): Adjusted to new
+	scd_pksign() interface, removed variable cb_data.
+	Do not include "getpin-cb.h".
+
+	* key-lookup.c (key_lookup_by_serialno): Use xfree instead of
+	free.
+	Mark strings for i18n.
+
+	* usersdb.c: Replaced calls to gcry_error() with calls to
+	gpg_error(). Replaced calls to gpg_error_from_errno() with calls
+	to gpg_error_from_syserror().
+
+2008-07-29  Moritz  <moritz@gnu.org>
+
+	* key-lookup.c: Mark strings for i18n.
+	* auth-localdb.c: Likewise.
+
+2008-05-25  Moritz  <moritz@gnu.org>
+
+	Some cleanups, added GPL3 headers.
+
+2008-05-24  Moritz  <moritz@gnu.org>
+
+	* auth-localdb.c (auth_method_localdb_auth_do): Don't forget to initialize card_username.
+
+2008-04-21  Moritz  <moritz@gnu.org>
+
+	* auth-localdb.c (auth_method_localdb_auth_do): New local
+	variable: cb_data, fill and pass to scd_pksign instead of conv
+	object directly.

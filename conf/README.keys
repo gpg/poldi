@@ -1,0 +1,13 @@
+(extracted from the Poldi Manual)
+
+This directory contains the "key database" for Poldis "local database"
+authentication method.  When Poldi needs the key belonging to a given
+smartcard serial number, it looks up a file in this directory whose
+name is exactly the serial number.
+
+Usually only the system administrator is able to modify this directory
+and thus establish the mapping between smartcards and keys.  But it
+might make sense for the administrator to make a file in this
+directory writable for a ordinary user as well, since this would allow
+that user to update his smartcard's key and adjust the mapping himself
+without bothering the admin.
