@@ -1,3 +1,7 @@
+2008-08-08  Moritz  <moritz@gnu.org>
+
+	* scd.c (scd_serialno): Removed debugging message.
+
 2008-08-07  Moritz  <moritz@gnu.org>
 
 	* scd.c (scd_reset): Removed

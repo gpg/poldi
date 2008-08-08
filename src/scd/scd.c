@@ -657,8 +657,6 @@ scd_serialno (scd_context_t ctx, char **r_serialno)
   gpg_error_t err;
 
   err = scd_serialno_internal (ctx->assuan_ctx, 0, r_serialno);
-  log_msg_debug (ctx->loghandle, "scd_serialno_internal returned: %s",
-		 gpg_strerror (err));
 
   return err;
 }

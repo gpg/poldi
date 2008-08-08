@@ -24,4 +24,4 @@ SUBDIRS = src doc conf am m4 tests tools po
 install-conf-skeleton:
 	$(MAKE) -C conf install-conf-skeleton
 
-EXTRA_DIST = config.rpath  MIGRATION
+EXTRA_DIST = config.rpath MIGRATION EXPERIMENTAL

@@ -1,3 +1,13 @@
+2008-08-08  Moritz  <moritz@gnu.org>
+
+	* getpin-cb.c (keypad_mode_enter): New argument: INFO. Send INFO
+	to conv_tell() instead of the old hard-coded string...
+	(getpin_cb): ... change caller.
+	(getpin_cb): Only frob info string if it is not "PIN", use
+	hard-coded string as argument to query_user()/keypad_mode_enter()
+	if the info string was "PIN".
+	Use xtrymalloc/xfree instead of gcry_malloc/gcry_free.
+
 2008-08-04  Moritz  <moritz@gnu.org>
 
 	* getpin-cb.h: Include "ctx.h".

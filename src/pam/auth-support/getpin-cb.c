@@ -110,11 +110,11 @@ query_user (poldi_ctx_t ctx, const char *info, char *pin, size_t pin_size)
    system modal and all other attempts to use the pinentry will fail
    (after a timeout). */
 static int
-keypad_mode_enter (poldi_ctx_t ctx)
+keypad_mode_enter (poldi_ctx_t ctx, const char *info)
 {
   int rc;
 
-  rc = conv_tell (ctx->conv, _("Please enter PIN on keypad"));
+  rc = conv_tell (ctx->conv, info);
 
   return rc;
 }
@@ -122,15 +122,7 @@ keypad_mode_enter (poldi_ctx_t ctx)
 static int
 keypad_mode_leave (poldi_ctx_t ctx)
 {
-#if 0
-  int rc;
-
-  rc = conv_tell (conv, "popup message stop");
-
-  return rc;
-#else
   return 0;
-#endif
 }
 
 /* This function is taken from pinentry.c.  */
@@ -161,7 +153,7 @@ frob_info_msg (const char *info, char **info_frobbed)
 {
   gpg_error_t err = 0;
 
-  *info_frobbed = gcry_malloc (strlen (info) + 1);
+  *info_frobbed = xtrymalloc (strlen (info) + 1);
   if (!*info_frobbed)
     {
       err = gpg_error_from_errno (errno);
@@ -205,7 +197,9 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
     return gpg_error (GPG_ERR_INV_VALUE);
 #endif
 
-  if (info)
+  /* Older SCDaemons simply send "PIN" as prompt. We do not process
+     this prompt here but use a special case later. */
+  if (info && (strcmp (info, "PIN") != 0))
     {
       if (info[0] == '|')
 	{
@@ -234,27 +228,43 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
     }
 
   if (buf)
-    /* No info message? Use a very simple hard-coded default.  */
-    err = query_user (ctx, info_frobbed ? info_frobbed : "PIN", buf, maxbuf);
+    {
+      /* BUF being non-zero means we are not using a keypad.  */
+
+      if (info_frobbed)
+	err = query_user (ctx, info_frobbed, buf, maxbuf);
+      else
+	/* Use string which is more user friendly. */
+	err = query_user (ctx, _("||Please enter the PIN"), buf, maxbuf);
+    }
   else
     {
       /* Special handling for keypad mode hack. */
 
       /* If BUF has been passed as NULL, we are in keypad mode: the
 	 callback notifies the user and immediately returns.  */
-      if (maxbuf == 0) /* Close the pinentry. */
-	err = keypad_mode_leave (ctx);
-      else if (maxbuf == 1)  /* Open the pinentry. */
-	err = keypad_mode_enter (ctx);
+      if (maxbuf == 0)
+	{
+	  /* Close the "pinentry". */
+	  err = keypad_mode_leave (ctx);
+	}
+      else if (maxbuf == 1)
+	{
+	  /* Open the "pinentry". */
+	  if (info_frobbed)
+	    err = keypad_mode_enter (ctx, info_frobbed);
+	  else
+	    err = keypad_mode_enter (ctx, _("||Please enter the PIN"));
+	}
       else
         err = gpg_error (GPG_ERR_INV_VALUE); /* FIXME: must signal
-					       internal error(!)
-					       -mo */
+						internal error(!)?
+						-mo */
     }
 
  out:
 
-  gcry_free (info_frobbed);
+  xfree (info_frobbed);
 
   return err;
 }
