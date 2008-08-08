@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: poldi 0.4-cvs\n"
 "Report-Msgid-Bugs-To: gnupg-devel@gnupg.org\n"
-"POT-Creation-Date: 2008-08-07 23:56+0200\n"
-"PO-Revision-Date: 2008-08-08 00:27+0200\n"
+"POT-Creation-Date: 2008-08-08 01:50+0200\n"
+"PO-Revision-Date: 2008-08-08 01:51+0200\n"
 "Last-Translator: Moritz Schulte <moritz@g10code.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -97,17 +97,21 @@ msgstr "Verifizierung der Challenge fehlgeschlagen"
 #: src/pam/auth-method-localdb/key-lookup.c:63
 #, c-format
 msgid "failed to construct key file path for serial number `%s': %s\n"
-msgstr "konnte Pfad fuer die Schlüsseldatei für die Seriennummer '%s' nicht konstruieren: %s\n"
+msgstr ""
+"konnte Pfad fuer die Schlüsseldatei für die Seriennummer '%s' nicht "
+"konstruieren: %s\n"
 
 #: src/pam/auth-method-localdb/key-lookup.c:75
 #, c-format
 msgid "failed to retrieve key from key file `%s': %s\n"
-msgstr "Auslesen des Schlüssels aus der Schlüsseldatei '%s' fehlgeschlagen: %s\n"
+msgstr ""
+"Auslesen des Schlüssels aus der Schlüsseldatei '%s' fehlgeschlagen: %s\n"
 
 #: src/pam/auth-method-localdb/key-lookup.c:84
 #, c-format
 msgid "failed to convert key from `%s' into S-Expression: %s\n"
-msgstr "konnte Schlüssel aus '%s' nicht in eine S-Expression konvertieren: %s\n"
+msgstr ""
+"konnte Schlüssel aus '%s' nicht in eine S-Expression konvertieren: %s\n"
 
 #: src/pam/auth-support/getpin-cb.c:84
 msgid "invalid PIN"
@@ -121,19 +125,20 @@ msgstr "ungültige Zeichen in PIN"
 msgid "PIN too long for buffer!"
 msgstr "PIN zu lang für Puffer"
 
-#: src/pam/auth-support/getpin-cb.c:117
-msgid "Please enter PIN on keypad"
-msgstr "Bitte PIN auf der Tastatur des Kartenlesers eingeben"
-
-#: src/pam/auth-support/getpin-cb.c:220
+#: src/pam/auth-support/getpin-cb.c:214
 #, c-format
 msgid "getpin_cb called with flags set in info string `%s'\n"
-msgstr "getpin-Callback mit nicht unterstützten Flags in '%s' aufgerufen"
+msgstr "getpin-Callback mit nicht unterstützten Flags in '%s' aufgerufen\n"
 
-#: src/pam/auth-support/getpin-cb.c:230
+#: src/pam/auth-support/getpin-cb.c:224
 #, c-format
 msgid "frob_info_msg failed for info msg of size of size %u\n"
 msgstr "frob_info_msg() fehlgeschlagen für eine Nachricht der Länge %u\n"
+
+#: src/pam/auth-support/getpin-cb.c:238 src/pam/auth-support/getpin-cb.c:257
+#, fuzzy
+msgid "||Please enter the PIN"
+msgstr "Bitte Benutzername eingeben: "
 
 #: src/pam/auth-method-x509/dirmngr.c:153
 #, c-format
@@ -258,12 +263,16 @@ msgstr "Initialisierung der Authentifikationsmethode %i fehlgeschlagen: %s"
 msgid ""
 "failed to initialize parsing of configuration file for authentication method "
 "%s: %s"
-msgstr "konnte Auswertung der Konfigurationsdatei für die Authentifikationsmethode %s nicht beginnen: %s"
+msgstr ""
+"konnte Auswertung der Konfigurationsdatei für die Authentifikationsmethode %"
+"s nicht beginnen: %s"
 
 #: src/pam/pam_poldi.c:444
 #, c-format
 msgid "failed to parse configuration for authentication method %i: %s"
-msgstr "konnte Konfigurationsdatei für die Authentifikationsmethode %i nicht lesen: %s"
+msgstr ""
+"konnte Konfigurationsdatei für die Authentifikationsmethode %i nicht lesen: %"
+"s"
 
 #: src/pam/pam_poldi.c:463
 msgid "failed to retrieve PAM conversation structure"
@@ -311,7 +320,7 @@ msgstr "syntaktisch ungültige GPG_AGENT_INFO Umgebungsvariable"
 msgid "agent protocol version %d is not supported"
 msgstr "Agent-Protokoll Version %d ist nicht unterstützt"
 
-#: src/scd/scd.c:197 src/scd/scd.c:927
+#: src/scd/scd.c:197 src/scd/scd.c:925
 #, c-format
 msgid "warning: can't store getinfo data: %s"
 msgstr "Warnung: konnte GETINFO Daten nicht speichern: %s"
@@ -324,7 +333,8 @@ msgstr "über den Socket '%s' zu System Scdaemon verbunden"
 #: src/scd/scd.c:314
 #, c-format
 msgid "got scdaemon socket name from gpg-agent, connected to socket '%s'"
-msgstr "Scdaemon Socket Namen über GPG-Agent empfangen, verbunden mit Socket '%s'"
+msgstr ""
+"Scdaemon Socket Namen über GPG-Agent empfangen, verbunden mit Socket '%s'"
 
 #: src/scd/scd.c:335
 msgid "no running scdaemon - starting one"
@@ -369,6 +379,9 @@ msgstr "parse-Callback hat Fehler '%s' für das Argument '%s' zurückgegeben"
 #, c-format
 msgid "missing required argument for '%s'"
 msgstr "fehlendes notwendiges Argument für '%s'"
+
+#~ msgid "Please enter PIN on keypad"
+#~ msgstr "Bitte PIN auf der Tastatur des Kartenlesers eingeben"
 
 #~ msgid "login failed: %s"
 #~ msgstr "Login fehlgeschlagen: %s"

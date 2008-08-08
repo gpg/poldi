@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: poldi 0.4-cvs\n"
+"Project-Id-Version: poldi 0.4\n"
 "Report-Msgid-Bugs-To: gnupg-devel@gnupg.org\n"
-"POT-Creation-Date: 2008-08-07 23:56+0200\n"
+"POT-Creation-Date: 2008-08-08 01:50+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -122,18 +122,18 @@ msgstr ""
 msgid "PIN too long for buffer!"
 msgstr ""
 
-#: src/pam/auth-support/getpin-cb.c:117
-msgid "Please enter PIN on keypad"
-msgstr ""
-
-#: src/pam/auth-support/getpin-cb.c:220
+#: src/pam/auth-support/getpin-cb.c:214
 #, c-format
 msgid "getpin_cb called with flags set in info string `%s'\n"
 msgstr ""
 
-#: src/pam/auth-support/getpin-cb.c:230
+#: src/pam/auth-support/getpin-cb.c:224
 #, c-format
 msgid "frob_info_msg failed for info msg of size of size %u\n"
+msgstr ""
+
+#: src/pam/auth-support/getpin-cb.c:238 src/pam/auth-support/getpin-cb.c:257
+msgid "||Please enter the PIN"
 msgstr ""
 
 #: src/pam/auth-method-x509/dirmngr.c:153
@@ -312,7 +312,7 @@ msgstr ""
 msgid "agent protocol version %d is not supported"
 msgstr ""
 
-#: src/scd/scd.c:197 src/scd/scd.c:927
+#: src/scd/scd.c:197 src/scd/scd.c:925
 #, c-format
 msgid "warning: can't store getinfo data: %s"
 msgstr ""
