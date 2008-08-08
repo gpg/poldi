@@ -1,5 +1,7 @@
 2008-08-08  Moritz  <moritz@gnu.org>
 
+	* configure.ac: Bump version number up to 0.4.
+
 	* EXPERIMENTAL: New file.
 	* Makefile.am (EXTRA_DIST): Updated.
 
