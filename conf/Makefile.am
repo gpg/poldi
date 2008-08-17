@@ -18,20 +18,20 @@
 # 02111-1307, USA
 
 install-conf-skeleton:
-	$(INSTALL) -d $(POLDI_CONF_DIRECTORY)/localdb/keys
+	$(INSTALL) -d $(DESTDIR)$(POLDI_CONF_DIRECTORY)/localdb/keys
 	install -m 644 -T $(top_srcdir)/conf/README.keys \
-	  $(POLDI_CONF_DIRECTORY)/localdb/keys/README
-	if test -e $(POLDI_CONF_DIRECTORY)/localdb/users; then \
+	  $(DESTDIR)$(POLDI_CONF_DIRECTORY)/localdb/keys/README
+	if test -e $(DESTDIR)$(POLDI_CONF_DIRECTORY)/localdb/users; then \
 		echo "$(POLDI_CONF_DIRECTORY)/localdb/users exists, doing nothing here"; \
 	else \
 		install -m 644 -T $(top_srcdir)/conf/users.skel \
-                  $(POLDI_CONF_DIRECTORY)/localdb/users; \
+                  $(DESTDIR)$(POLDI_CONF_DIRECTORY)/localdb/users; \
 	fi
-	if test -e $(POLDI_CONF_DIRECTORY)/poldi.conf; then \
-		echo "$(POLDI_CONF_DIRECTORY)/poldi.conf exists, doing nothing here"; \
+	if test -e $(DESTDIR)$(POLDI_CONF_DIRECTORY)/poldi.conf; then \
+		echo "$(DESTDIR)$(POLDI_CONF_DIRECTORY)/poldi.conf exists, doing nothing here"; \
 	else \
 		install -m 644 -T $(top_srcdir)/conf/poldi.conf.skel \
-                  $(POLDI_CONF_DIRECTORY)/poldi.conf; \
+                  $(DESTDIR)$(POLDI_CONF_DIRECTORY)/poldi.conf; \
 	fi
 
 EXTRA_DIST = poldi.conf.skel users.skel README.keys

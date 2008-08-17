@@ -68,7 +68,14 @@ pam_poldi.so: libpam_poldi.a $(AUTH_METHODS_LIBS) auth-support/libpam-poldi-auth
 		$(LIBGCRYPT_LDFLAGS) $(LIBGCRYPT_LIBS) $(KSBA_LIBS)
 
 all-local: pam_poldi.so
-clean-local:
-	rm -rf pam_poldi.so
+
+install-exec-local:
+	$(INSTALL) -d $(DESTDIR)$(PAM_MODULE_DIRECTORY)
+	$(INSTALL) pam_poldi.so $(DESTDIR)$(PAM_MODULE_DIRECTORY)
+
+uninstall-local:
+	rm -f $(DESTDIR)$(PAM_MODULE_DIRECTORY)/pam_poldi.so
+
+CLEANFILES = pam_poldi.so
 
 # FIXME: LDFLAGS for other libs missing....

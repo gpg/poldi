@@ -283,7 +283,12 @@ if test "$PAM_MODULE_DIRECTORY" = "$DEFAULT_PAM_MODULE_DIRECTORY"; then
 **
 ** Warning: using default value ($DEFAULT_PAM_MODULE_DIRECTORY) as
 **          installation directory for PAM module; this is probably not
-**          what you want.
+**          what you want. Either use the configure flag
+**
+**                      --with-pam-module-directory=DIRECTORY
+**
+**          or copy the newly built pam_poldi.so into the correct directory
+**          manually. Usually PAM modules are located in /lib/security.
 **])
 else
   AC_MSG_NOTICE([PAM module installation directory: $PAM_MODULE_DIRECTORY])

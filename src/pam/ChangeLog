@@ -1,3 +1,9 @@
+2008-08-17  Moritz  <moritz@gnu.org>
+
+	* Makefile.am: Use CLEANFILES intead of clean-local target for
+	pam_poldi.so.
+	(uninstall-local, install-exec-local): New targets.
+
 2008-08-07  Moritz  <moritz@gnu.org>
 
 	* pam_poldi.c (pam_sm_authenticate): Removed second call to
