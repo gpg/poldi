@@ -1,3 +1,7 @@
+2008-08-17  Moritz  <moritz@gnu.org>
+
+	* ctx.h (struct poldi_ctx_s): Removed member scdaemon_socket.
+
 2008-08-08  Moritz  <moritz@gnu.org>
 
 	* getpin-cb.c (keypad_mode_enter): New argument: INFO. Send INFO

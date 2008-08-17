@@ -80,7 +80,6 @@ enum opt_ids
     opt_logfile,
     opt_auth_method,
     opt_debug,
-    opt_scdaemon_socket,
     opt_scdaemon_program
   };
 
@@ -93,8 +92,6 @@ static simpleparse_opt_spec_t opt_specs[] =
       0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify authentication method" },
     { opt_debug, "debug",
       0, SIMPLEPARSE_ARG_NONE,     0, "Enable debugging mode" },
-    { opt_scdaemon_socket, "scdaemon-socket",
-      0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify socket of system scdaemon" },
     { opt_scdaemon_program, "scdaemon-program",
       0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify scdaemon executable to use" },
     { 0 }
@@ -134,20 +131,6 @@ pam_poldi_options_cb (void *cookie, simpleparse_opt_spec_t spec, const char *arg
 	  log_msg_error (ctx->loghandle,
 			 _("failed to duplicate %s: %s"),
 			 "logfile name", gpg_strerror (err));
-	}
-    }
-  else if (!strcmp (spec.long_opt, "scdaemon-socket"))
-    {
-      /* SCDAEMON-SOCKET.  */
-
-      ctx->scdaemon_socket = xtrystrdup (arg);
-      if (!ctx->scdaemon_socket)
-	{
-	  err = gpg_error_from_errno (errno);
-	  log_msg_error (ctx->loghandle,
-			 _("failed to duplicate %s: %s"),
-			 "scdaemon socket name",
-			 gpg_strerror (err));
 	}
     }
   else if (!strcmp (spec.long_opt, "scdaemon-program"))
@@ -265,7 +248,6 @@ destroy_context (poldi_ctx_t ctx)
       xfree (ctx->logfile);
       simpleparse_destroy (ctx->parsehandle);
       log_destroy (ctx->loghandle);
-      xfree (ctx->scdaemon_socket);
       xfree (ctx->scdaemon_program);
       scd_disconnect (ctx->scd);
       scd_release_cardinfo (ctx->cardinfo);
@@ -392,10 +374,6 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
       log_msg_debug (ctx->loghandle,
 		     _("using authentication method `%s'"),
 		     auth_methods[ctx->auth_method].name);
-      if (ctx->scdaemon_socket)
-	log_msg_debug (ctx->loghandle,
-		       _("using system scdaemon; socket is '%s'"),
-		       ctx->scdaemon_socket);
     }
 
   /*** Init authentication method.  ***/
@@ -485,7 +463,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   /*** Connect to Scdaemon. ***/
 
   err = scd_connect (&scd_ctx,
-		     ctx->scdaemon_socket, getenv ("GPG_AGENT_INFO"),
+		     NULL, getenv ("GPG_AGENT_INFO"),
 		     ctx->scdaemon_program, 0, ctx->loghandle);
   if (err)
     goto out;

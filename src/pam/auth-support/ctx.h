@@ -65,7 +65,6 @@ struct poldi_ctx_s
 				   messages.  */
 
   /* Scdaemon. */
-  char *scdaemon_socket;	/* Socket of a running Scdaemon.  */
   char *scdaemon_program;	/* Path of Scdaemon program to execute.  */
   scd_context_t scd;		/* Handle for the Scdaemon access
 				   layer.  */
