@@ -6,6 +6,7 @@
 	Removed GNUPG_CHECK_TYPEDEF calls.
 	(AC_CHECK_FUNCS): Removed unused function checks for memicmp,
 	strlwr, stricmp.
+	Display configuration directory path at end of configure run.
 
 2008-08-08  Moritz  <moritz@gnu.org>
 

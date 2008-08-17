@@ -267,6 +267,7 @@ echo "
         Poldi v${VERSION} has been configured as follows:
 
         installation directory for PAM module: $PAM_MODULE_DIRECTORY
+	configuration directory:               $POLDI_CONF_DIRECTORY
         
              X509 authentication: $enable_auth_x509
          local-db authentication: $enable_auth_localdb
