@@ -2,6 +2,10 @@
 
 	* configure.ac: Be more verbose in respect to setting the PAM
 	module directory.
+	Don't check for dlopen.
+	Removed GNUPG_CHECK_TYPEDEF calls.
+	(AC_CHECK_FUNCS): Removed unused function checks for memicmp,
+	strlwr, stricmp.
 
 2008-08-08  Moritz  <moritz@gnu.org>
 

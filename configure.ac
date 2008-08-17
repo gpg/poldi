@@ -113,7 +113,7 @@ AM_PATH_GPG_ERROR("$NEED_GPG_ERROR_VERSION",
                   have_gpg_error=yes,have_gpg_error=no)
 AM_PATH_KSBA("$NEED_KSBA_API:$NEED_KSBA_VERSION",have_ksba=yes,have_ksba=no)
 
-AC_CHECK_FUNCS(memicmp stpcpy strlwr strtoul memmove stricmp)
+AC_CHECK_FUNCS(stpcpy strtoul)
 AC_CHECK_FUNCS(fopencookie funopen nanosleep)
 
 # Checks for header files.
@@ -124,37 +124,13 @@ AC_C_CONST
 AC_C_INLINE
 AC_TYPE_SIZE_T
 
-# Necessary for libscd.
-GNUPG_CHECK_TYPEDEF(byte, HAVE_BYTE_TYPEDEF)
-GNUPG_CHECK_TYPEDEF(ushort, HAVE_USHORT_TYPEDEF)
-GNUPG_CHECK_TYPEDEF(ulong, HAVE_ULONG_TYPEDEF)
-GNUPG_CHECK_TYPEDEF(u16, HAVE_U16_TYPEDEF)
-GNUPG_CHECK_TYPEDEF(u32, HAVE_U32_TYPEDEF)
-
 AC_CHECK_SIZEOF(unsigned short)
 AC_CHECK_SIZEOF(unsigned int)
 AC_CHECK_SIZEOF(unsigned long)
 
- 
 # Checks for library functions.
 
-#
-# See whether we have dlopen available, so that PC/SC can be loaded on
-# demand.
-#
-_dl_save_libs=$LIBS
-LIBS=""
-AC_SEARCH_LIBS(dlopen,dl,found_dlopen=yes)
-if test x"$found_dlopen" = "xyes" ; then
-   AC_DEFINE(HAVE_DL_DLOPEN,1,
-             [Defined when the dlopen function family is available])
-   DLLIBS=$LIBS
-else
-   DLLIBS=""
-   LIBS=$_dl_save_libs
-fi
-AC_SUBST(DLLIBS)
-
+# FIXME: what is this for?? -moritz
 AM_CONDITIONAL(CROSS_COMPILING, test x$cross_compiling = xyes)
 
 if test "$GCC" = yes; then
@@ -166,17 +142,10 @@ if test "$GCC" = yes; then
     fi
 fi
 
-# We use jnlib, so tell other modules about it
-#AC_DEFINE(HAVE_JNLIB_LOGGING, 1,
-#         [Defined if jnlib style logging fucntions are available])
-# Disabled, since we don't use jnlib anymore.
-
 #
 # Taken from libassuan source package
 #
 
-#AC_DEFINE(HAVE_DOSISH_SYSTEM,0,[We do not run here])
-#AC_UNDEFINE(HAVE_W32_SYSTEM),0, [We do not run here])
 AC_CHECK_HEADERS([string.h locale.h sys/uio.h])
 AC_TYPE_SIGNAL
 #AC_DEFINE(USE_DESCRIPTOR_PASSING, 0, [We do not need this feature])
@@ -197,7 +166,7 @@ if test $ac_cv_func_funopen != yes; then
     fi
 fi
 
-# NLS:
+# Native language support:
 AM_GNU_GETTEXT([external])
 
 #
