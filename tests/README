@@ -1,1 +1,35 @@
-FIXME: document pam-test.
+README for pam-test
+===================
+
+  Usage: pam-test [options] <service name>
+  Test PAM authentication.
+  
+  Options:
+   -h, --help      print help information
+   -v, --version   print version information
+   -u, --username  specify username for authentication
+  
+  Report bugs to <moritz@gnu.org>.
+
+pam-test is a small utility suitable for testing authentication
+through PAM. PAM authentication methods are identified by a "service
+name" (e.g. "su", "login", "gdm"). Testing authentication is thus only
+a matter of typing:
+
+  $ ./pam-test SERVICENAME
+
+Testing Poldi authentication can be achieved by defining a new service
+name "poldi" using pam_poldi.so and then typing:
+
+  $ ./pam-test poldi
+
+This is how a successful run looks like:
+
+  $ ./pam-test poldi
+  Waiting for card...
+  Trying authentication as user `moritz'...
+  Authentication succeeded
+  Authenticated as user `moritz'
+  $ 
+
+Have fun.

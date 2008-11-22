@@ -1,3 +1,7 @@
+2008-11-22  Moritz  <moritz@gnu.org>
+
+	* README: Improved.
+
 2008-07-20  Moritz  <moritz@gnu.org>
 
 	* parse-test.c: Adjusted to new simpleparse API.
