@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: poldi 0.4\n"
+"Project-Id-Version: poldi 0.5-cvs\n"
 "Report-Msgid-Bugs-To: gnupg-devel@gnupg.org\n"
-"POT-Creation-Date: 2008-08-08 01:50+0200\n"
+"POT-Creation-Date: 2008-11-22 16:51+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -214,92 +214,86 @@ msgstr ""
 msgid "success"
 msgstr ""
 
-#: src/pam/pam_poldi.c:135 src/pam/pam_poldi.c:148 src/pam/pam_poldi.c:162
-#: src/scd/scd.c:124
+#: src/pam/pam_poldi.c:132 src/pam/pam_poldi.c:145 src/scd/scd.c:124
 #, c-format
 msgid "failed to duplicate %s: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:177
+#: src/pam/pam_poldi.c:160
 #, c-format
 msgid "unknown authentication method '%s'"
 msgstr ""
 
-#: src/pam/pam_poldi.c:338
+#: src/pam/pam_poldi.c:320
 #, c-format
 msgid "failed to parse configuration file: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:350
+#: src/pam/pam_poldi.c:332
 #, c-format
 msgid "failed to parse PAM argument vector: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:379
+#: src/pam/pam_poldi.c:361
 msgid "no authentication method specified"
 msgstr ""
 
-#: src/pam/pam_poldi.c:393
+#: src/pam/pam_poldi.c:375
 #, c-format
 msgid "using authentication method `%s'"
 msgstr ""
 
-#: src/pam/pam_poldi.c:397
-#, c-format
-msgid "using system scdaemon; socket is '%s'"
-msgstr ""
-
-#: src/pam/pam_poldi.c:409
+#: src/pam/pam_poldi.c:387
 #, c-format
 msgid "failed to initialize authentication method %i: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:423
+#: src/pam/pam_poldi.c:401
 #, c-format
 msgid ""
 "failed to initialize parsing of configuration file for authentication method "
 "%s: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:444
+#: src/pam/pam_poldi.c:422
 #, c-format
 msgid "failed to parse configuration for authentication method %i: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:463
+#: src/pam/pam_poldi.c:441
 msgid "failed to retrieve PAM conversation structure"
 msgstr ""
 
-#: src/pam/pam_poldi.c:481
+#: src/pam/pam_poldi.c:459
 #, c-format
 msgid "failed to retrieve username from PAM: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:502
+#: src/pam/pam_poldi.c:480
 #, c-format
 msgid "Waiting for card for user `%s'..."
 msgstr ""
 
-#: src/pam/pam_poldi.c:504
+#: src/pam/pam_poldi.c:482
 msgid "Waiting for card..."
 msgstr ""
 
-#: src/pam/pam_poldi.c:510
+#: src/pam/pam_poldi.c:488
 #, c-format
 msgid "failed to wait for card insertion: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:523
+#: src/pam/pam_poldi.c:501
 #, c-format
 msgid "connected to card; serial number is: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:561
+#: src/pam/pam_poldi.c:539
 #, c-format
 msgid "authentication failed: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:563
+#: src/pam/pam_poldi.c:541
 msgid "authentication succeeded"
 msgstr ""
 
