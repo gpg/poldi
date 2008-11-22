@@ -46,7 +46,7 @@ _assuan_funopen(void *cookie,
                 cookie_seek_function_t *seekfn,
                 cookie_close_function_t *closefn)
 {
-  cookie_io_functions_t io = { NULL };
+  cookie_io_functions_t io;
 
   io.read = readfn;
   io.write = writefn;

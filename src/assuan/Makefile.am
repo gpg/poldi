@@ -17,8 +17,10 @@
 # License along with this program; if not, see <http://www.gnu.org/licenses/>.
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I.. -I$(top_srcdir)/include
+# Modified for Poldi. Based von libassuans Makefile.am.
 
+EXTRA_DIST = mkerrors
+INCLUDES = -I.. -I$(top_srcdir)/include
 BUILT_SOURCES = assuan-errors.c
 MOSTLYCLEANFILES = assuan-errors.c
 
@@ -43,13 +45,10 @@ common_sources = \
 	assuan-logging.c \
 	assuan-socket.c
 
-AM_CFLAGS = -fPIC
-
 libassuan_a_SOURCES = $(common_sources) assuan-io.c
-libassuan_a_CFLAGS = -Wall -fPIC
 libassuan_a_LIBADD = @LIBOBJS@
 
-EXTRA_DIST = mkerrors
+AM_CFLAGS = -Wall -fPIC
 
 assuan-errors.c : assuan.h mkerrors
 	$(srcdir)/mkerrors < $(srcdir)/assuan.h > assuan-errors.c

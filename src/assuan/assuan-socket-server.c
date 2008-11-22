@@ -38,9 +38,8 @@
 
 #include "assuan-defs.h"
 
-static struct assuan_io io = { _assuan_simple_read,
-			       _assuan_simple_write };
-
+static struct assuan_io io = { _assuan_simple_read, _assuan_simple_write,
+			       NULL, NULL };
 
 static int
 accept_connection_bottom (assuan_context_t ctx)

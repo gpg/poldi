@@ -141,7 +141,7 @@ std_handler_reset (assuan_context_t ctx, char *line)
 static int
 std_handler_help (assuan_context_t ctx, char *line)
 {
-  int i;
+  unsigned int i;
   char buf[ASSUAN_LINELENGTH];
 
   for (i = 0; i < ctx->cmdtbl_used; i++)
@@ -251,10 +251,10 @@ static struct {
   { "END",    std_handler_end, 1 },
   { "HELP",   std_handler_help, 1 },
               
-  { "INPUT",  std_handler_input },
-  { "OUTPUT", std_handler_output },
+  { "INPUT",  std_handler_input, 0 },
+  { "OUTPUT", std_handler_output, 0 },
   { "OPTION", std_handler_option, 1 },
-  { NULL }
+  { NULL, NULL, 0 }
 };
 
 

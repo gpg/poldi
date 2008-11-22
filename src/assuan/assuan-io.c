@@ -21,6 +21,7 @@
 #include <config.h>
 #endif
 
+#include <time.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #ifdef HAVE_SYS_SOCKET_H
@@ -218,20 +219,27 @@ _assuan_simple_recvmsg (assuan_context_t ctx, struct msghdr *msg)
 void
 _assuan_usleep (unsigned int usec)
 {
-#ifdef HAVE_W32_SYSTEM
-  /* FIXME.  */
-  Sleep (usec / 1000);
+  if (usec)
+    {
+#ifdef HAVE_NANOSLEEP
+      struct timespec req;
+      struct timespec rem;
+      
+      req.tv_sec = 0;
+      req.tv_nsec = usec * 1000;
+      
+      while (nanosleep (&req, &rem) < 0 && errno == EINTR)
+        req = rem;
+
+#elif defined(HAVE_W32_SYSTEM)
+      Sleep (usec / 1000);
 #else
-  struct timespec req;
-  struct timespec rem;
+      struct timeval tv;
 
-  if (usec == 0)
-    return;
-
-  req.tv_sec = 0;
-  req.tv_nsec = usec * 1000;
-  
-  while (nanosleep (&req, &rem) < 0 && errno == EINTR)
-    req = rem;
+      tv.tv_sec  = usec / 1000000;
+      tv.tv_usec = usec % 1000000;
+      select (0, NULL, NULL, NULL, &tv);
 #endif
+    }
 }
+

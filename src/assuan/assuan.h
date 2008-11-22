@@ -1,5 +1,6 @@
 /* assuan.h - Definitions for the Assuan IPC library
- * Copyright (C) 2001, 2002, 2003, 2005, 2007, 2008 Free Software Foundation, Inc.
+ * Copyright (C) 2001, 2002, 2003, 2005, 2007, 
+ *               2008 Free Software Foundation, Inc.
  *
  * This file is part of Assuan.
  *
@@ -63,7 +64,6 @@
        a pipe.
  */
 #define _ASSUAN_EXT_SYM_PREFIX poldi_
-//#define _ASSUAN_ONLY_GPG_ERRORS
 #define _ASSUAN_NO_PTH 
 #define _ASSUAN_NO_SOCKET_WRAPPER
 /* FIXME: is NO_FIXED_SIGNALS needed for Poldi? -mo */
@@ -351,7 +351,8 @@ typedef enum
 
 #else  /*!_ASSUAN_ONLY_GPG_ERRORS*/
 
-typedef int assuan_error_t;
+/* Choose a type compatible with gpg_error_t.  */
+typedef unsigned int assuan_error_t;
 
 #endif /*!_ASSUAN_ONLY_GPG_ERRORS*/
 
@@ -543,11 +544,11 @@ assuan_error_t assuan_get_peercred (assuan_context_t ctx,
 assuan_error_t 
 assuan_transact (assuan_context_t ctx,
                  const char *command,
-                 int (*data_cb)(void *, const void *, size_t),
+                 assuan_error_t (*data_cb)(void *, const void *, size_t),
                  void *data_cb_arg,
-                 int (*inquire_cb)(void*, const char *),
+                 assuan_error_t (*inquire_cb)(void*, const char *),
                  void *inquire_cb_arg,
-                 int (*status_cb)(void*, const char *),
+                 assuan_error_t (*status_cb)(void*, const char *),
                  void *status_cb_arg);
 
 

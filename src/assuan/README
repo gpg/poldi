@@ -1,2 +1,3 @@
 This directory contains a copy of libassuan. The only Poldi-related
-changes are encapsulated in assuan.h.
+changes are encapsulated in assuan.h and Makefile.am. The latter is a
+basically a stripped version of the original file.

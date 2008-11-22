@@ -112,6 +112,11 @@ _assuan_log_printf (const char *format, ...)
   va_start (arg_ptr, format);
   vfprintf (fp, format, arg_ptr );
   va_end (arg_ptr);
+  /* If the log stream is a file, the output would be buffered.  This
+     is bad for debugging, thus we flush the stream if FORMAT ends
+     with a LF.  */ 
+  if (format && *format && format[strlen(format)-1] == '\n')
+    fflush (fp);
   errno = save_errno;
 }
 
@@ -124,14 +129,14 @@ void
 _assuan_log_print_buffer (FILE *fp, const void *buffer, size_t length)
 {
   const unsigned char *s;
-  int n;
+  unsigned int n;
 
-  for (n=length,s=buffer; n; n--, s++)
-    if  ((!isascii (*s) || iscntrl (*s) || !isprint (*s)) && !(*s >= 0x80))
+  for (n = length, s = buffer; n; n--, s++)
+    if  ((! isascii (*s) || iscntrl (*s) || ! isprint (*s)) && !(*s >= 0x80))
       break;
 
   s = buffer;
-  if (!n && *s != '[')
+  if (! n && *s != '[')
     fwrite (buffer, length, 1, fp);
   else
     {
@@ -139,15 +144,15 @@ _assuan_log_print_buffer (FILE *fp, const void *buffer, size_t length)
       flockfile (fp);
 #endif
       putc_unlocked ('[', fp);
-      if ( length > 16 && !full_logging)
+      if (length > 16 && ! full_logging)
         {
-          for (n=0; n < 12; n++, s++)
+          for (n = 0; n < 12; n++, s++)
             fprintf (fp, " %02x", *s);
-          fprintf (fp, " ...(%d bytes skipped)", (int)length - 12);
+          fprintf (fp, " ...(%d bytes skipped)", (int) length - 12);
         }
       else
         {
-          for (n=0; n < length; n++, s++)
+          for (n = 0; n < length; n++, s++)
             fprintf (fp, " %02x", *s);
         }
       putc_unlocked (' ', fp);
