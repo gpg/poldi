@@ -26,3 +26,9 @@ document explains how to upgrade smoothly from Poldi 0.3 to Poldi 0.4.
   utility. As of Poldi 0.4 poldi-ctrl has been stripped in this
   respect; it does not contain this functionality anymore. Instead the
   system administrator has to edit the appropriate files manually.
+
+* Paths
+
+  Some paths have changed since Poldi 0.3. In particular:
+  ${sysconfdir}/poldi/keys -> ${sysconfdir}/poldi/localdb/keys
+  ${sysconfdir}/poldi/users -> ${sysconfdir}/poldi/localdb/users
