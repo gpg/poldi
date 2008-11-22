@@ -1,3 +1,8 @@
+2008-11-22  Moritz  <moritz@gnu.org>
+
+	* configure.ac: Added AM_GNU_GETTEXT_VERSION to remove autoreconf
+	warning.
+
 2008-08-17  Moritz  <moritz@gnu.org>
 
 	* configure.ac: Be more verbose in respect to setting the PAM

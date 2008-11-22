@@ -31,6 +31,7 @@
 #include <stdarg.h>
 #include <pwd.h>
 #include <dirent.h>
+#include <limits.h>
 
 #include <gcrypt.h>
 

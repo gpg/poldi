@@ -261,6 +261,12 @@ internal_log_write (log_handle_t handle, log_level_t level,
 	case LOG_LEVEL_FATAL:
 	  syslog_priority = LOG_ALERT;
 	  break;
+
+	default:
+	  /* FIXME: what to do when the user passes an invalid log
+	     level? -mo */
+	  syslog_priority = LOG_ERR;
+	  break;
 	}
 	  
       vsyslog (LOG_MAKEPRI (LOG_AUTH, syslog_priority), fmt, ap);

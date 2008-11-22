@@ -1,3 +1,9 @@
+2008-11-22  Moritz  <moritz@gnu.org>
+
+	* simplelog.c (internal_log_write): Fallback to log level LOG_ERR
+	in case the caller passes an invalid log level.
+	* support.c: Added <limits.h>, thanks to Peter Lewis.
+
 2008-08-07  Moritz  <moritz@gnu.org>
 
 	* defs.h.in (POLDI_USERS_DB_FILE, POLDI_KEY_DIRECTORY): Removed

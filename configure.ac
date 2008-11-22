@@ -168,6 +168,7 @@ fi
 
 # Native language support:
 AM_GNU_GETTEXT([external])
+AM_GNU_GETTEXT_VERSION(0.17)
 
 #
 # Decide what to build
