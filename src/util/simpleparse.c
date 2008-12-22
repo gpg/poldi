@@ -79,6 +79,12 @@ simpleparse_set_specs (simpleparse_handle_t handle, simpleparse_opt_spec_t *spec
   return 0;
 }
 
+/* This function looks up the specification structure for a long
+   option by it's name in the context of HANDLE.  The name is given as
+   NAME. On success the struct is stored in *SPEC. Returns proper
+   error code. The only non-zero error code returned by this function
+   is GPG_ERR_UNKNOWN_OPTION in case the option requested could not be
+   found. */
 static gpg_error_t
 lookup_opt_spec_long (simpleparse_handle_t handle,
 		      const char *name, simpleparse_opt_spec_t *spec)
@@ -100,6 +106,12 @@ lookup_opt_spec_long (simpleparse_handle_t handle,
   return err;
 }
 
+/* This function looks up the specification structure for a long
+   option by it's short one-letter name in the context of HANDLE.  The
+   name is given as NAME. On success the struct is stored in
+   *SPEC. Returns proper error code. The only non-zero error code
+   returned by this function is GPG_ERR_UNKNOWN_OPTION in case the
+   option requested could not be found. */
 static gpg_error_t
 lookup_opt_spec_short (simpleparse_handle_t handle,
 		       const char name, simpleparse_opt_spec_t *spec)
@@ -293,7 +305,7 @@ internal_parse_args (simpleparse_handle_t handle, unsigned int flags,
 	{
 	  /* Invalid option. */
 	  log_msg_error (handle->loghandle,
-			 translate (handle, N_("invalid option '%s'")), *arg);
+			 translate (handle, N_("unknown option '%s'")), *arg);
 	  break;
 	}
 
@@ -576,26 +588,45 @@ internal_process_tokens (simpleparse_handle_t handle, token_list_t tokens)
 
   err = 0;
 
-  assert ((1 <= tokens.size) && (tokens.size <= 2));
+  assert (1 <= tokens.size);
 
   err = lookup_opt_spec_long (handle, tokens.tokens[0], &spec);
   if (err)
-    goto out;
+    {
+      log_msg_error (handle->loghandle,
+		     translate (handle, N_("unknown option '%s'")), tokens.tokens[0]);
+      goto out;
+    }
 
   switch (spec.arg)
     {
     case SIMPLEPARSE_ARG_NONE:
-      {
-	if (tokens.size != 1)
-	  {
-	    err = gpg_error (GPG_ERR_SYNTAX);
-	    goto out;
-	  }
-	break;
-      }
-    case SIMPLEPARSE_ARG_REQUIRED:
-      if (tokens.size != 2)
+      if (tokens.size > 1)
 	{
+	  log_msg_error (handle->loghandle,
+			 translate (handle,
+				    N_("too many arguments specified for option '%s'")),
+			 tokens.tokens[0]);
+	  err = gpg_error (GPG_ERR_SYNTAX);
+	  goto out;
+	}
+      break;
+    case SIMPLEPARSE_ARG_REQUIRED:
+      if (tokens.size < 2)
+	{
+	  log_msg_error (handle->loghandle,
+			 translate (handle,
+				    N_("missing required argument for '%s'")),
+			 tokens.tokens[0]);
+	  err = gpg_error (GPG_ERR_SYNTAX);
+	  goto out;
+	}
+      else if (tokens.size > 2)
+	{
+	  log_msg_error (handle->loghandle,
+			 translate (handle,
+				    N_("too many arguments specified for option '%s'")),
+			 tokens.tokens[0]);
 	  err = gpg_error (GPG_ERR_SYNTAX);
 	  goto out;
 	}

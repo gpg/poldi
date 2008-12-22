@@ -1,3 +1,14 @@
+2008-12-22  Moritz  <moritz@gnu.org>
+
+	* simpleparse.c (internal_process_tokens): Added error message in
+	case lookup_opt_spec_long returned error.
+	(internal_parse_args): cosmetic change to error message.
+	(internal_process_tokens): Added error message in case required
+	argument is missing.  Added error message in case an unexpected
+	argument is given.
+	(internal_process_tokens): Changed token processing: implement
+	better error handling than simple assert.
+
 2008-11-22  Moritz  <moritz@gnu.org>
 
 	* simplelog.c (internal_log_write): Fallback to log level LOG_ERR
