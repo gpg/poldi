@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: poldi 0.5-cvs\n"
 "Report-Msgid-Bugs-To: gnupg-devel@gnupg.org\n"
-"POT-Creation-Date: 2008-11-22 16:51+0100\n"
+"POT-Creation-Date: 2008-12-22 22:30+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -70,28 +70,30 @@ msgid "Please enter username: "
 msgstr ""
 
 #: src/pam/auth-method-localdb/auth-localdb.c:121
+#: src/pam/auth-method-localdb/auth-localdb.c:123
 #, c-format
 msgid "Trying authentication as user `%s'..."
 msgstr ""
 
-#: src/pam/auth-method-localdb/auth-localdb.c:129
+#: src/pam/auth-method-localdb/auth-localdb.c:132
+#: src/pam/auth-method-localdb/auth-localdb.c:135
 #, c-format
 msgid "Serial number %s is not associated with user %s"
 msgstr ""
 
-#: src/pam/auth-method-localdb/auth-localdb.c:145
+#: src/pam/auth-method-localdb/auth-localdb.c:151
 #: src/pam/auth-method-x509/auth-x509.c:553
 #, c-format
 msgid "failed to generate challenge: %s"
 msgstr ""
 
-#: src/pam/auth-method-localdb/auth-localdb.c:157
+#: src/pam/auth-method-localdb/auth-localdb.c:163
 #: src/pam/auth-method-x509/auth-x509.c:565
 #, c-format
 msgid "failed to retrieve challenge signature from card: %s"
 msgstr ""
 
-#: src/pam/auth-method-localdb/auth-localdb.c:167
+#: src/pam/auth-method-localdb/auth-localdb.c:173
 msgid "failed to verify challenge"
 msgstr ""
 
@@ -269,31 +271,31 @@ msgstr ""
 msgid "failed to retrieve username from PAM: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:480
+#: src/pam/pam_poldi.c:482 src/pam/pam_poldi.c:483
 #, c-format
 msgid "Waiting for card for user `%s'..."
 msgstr ""
 
-#: src/pam/pam_poldi.c:482
+#: src/pam/pam_poldi.c:488 src/pam/pam_poldi.c:489
 msgid "Waiting for card..."
 msgstr ""
 
-#: src/pam/pam_poldi.c:488
+#: src/pam/pam_poldi.c:496
 #, c-format
 msgid "failed to wait for card insertion: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:501
+#: src/pam/pam_poldi.c:509
 #, c-format
 msgid "connected to card; serial number is: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:539
+#: src/pam/pam_poldi.c:547
 #, c-format
 msgid "authentication failed: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:541
+#: src/pam/pam_poldi.c:549
 msgid "authentication succeeded"
 msgstr ""
 
@@ -344,23 +346,28 @@ msgstr ""
 msgid "connection to scdaemon established"
 msgstr ""
 
-#: src/util/simpleparse.c:137
+#: src/util/simpleparse.c:149
 #, c-format
 msgid "Please report bugs to <%s>.\n"
 msgstr ""
 
-#: src/util/simpleparse.c:296
+#: src/util/simpleparse.c:308 src/util/simpleparse.c:597
 #, c-format
-msgid "invalid option '%s'"
+msgid "unknown option '%s'"
 msgstr ""
 
-#: src/util/simpleparse.c:309 src/util/simpleparse.c:323
-#: src/util/simpleparse.c:340 src/util/simpleparse.c:366
+#: src/util/simpleparse.c:321 src/util/simpleparse.c:335
+#: src/util/simpleparse.c:352 src/util/simpleparse.c:378
 #, c-format
 msgid "parse-callback returned error '%s' for argument '%s'"
 msgstr ""
 
-#: src/util/simpleparse.c:353
+#: src/util/simpleparse.c:365 src/util/simpleparse.c:619
 #, c-format
 msgid "missing required argument for '%s'"
+msgstr ""
+
+#: src/util/simpleparse.c:608 src/util/simpleparse.c:628
+#, c-format
+msgid "too many arguments specified for option '%s'"
 msgstr ""
