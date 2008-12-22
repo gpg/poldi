@@ -2,7 +2,8 @@ Migration from Poldi 0.3
 ========================
 
 Several things have changed with the release of Poldi 0.4.  This
-document explains how to upgrade smoothly from Poldi 0.3 to Poldi 0.4.
+document explains how to upgrade smoothly from Poldi 0.3 to Poldi 0.4
+or greater.
 
 * Authentication Methods
 
@@ -32,3 +33,21 @@ document explains how to upgrade smoothly from Poldi 0.3 to Poldi 0.4.
   Some paths have changed since Poldi 0.3. In particular:
   ${sysconfdir}/poldi/keys -> ${sysconfdir}/poldi/localdb/keys
   ${sysconfdir}/poldi/users -> ${sysconfdir}/poldi/localdb/users
+
+* Lost configuration options
+
+  Having unimplemented options in Poldis configuration file causes
+  Poldi to bail out during initialization. Note that the following
+  configuration options have been removed during the development of
+  Poldi 0.4:
+
+  - "debug-sc"
+  - "ctapi-driver"
+  - "pcsc-driver"
+  - "reader-port"
+  - "disable-ccid"
+  - "debug-ccid-driver"
+  - "disable-opensc"
+  - "fake-wait-for-card"
+  - "require-card-switch"
+  - "wait-timeout"
