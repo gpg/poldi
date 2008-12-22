@@ -1,5 +1,7 @@
 2008-12-22  Moritz  <moritz@gnu.org>
 
+	* configure.ac: Change version number to 0.4.1.
+
 	* MIGRATION: added notes in respect to configuration options
 	removed during development.
 	* BUGS: The bug in scdaemon in respect to card changes seems to be
