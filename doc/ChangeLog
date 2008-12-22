@@ -1,3 +1,7 @@
+2008-12-22  Moritz  <moritz@gnu.org>
+
+	* poldi.texi (Overview): Use footnotes plus cosmetic change.
+
 2008-04-20  Moritz  <moritz@gnu.org>
 
 	* poldi.texi: Several smaller fixes.

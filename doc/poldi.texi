@@ -95,10 +95,10 @@ section entitled ``Copying''.
 @chapter Overview
 
 Poldi is a PAM module implementing challenge/response based
-authentication through the OpenPGP smartcard
-(http://www.g10code.de/p-card.html).  It makes use of several GnuPG
-components (Libgcrypt, Assuan, Scdaemon, Dirmngr) and currently supports two
-authentication methods:
+authentication through the OpenPGP
+smartcard@footnote{http://www.g10code.de/p-card.html}.  It makes use of
+several GnuPG components@footnote{Libgcrypt, Assuan, Scdaemon, Dirmngr}
+and currently supports two authentication methods:
 
 @table @asis
 @item ``local-database'' authentication method
@@ -136,10 +136,9 @@ computer, figuring out the desired identity for the login and finally
 doing challenge/response authentication against the local key.
 
 Poldi maintains a database, which associates local user accounts with
-smartcards (through their serial number).  There are little
-restrictions in respect to the mapping of users and smartcards: one
-smartcard can be associated with many users and one user can be
-associated with many smartcards.
+smartcards (through their serial number).  One smartcard can be
+associated with many users and one user can be associated with many
+smartcards.
 
 The public keys are stored in files in a subdirectory named
 ``keys''. The files are named after the card serial numbers and must

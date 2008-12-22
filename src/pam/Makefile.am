@@ -65,7 +65,7 @@ pam_poldi.so: libpam_poldi.a $(AUTH_METHODS_LIBS) auth-support/libpam-poldi-auth
 		libpam_poldi.a \
 		$(AUTH_METHODS_LIBS) auth-support/libpam-poldi-auth-support.a \
 		../scd/libscd_shared.a ../util/libpoldi-util_shared.a ../assuan/libassuan.a \
-		$(LIBGCRYPT_LDFLAGS) $(LIBGCRYPT_LIBS) $(KSBA_LIBS)
+		$(LIBGCRYPT_LIBS) $(KSBA_LIBS)
 
 all-local: pam_poldi.so
 

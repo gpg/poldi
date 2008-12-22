@@ -1,3 +1,8 @@
+2008-12-22  Moritz  <moritz@gnu.org>
+
+	* auth-localdb.c (auth_method_localdb_auth_do): Be more verbose in
+	debugging mode.
+
 2008-08-07  Moritz  <moritz@gnu.org>
 
 	* usersdb.c: Include defs-localdb.h instead of util/defs.h.

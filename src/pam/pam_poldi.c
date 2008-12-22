@@ -477,9 +477,17 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   /*** Wait for card insertion.  ***/
 
   if (pam_username)
-    conv_tell (ctx->conv, _("Waiting for card for user `%s'..."), pam_username);
+    {
+      if (ctx->debug)
+	log_msg_debug (ctx->loghandle, _("Waiting for card for user `%s'..."), pam_username);
+      conv_tell (ctx->conv, _("Waiting for card for user `%s'..."), pam_username);
+    }
   else
-    conv_tell (ctx->conv, _("Waiting for card..."));
+    {
+      if (ctx->debug)
+	log_msg_debug (ctx->loghandle, _("Waiting for card..."));
+      conv_tell (ctx->conv, _("Waiting for card..."));
+    }
 
   err = wait_for_card (ctx->scd, 0);
   if (err)

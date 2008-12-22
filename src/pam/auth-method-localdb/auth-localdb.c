@@ -117,14 +117,20 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
     username = username_desired;
 
   if (ctx->debug)
-    conv_tell (ctx->conv,
-	       _("Trying authentication as user `%s'..."), username);
+    log_msg_debug (ctx->conv,
+		   _("Trying authentication as user `%s'..."), username);
+  conv_tell (ctx->conv,
+	     _("Trying authentication as user `%s'..."), username);
 
   /* Verify (again) that the given account is associated with the
      serial number.  */
   err = usersdb_check (ctx->cardinfo.serialno, username);
   if (err)
     {
+      if (ctx->debug)
+	log_msg_debug (ctx->loghandle,
+		       _("Serial number %s is not associated with user %s"),
+		       ctx->cardinfo.serialno, username);
       conv_tell (ctx->conv,
 		 _("Serial number %s is not associated with user %s"),
 		 ctx->cardinfo.serialno, username);

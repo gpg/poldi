@@ -1,3 +1,11 @@
+2008-12-22  Moritz  <moritz@gnu.org>
+
+	* pam_poldi.c (pam_sm_authenticate): Be more verbose in debugging
+	mode.
+
+	* Makefile.am (pam_poldi.so): Removed $(LIBGCRYPT_LDFLAGS); it's
+	not used in libgcrypt.m4.
+
 2008-08-17  Moritz  <moritz@gnu.org>
 
 	* pam_poldi.c (pam_sm_authenticate): Removed code related to
