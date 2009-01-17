@@ -1,5 +1,5 @@
 /* ctx.h - Poldi context structure.
-   Copyright (C) 2008 g10 Code GmbH
+   Copyright (C) 2008, 2009 g10 Code GmbH
  
    This file is part of Poldi.
  
@@ -63,6 +63,9 @@ struct poldi_ctx_s
   int debug;			/* Debug flag.  If true, functions
 				   should emmit debugging
 				   messages.  */
+
+  int quiet;			/* Be more quiet during PAM
+				   conversation with user. */
 
   /* Scdaemon. */
   char *scdaemon_program;	/* Path of Scdaemon program to execute.  */

@@ -1,3 +1,11 @@
+2009-01-17  Moritz  <moritz@gnu.org>
+
+	* pam_poldi.c (enum opt_ids): New entry: opt_quiet.
+	(opt_specs): New entry for opt_quiet.
+	(pam_poldi_options_cb): Parse quiet option.
+	(pam_sm_authenticate): Skip calls to conv_tell in case ctx->quiet
+	is true. Thanks, Gordian.
+
 2008-12-22  Moritz  <moritz@gnu.org>
 
 	* pam_poldi.c (pam_sm_authenticate): Be more verbose in debugging

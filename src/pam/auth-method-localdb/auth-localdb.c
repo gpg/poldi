@@ -1,5 +1,5 @@
 /* auth-localdb.c - localdb authentication method for Poldi.
-   Copyright (C) 2004, 2005, 2007, 2008 g10 Code GmbH
+   Copyright (C) 2004, 2005, 2007, 2008, 2009 g10 Code GmbH
  
    This file is part of Poldi.
  
@@ -119,8 +119,9 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
   if (ctx->debug)
     log_msg_debug (ctx->conv,
 		   _("Trying authentication as user `%s'..."), username);
-  conv_tell (ctx->conv,
-	     _("Trying authentication as user `%s'..."), username);
+  if (!ctx->quiet)
+    conv_tell (ctx->conv,
+	       _("Trying authentication as user `%s'..."), username);
 
   /* Verify (again) that the given account is associated with the
      serial number.  */

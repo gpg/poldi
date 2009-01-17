@@ -1,5 +1,16 @@
                                                                 -*- outline -*-
 
+Changes since version 0.4.1:
+
+* New option "quiet"
+  Added a new option "quiet", which causes Poldi to skip most of the
+  PAM info messages during authentication.  Careful: the exact
+  semantics of this option might change.  Primarily this is a
+  workaround for programs like GDM, which collect these info messages
+  and put them in a dialog box with an OK-button.  When using e.g. GDM
+  with the quiet option, authentication should work without any
+  interaction.
+
 Changes since version 0.3:
 
 * Many parts have been rewritten and/or reorganized

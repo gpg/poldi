@@ -1,5 +1,5 @@
 /* pam_poldi.c - PAM authentication via OpenPGP smartcards.
-   Copyright (C) 2004, 2005, 2007, 2008 g10 Code GmbH
+   Copyright (C) 2004, 2005, 2007, 2008, 2009 g10 Code GmbH
  
    This file is part of Poldi.
  
@@ -80,7 +80,8 @@ enum opt_ids
     opt_logfile,
     opt_auth_method,
     opt_debug,
-    opt_scdaemon_program
+    opt_scdaemon_program,
+    opt_quiet
   };
 
 /* Full specifications for options. */
@@ -94,6 +95,8 @@ static simpleparse_opt_spec_t opt_specs[] =
       0, SIMPLEPARSE_ARG_NONE,     0, "Enable debugging mode" },
     { opt_scdaemon_program, "scdaemon-program",
       0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify scdaemon executable to use" },
+    { opt_quiet, "quiet",
+      0, SIMPLEPARSE_ARG_NONE, 0, "Be more quiet during PAM conversation with user" },
     { 0 }
   };
 
@@ -167,6 +170,11 @@ pam_poldi_options_cb (void *cookie, simpleparse_opt_spec_t spec, const char *arg
       /* DEBUG.  */
       ctx->debug = 1;
       log_set_min_level (ctx->loghandle, LOG_LEVEL_DEBUG);
+    }
+  else if (!strcmp (spec.long_opt, "quiet"))
+    {
+      /* QUIET.  */
+      ctx->quiet = 1;
     }
 
   return gpg_error (err);
@@ -480,13 +488,15 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
     {
       if (ctx->debug)
 	log_msg_debug (ctx->loghandle, _("Waiting for card for user `%s'..."), pam_username);
-      conv_tell (ctx->conv, _("Waiting for card for user `%s'..."), pam_username);
+      if (!ctx->quiet)
+	conv_tell (ctx->conv, _("Waiting for card for user `%s'..."), pam_username);
     }
   else
     {
       if (ctx->debug)
 	log_msg_debug (ctx->loghandle, _("Waiting for card..."));
-      conv_tell (ctx->conv, _("Waiting for card..."));
+      if (!ctx->quiet)
+	conv_tell (ctx->conv, _("Waiting for card..."));
     }
 
   err = wait_for_card (ctx->scd, 0);
