@@ -1,3 +1,8 @@
+2009-02-16  Moritz  <moritz@gnu.org>
+
+	* poldi.texi (Configuration): Documentation bug fix: the option is
+	named "log-file", not "logfile". Thanks, Malte.
+
 2008-12-22  Moritz  <moritz@gnu.org>
 
 	* poldi.texi (Overview): Use footnotes plus cosmetic change.

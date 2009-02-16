@@ -231,7 +231,7 @@ the PAM configuration files as arguments to the Poldi PAM module (with
 standard doubledash notation).
 
 @table @code
-@item logfile FILENAME
+@item log-file FILENAME
 Specify the file to use for log messages.
 @item auth-method AUTH-METHOD
 Specify the authentication method to use.  May be either ``localdb
