@@ -325,7 +325,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     _("failed to parse configuration file: %s"),
+		     _("failed to parse configuration file '%s': %s"),
+		     POLDI_CONF_FILE,
 		     gpg_strerror (err));
       goto out;
     }

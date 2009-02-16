@@ -1,3 +1,8 @@
+2009-02-16  Moritz  <moritz@gnu.org>
+
+	* pam_poldi.c (pam_sm_authenticate): Include name of the file that
+	could not be opened in error message.
+
 2009-01-17  Moritz  <moritz@gnu.org>
 
 	* pam_poldi.c (enum opt_ids): New entry: opt_quiet.
