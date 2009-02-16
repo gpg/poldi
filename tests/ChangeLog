@@ -1,3 +1,10 @@
+2009-02-16  Moritz  <moritz@gnu.org>
+
+	* README: Cosmetic change.
+	* pam-test.c (print_help): Cosmetic change.
+	(PROGRAM_VERSION): New symbol..
+	(print_version): use it here.
+
 2008-11-22  Moritz  <moritz@gnu.org>
 
 	* README: Improved.

@@ -1,5 +1,5 @@
 /* pam-test.c - simple PAM authentication test program
-   Copyright (C) 2007 g10 Code GmbH
+   Copyright (C) 2007, 2009 g10 Code GmbH
  
    This file is part of Poldi.
  
@@ -29,7 +29,8 @@
 
 
 
-#define PROGRAM_NAME "pam-test"
+#define PROGRAM_NAME    "pam-test"
+#define PROGRAM_VERSION "0.2"
 
 /* Use the standard conversation function from libpam-misc. */
 static struct pam_conv conv =
@@ -42,7 +43,7 @@ static void
 print_help (void)
 {
   printf ("\
-Usage: %s [options] <service name>\n\
+Usage: %s [options] <PAM service name>\n\
 Test PAM authentication.\n\
 \n\
 Options:\n\
@@ -56,7 +57,7 @@ Report bugs to <moritz@gnu.org>.\n", PROGRAM_NAME);
 static void
 print_version (void)
 {
-  printf ("pam-test 0.1\n");
+  printf (PROGRAM_NAME " " PROGRAM_VERSION "\n");
 }
 
 static void
