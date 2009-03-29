@@ -597,6 +597,15 @@ At least the standard greeter can be used with Poldi just fine; the
 graphical greeter obviously asks for usernames prior to triggering PAM
 authentication.
 
+@node XScreensaver
+@section XScreensaver
+
+XScreensaver (at least Version >= 5.07, possibly earlier versions too)
+works quiet well with Poldi authentication.  By combining SCDaemons
+~/.gnupg/scd-event mechanism with the xscreensaver-command program, one
+can easily setup an environment in which the card-removal event triggers
+screen locking and the card-insertion event triggers screen unlocking.
+
 @node xdm
 @section xdm
 

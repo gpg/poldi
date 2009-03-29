@@ -1,5 +1,6 @@
 2009-02-16  Moritz  <moritz@gnu.org>
 
+	* parse-test.c: Added comment.
 	* README: Cosmetic change.
 	* pam-test.c (print_help): Cosmetic change.
 	(PROGRAM_VERSION): New symbol..

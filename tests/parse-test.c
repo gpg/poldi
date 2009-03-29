@@ -1,5 +1,5 @@
 /* parse-test.c - test program for simpleparse.
-   Copyright (C) 2008 g10 Code GmbH
+   Copyright (C) 2008, 2009 g10 Code GmbH
  
    This file is part of Poldi.
  
@@ -16,8 +16,11 @@
    You should have received a copy of the GNU General Public License
    along with this program; if not, see
    <http://www.gnu.org/licenses/>.  */
- 
 
+/* For Poldi I wrote a minimalistic library for parsing configuration
+   files and command-line arguments named "simpleparse".  This is a
+   test program for simpleparse.  -mo */
+ 
 #include <assert.h>
 #include <stdio.h>
 #include <stdarg.h>
