@@ -1,3 +1,7 @@
+2009-04-08  Marcus Brinkmann  <marcus@g10code.de>
+
+	* poldi.texi (Notes on Applications): Fix section menu.
+
 2009-03-29  Moritz  <moritz@gnu.org>
 
 	* poldi.texi (XScreensaver): New section.

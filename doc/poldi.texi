@@ -563,6 +563,7 @@ configured to run prior to Poldi.
 * login::
 * su::
 * gdm::
+* XScreensaver::
 * xdm::
 * kdm::
 @end menu
