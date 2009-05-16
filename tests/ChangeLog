@@ -1,3 +1,8 @@
+2009-05-10  Moritz  <moritz@gnu.org>
+
+	* Makefile.am (parse_test_CFLAGS): Use $(GPG_ERROR_CFLAGS).
+	(parse_test_LDADD): Use $(GPG_ERROR_LIBS) and $(LIBGCRYPT_LIBS).
+
 2009-02-16  Moritz  <moritz@gnu.org>
 
 	* parse-test.c: Added comment.

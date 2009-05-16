@@ -1,4 +1,4 @@
-# Copyright (C) 2008 g10 Code GmbH
+# Copyright (C) 2008, 2009 g10 Code GmbH
 #
 # This file is part of Poldi.
 #
@@ -20,9 +20,10 @@
 noinst_PROGRAMS = parse-test pam-test
 
 parse_test_SOURCES = parse-test.c
-parse_test_CFLAGS = -Wall -I$(top_srcdir)/src/util -I$(top_srcdir)/src
-
-parse_test_LDADD = $(top_builddir)/src/util/libpoldi-util.a -lgcrypt
+parse_test_CFLAGS = -Wall -I$(top_srcdir)/src/util -I$(top_srcdir)/src \
+ $(GPG_ERROR_CFLAGS)
+parse_test_LDADD = $(top_builddir)/src/util/libpoldi-util.a \
+ $(GPG_ERROR_LIBS) $(LIBGCRYPT_LIBS)
 
 pam_test_SOURCES = pam-test.c
 pam_test_CFLAGS = -Wall
