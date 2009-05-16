@@ -1,3 +1,7 @@
+2009-05-16  Moritz  <moritz@gnu.org>
+
+	* ctx.h (struct poldi_ctx_s): New member: modify_environment.
+
 2009-01-17  Moritz  <moritz@gnu.org>
 
 	* ctx.h (struct poldi_ctx_s): New struct member: quiet.

@@ -1,6 +1,6 @@
 /* scd.c - Interface to Scdaemon
    Copyright (C) 2001, 2002, 2005 Free Software Foundation, Inc.
-   Copyright (C) 2007, 2008 g10code GmbH. 
+   Copyright (C) 2007, 2008, 2009 g10code GmbH. 
 
    This file is part of Poldi.
  
@@ -533,6 +533,11 @@ learn_status_cb (void *opaque, const char *line)
     {
       xfree (parm->disp_name);
       parm->disp_name = unescape_status_string (line);
+    }
+  else if (keywordlen == 9 && !memcmp (keyword, "DISP-LANG", keywordlen))
+    {
+      xfree (parm->disp_lang);
+      parm->disp_lang = unescape_status_string (line);
     }
   else if (keywordlen == 10 && !memcmp (keyword, "PUBKEY-URL", keywordlen))
     {

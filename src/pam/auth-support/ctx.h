@@ -63,7 +63,8 @@ struct poldi_ctx_s
   int debug;			/* Debug flag.  If true, functions
 				   should emmit debugging
 				   messages.  */
-
+  int modify_environment;	/* Set Poldi-related variables in the
+				   PAM environment.  */
   int quiet;			/* Be more quiet during PAM
 				   conversation with user. */
 

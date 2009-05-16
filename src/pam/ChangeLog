@@ -1,3 +1,11 @@
+2009-05-16  Moritz  <moritz@gnu.org>
+
+	* pam_poldi.c (enum opt_ids, opt_specs, pam_poldi_options_cb):
+	Implement new option "modify-environment".
+	(modify_environment_putenv, modify_environment): New functions.
+	(pam_sm_authenticate): Call modify_environment() if
+	ctx->modify_environment is true.
+
 2009-02-16  Moritz  <moritz@gnu.org>
 
 	* pam_poldi.c (pam_sm_authenticate): Include name of the file that

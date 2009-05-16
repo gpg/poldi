@@ -1,5 +1,5 @@
 /* scd.h - Interface to Scdaemon
-   Copyright (C) 2007, 2008 g10code GmbH. 
+   Copyright (C) 2007, 2008, 2009 g10code GmbH. 
 
    This file is part of Poldi.
  
@@ -34,6 +34,7 @@ struct scd_cardinfo
   char *disp_name;   /* malloced. */
   char *pubkey_url;  /* malloced. */
   char *login_data;  /* malloced. */
+  char *disp_lang;   /* malloced. */
   char fpr1valid;
   char fpr2valid;
   char fpr3valid;

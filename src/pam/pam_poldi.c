@@ -29,6 +29,7 @@
 
 #define PAM_SM_AUTH
 #include <security/pam_modules.h>
+#include <security/pam_appl.h>
 
 #include "util/simplelog.h"
 #include "util/simpleparse.h"
@@ -81,6 +82,7 @@ enum opt_ids
     opt_auth_method,
     opt_debug,
     opt_scdaemon_program,
+    opt_modify_environment,
     opt_quiet
   };
 
@@ -95,6 +97,8 @@ static simpleparse_opt_spec_t opt_specs[] =
       0, SIMPLEPARSE_ARG_NONE,     0, "Enable debugging mode" },
     { opt_scdaemon_program, "scdaemon-program",
       0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify scdaemon executable to use" },
+    { opt_modify_environment, "modify-environment",
+      0, SIMPLEPARSE_ARG_NONE, 0, "Set Poldi related variables in the PAM environment" },
     { opt_quiet, "quiet",
       0, SIMPLEPARSE_ARG_NONE, 0, "Be more quiet during PAM conversation with user" },
     { 0 }
@@ -170,6 +174,11 @@ pam_poldi_options_cb (void *cookie, simpleparse_opt_spec_t spec, const char *arg
       /* DEBUG.  */
       ctx->debug = 1;
       log_set_min_level (ctx->loghandle, LOG_LEVEL_DEBUG);
+    }
+  else if (!strcmp (spec.long_opt, "modify-environment"))
+    {
+      /* MODIFY-ENVIRONMENT.  */
+      ctx->modify_environment = 1;
     }
   else if (!strcmp (spec.long_opt, "quiet"))
     {
@@ -262,6 +271,57 @@ destroy_context (poldi_ctx_t ctx)
       /* FIXME: not very consistent: conv is (de-)allocated by caller. -mo */
       xfree (ctx);
     }
+}
+
+
+
+/*
+ * Environment setting.
+ */
+
+static void
+modify_environment_putenv (pam_handle_t *pam_handle, poldi_ctx_t ctx,
+			   const char *name, const char *value)
+{
+  char *str;
+  int ret;
+
+  str = NULL;
+  ret = asprintf (&str, "%s=%s", name, value);
+  if (ret < 0)
+    {
+      log_msg_error (ctx->loghandle,
+		     _("asprintf() failed in modify_environment_putenv(): %s"),
+		     errno);
+      return;
+    }
+
+  ret = pam_putenv (pam_handle, str);
+  if (ret != PAM_SUCCESS)
+    {
+      log_msg_error (ctx->loghandle,
+		     _("pam_putenv() failed in modify_environment_putenv(): %s"),
+		     pam_strerror (pam_handle, ret));
+    }
+  free (str);
+}
+
+static void
+modify_environment (pam_handle_t *pam_handle, poldi_ctx_t ctx)
+{
+  struct scd_cardinfo *cardinfo;
+
+  assert (pam_handle);
+  assert (ctx);
+
+  cardinfo = &ctx->cardinfo;
+
+  modify_environment_putenv (pam_handle, ctx,
+			     "PAM_POLDI_AUTHENTICATED", "");
+  modify_environment_putenv (pam_handle, ctx,
+			     "PAM_POLDI_SERIALNO", cardinfo->serialno);
+  modify_environment_putenv (pam_handle, ctx,
+			     "PAM_POLDI_LANGUAGE", cardinfo->disp_lang);
 }
 
 
@@ -556,8 +616,13 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   /* Log result.  */
   if (err)
     log_msg_error (ctx->loghandle, _("authentication failed: %s"), gpg_strerror (err));
-  else if (ctx->debug)
-    log_msg_debug (ctx->loghandle, _("authentication succeeded"));
+  else
+    {
+      if (ctx->debug)
+	log_msg_debug (ctx->loghandle, _("authentication succeeded"));
+      if (ctx->modify_environment)
+	modify_environment (pam_handle, ctx);
+    }
 
   /* Call authentication method's deinit callback. */
   if ((ctx->auth_method >= 0)
@@ -578,7 +643,6 @@ PAM_EXTERN int
 pam_sm_setcred (pam_handle_t *pam_handle,
 		int flags, int argc, const char **argv)
 {
-  /* FIXME: do we need this?  -mo */
   return PAM_SUCCESS;
 }
 

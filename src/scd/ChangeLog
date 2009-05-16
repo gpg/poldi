@@ -1,3 +1,8 @@
+2009-05-16  Moritz  <moritz@gnu.org>
+
+	* scd.h (struct scd_cardinfo): New member: disp_lang.
+	* scd.c (learn_status_cb): Handle DISP-LANG.
+
 2008-08-08  Moritz  <moritz@gnu.org>
 
 	* scd.c (scd_serialno): Removed debugging message.
