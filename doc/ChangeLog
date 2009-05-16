@@ -1,6 +1,8 @@
 2009-05-16  Moritz  <moritz@gnu.org>
 
 	* poldi.texi (XScreensaver): Added note for GNOME Screensaver.
+	(Configuration): Documented "quiet"-option and
+	"modify-environment"-option.
 
 2009-04-08  Marcus Brinkmann  <marcus@g10code.de>
 

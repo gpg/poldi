@@ -1,5 +1,6 @@
 \input texinfo                  @c -*- Texinfo -*-
-@c Copyright (C) 2000, 2002, 2003, 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+@c Copyright (C) 2000, 2002, 2003, 2004, 2005,
+@c               2007, 2008, 2009 Free Software Foundation, Inc.
 @c 
 @c This file is part of Poldi.
 @c
@@ -25,7 +26,7 @@ This file documents `Poldi'.
 This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 @cite{The Poldi Manual}, for Version @value{VERSION}.
 
-Copyright @copyright{} 2004, 2005, 2006, 2007, 2008 g10 Code GmbH.
+Copyright @copyright{} 2004, 2005, 2006, 2007, 2008, 2009 g10 Code GmbH.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU General Public License as published by the
@@ -63,7 +64,7 @@ This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 @cite{The Poldi Manual}, for Version
 @value{VERSION} of Poldi.
 
-Copyright @copyright{} 2004, 2005, 2006, 2007, 2008 g10 Code GmbH.
+Copyright @copyright{} 2004, 2005, 2006, 2007, 2008, 2009 g10 Code GmbH.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU General Public License as published by the
@@ -238,6 +239,28 @@ Specify the authentication method to use.  May be either ``localdb
 or ``x509''.
 @item debug
 Enable debugging messages.
+@item modify-environment
+This option causes Poldi to add certain Poldi related environment
+variables to the PAM environment.  Currently, the following variables
+are set:
+@table @asis
+@item PAM_POLDI_AUTHENTICATED
+This variable is set to the empty value.
+@item PAM_POLDI_SERIALNO
+This variable is set to the serial number of the card used during
+authentication.
+@item PAM_POLDI_LANG
+This variable is set to the value of the LANG data field.  Please note
+that the exact semantics of this might change in the future.
+@end table
+@item quiet
+This option causes Poldi to skip most of the
+PAM info messages during authentication.  Careful: the exact
+semantics of this option might change.  Primarily this is a
+workaround for programs like GDM, which collect these info messages
+and put them in a dialog box with an OK-button.  When using e.g. GDM
+with the quiet option, authentication should work without any
+interaction.
 @end table
 
 Further configuration depends on the authentication method to use.
@@ -602,7 +625,7 @@ authentication.
 @section XScreensaver
 
 XScreensaver (at least Version >= 5.07, possibly earlier versions too)
-works quiet well with Poldi authentication.  By combining SCDaemons
+works quite well with Poldi authentication.  By combining SCDaemons
 ~/.gnupg/scd-event mechanism with the xscreensaver-command program, one
 can easily setup an environment in which the card-removal event triggers
 screen locking and the card-insertion event triggers screen unlocking.
