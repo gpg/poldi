@@ -245,7 +245,7 @@ fi
 if test "$have_ksba" = "no"; then
    AC_MSG_NOTICE([[
 ***
-*** libksba not found, building with X.509 authentication support.
+*** libksba not found, building without X.509 authentication support.
 *** libksba can be retrieved from:
 ***   URL FIXME
 *** (at least version $NEED_KSBA_VERSION (API $NEED_KSBA_API) is required).

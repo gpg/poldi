@@ -1,3 +1,11 @@
+2009-08-03  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Fixed no-x.509 notice.  Reported by Lionel Elie
+	Mamane.
+
+	* AUTHORS: Clarify used license.
+	* COPYING: Change to GPLv3 version.
+
 2008-08-08  Moritz  <moritz@gnu.org>
 
 	* configure.ac: Bump version number up to 0.4.
