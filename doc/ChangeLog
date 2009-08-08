@@ -1,3 +1,8 @@
+2009-08-08  Moritz  <moritz@gnu.org>
+
+	* poldi.texi (Configuration): Documented scdaemon-program and
+	scdaemon-options.
+
 2009-05-16  Moritz  <moritz@gnu.org>
 
 	* poldi.texi (XScreensaver): Added note for GNOME Screensaver.

@@ -260,6 +260,7 @@ scd_connect (scd_context_t *scd_ctx,
 	     const char *scdaemon_socket,
 	     const char *agent_infostr,
 	     const char *scd_path,
+	     const char *scd_options,
 	     unsigned int flags,
 	     log_handle_t loghandle)
 {
@@ -326,7 +327,7 @@ scd_connect (scd_context_t *scd_ctx,
 	 fallback: spawn a new scdaemon.  */
 
       const char *pgmname;
-      const char *argv[3];
+      const char *argv[5];
       int no_close_list[3];
       int i;
 
@@ -350,9 +351,17 @@ scd_connect (scd_context_t *scd_ctx,
       else
         pgmname++;
 
-      argv[0] = pgmname;
-      argv[1] = "--server";
-      argv[2] = NULL;
+      /* Fill argument vector for scdaemon.  */
+
+      i = 0;
+      argv[i++] = pgmname;
+      argv[i++] = "--server";
+      if (scd_options)
+	{
+	  argv[i++] = "--options";
+	  argv[i++] = scd_options;
+	}
+      argv[i++] = NULL;
 
       i=0;
 
@@ -362,6 +371,8 @@ scd_connect (scd_context_t *scd_ctx,
       if (log_get_fd () != -1)
         no_close_list[i++] = log_get_fd ();
 #endif
+
+      /* FIXME: What about stderr? */
       no_close_list[i++] = fileno (stderr);
       no_close_list[i] = -1;
 

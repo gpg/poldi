@@ -82,6 +82,7 @@ enum opt_ids
     opt_auth_method,
     opt_debug,
     opt_scdaemon_program,
+    opt_scdaemon_options,
     opt_modify_environment,
     opt_quiet
   };
@@ -97,6 +98,8 @@ static simpleparse_opt_spec_t opt_specs[] =
       0, SIMPLEPARSE_ARG_NONE,     0, "Enable debugging mode" },
     { opt_scdaemon_program, "scdaemon-program",
       0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify scdaemon executable to use" },
+    { opt_scdaemon_options, "scdaemon-options",
+      0, SIMPLEPARSE_ARG_REQUIRED, 0, "Specify scdaemon configuration file to use" },
     { opt_modify_environment, "modify-environment",
       0, SIMPLEPARSE_ARG_NONE, 0, "Set Poldi related variables in the PAM environment" },
     { opt_quiet, "quiet",
@@ -151,6 +154,20 @@ pam_poldi_options_cb (void *cookie, simpleparse_opt_spec_t spec, const char *arg
 	  log_msg_error (ctx->loghandle,
 			 _("failed to duplicate %s: %s"),
 			 "scdaemon program name",
+			 gpg_strerror (err));
+	}
+    }
+  else if (!strcmp (spec.long_opt, "scdaemon-options"))
+    {
+      /* SCDAEMON-OPTIONS.  */
+
+      ctx->scdaemon_options = strdup (arg);
+      if (!ctx->scdaemon_options)
+	{
+	  err = gpg_error_from_errno (errno);
+	  log_msg_error (ctx->loghandle,
+			 _("failed to duplicate %s: %s"),
+			 "scdaemon options name",
 			 gpg_strerror (err));
 	}
     }
@@ -266,6 +283,7 @@ destroy_context (poldi_ctx_t ctx)
       simpleparse_destroy (ctx->parsehandle);
       log_destroy (ctx->loghandle);
       xfree (ctx->scdaemon_program);
+      xfree (ctx->scdaemon_options);
       scd_disconnect (ctx->scd);
       scd_release_cardinfo (ctx->cardinfo);
       /* FIXME: not very consistent: conv is (de-)allocated by caller. -mo */
@@ -533,7 +551,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
   err = scd_connect (&scd_ctx,
 		     NULL, getenv ("GPG_AGENT_INFO"),
-		     ctx->scdaemon_program, 0, ctx->loghandle);
+		     ctx->scdaemon_program, ctx->scdaemon_options,
+		     0, ctx->loghandle);
   if (err)
     goto out;
 
@@ -550,14 +569,14 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
       if (ctx->debug)
 	log_msg_debug (ctx->loghandle, _("Waiting for card for user `%s'..."), pam_username);
       if (!ctx->quiet)
-	conv_tell (ctx->conv, _("Waiting for card for user `%s'..."), pam_username);
+	conv_tell (ctx->conv, _("Insert authentication card for user `%s'"), pam_username);
     }
   else
     {
       if (ctx->debug)
 	log_msg_debug (ctx->loghandle, _("Waiting for card..."));
       if (!ctx->quiet)
-	conv_tell (ctx->conv, _("Waiting for card..."));
+	conv_tell (ctx->conv, _("Insert authentication card"));
     }
 
   err = wait_for_card (ctx->scd, 0);

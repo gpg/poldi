@@ -337,7 +337,7 @@ main (int argc, char **argv)
   /* Connect to scdaemon. */
 
   err = scd_connect (&scd_ctx, NULL, getenv ("GPG_AGENT_INFO"),
-		     NULL, 0, loghandle);
+		     NULL, NULL, 0, loghandle);
   if (err)
     {
       log_msg_error (loghandle, _("failed to connect to scdaemon: %s"),

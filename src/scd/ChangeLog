@@ -1,3 +1,9 @@
+2009-08-08  Moritz  <moritz@gnu.org>
+
+	* scd.h (scd_connect): Declared new parameter: scd_options.
+	* scd.c (scd_connect): Enlarge argv and fill it with options
+	related arguments.
+
 2009-05-16  Moritz  <moritz@gnu.org>
 
 	* scd.h (struct scd_cardinfo): New member: disp_lang.

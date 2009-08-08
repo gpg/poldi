@@ -229,16 +229,20 @@ seperated by a whitespace - one such configuration item per line.
 Poldi supports the following authentication method independent
 options, which can be specified in the main configuration file and in
 the PAM configuration files as arguments to the Poldi PAM module (with
-standard doubledash notation).
+standard double-dash notation).
 
 @table @code
 @item log-file FILENAME
 Specify the file to use for log messages.
 @item auth-method AUTH-METHOD
-Specify the authentication method to use.  May be either ``localdb
+Specify the authentication method to use.  May be either ``localdb''
 or ``x509''.
 @item debug
 Enable debugging messages.
+@item scdaemon-program
+Specify scdaemon executable to use.
+@item scdaemon-options
+Specify scdaemon configuration file to use.
 @item modify-environment
 This option causes Poldi to add certain Poldi related environment
 variables to the PAM environment.  Currently, the following variables

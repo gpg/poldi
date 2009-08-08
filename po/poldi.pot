@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: poldi 0.4.1\n"
+"Project-Id-Version: poldi 0.4.2-cvs\n"
 "Report-Msgid-Bugs-To: gnupg-devel@gnupg.org\n"
-"POT-Creation-Date: 2008-12-22 22:59+0100\n"
+"POT-Creation-Date: 2009-08-08 15:48+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -70,30 +70,30 @@ msgid "Please enter username: "
 msgstr ""
 
 #: src/pam/auth-method-localdb/auth-localdb.c:121
-#: src/pam/auth-method-localdb/auth-localdb.c:123
+#: src/pam/auth-method-localdb/auth-localdb.c:124
 #, c-format
 msgid "Trying authentication as user `%s'..."
 msgstr ""
 
-#: src/pam/auth-method-localdb/auth-localdb.c:132
-#: src/pam/auth-method-localdb/auth-localdb.c:135
+#: src/pam/auth-method-localdb/auth-localdb.c:133
+#: src/pam/auth-method-localdb/auth-localdb.c:136
 #, c-format
 msgid "Serial number %s is not associated with user %s"
 msgstr ""
 
-#: src/pam/auth-method-localdb/auth-localdb.c:151
+#: src/pam/auth-method-localdb/auth-localdb.c:152
 #: src/pam/auth-method-x509/auth-x509.c:553
 #, c-format
 msgid "failed to generate challenge: %s"
 msgstr ""
 
-#: src/pam/auth-method-localdb/auth-localdb.c:163
+#: src/pam/auth-method-localdb/auth-localdb.c:164
 #: src/pam/auth-method-x509/auth-x509.c:565
 #, c-format
 msgid "failed to retrieve challenge signature from card: %s"
 msgstr ""
 
-#: src/pam/auth-method-localdb/auth-localdb.c:173
+#: src/pam/auth-method-localdb/auth-localdb.c:174
 msgid "failed to verify challenge"
 msgstr ""
 
@@ -216,86 +216,106 @@ msgstr ""
 msgid "success"
 msgstr ""
 
-#: src/pam/pam_poldi.c:132 src/pam/pam_poldi.c:145 src/scd/scd.c:124
+#: src/pam/pam_poldi.c:142 src/pam/pam_poldi.c:155 src/pam/pam_poldi.c:169
+#: src/scd/scd.c:124
 #, c-format
 msgid "failed to duplicate %s: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:160
+#: src/pam/pam_poldi.c:184
 #, c-format
 msgid "unknown authentication method '%s'"
 msgstr ""
 
-#: src/pam/pam_poldi.c:320
+#: src/pam/pam_poldi.c:312
 #, c-format
-msgid "failed to parse configuration file: %s"
+msgid "asprintf() failed in modify_environment_putenv(): %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:332
+#: src/pam/pam_poldi.c:321
+#, c-format
+msgid "pam_putenv() failed in modify_environment_putenv(): %s"
+msgstr ""
+
+#: src/pam/pam_poldi.c:406
+#, c-format
+msgid "failed to parse configuration file '%s': %s"
+msgstr ""
+
+#: src/pam/pam_poldi.c:419
 #, c-format
 msgid "failed to parse PAM argument vector: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:361
+#: src/pam/pam_poldi.c:448
 msgid "no authentication method specified"
 msgstr ""
 
-#: src/pam/pam_poldi.c:375
+#: src/pam/pam_poldi.c:462
 #, c-format
 msgid "using authentication method `%s'"
 msgstr ""
 
-#: src/pam/pam_poldi.c:387
+#: src/pam/pam_poldi.c:474
 #, c-format
 msgid "failed to initialize authentication method %i: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:401
+#: src/pam/pam_poldi.c:488
 #, c-format
 msgid ""
 "failed to initialize parsing of configuration file for authentication method "
 "%s: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:422
+#: src/pam/pam_poldi.c:509
 #, c-format
 msgid "failed to parse configuration for authentication method %i: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:441
+#: src/pam/pam_poldi.c:528
 msgid "failed to retrieve PAM conversation structure"
 msgstr ""
 
-#: src/pam/pam_poldi.c:459
+#: src/pam/pam_poldi.c:546
 #, c-format
 msgid "failed to retrieve username from PAM: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:482 src/pam/pam_poldi.c:483
+#: src/pam/pam_poldi.c:570
 #, c-format
 msgid "Waiting for card for user `%s'..."
 msgstr ""
 
-#: src/pam/pam_poldi.c:488 src/pam/pam_poldi.c:489
+#: src/pam/pam_poldi.c:572
+#, c-format
+msgid "Insert authentication card for user `%s'"
+msgstr ""
+
+#: src/pam/pam_poldi.c:577
 msgid "Waiting for card..."
 msgstr ""
 
-#: src/pam/pam_poldi.c:496
+#: src/pam/pam_poldi.c:579
+msgid "Insert authentication card"
+msgstr ""
+
+#: src/pam/pam_poldi.c:586
 #, c-format
 msgid "failed to wait for card insertion: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:509
+#: src/pam/pam_poldi.c:599
 #, c-format
 msgid "connected to card; serial number is: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:547
+#: src/pam/pam_poldi.c:637
 #, c-format
 msgid "authentication failed: %s"
 msgstr ""
 
-#: src/pam/pam_poldi.c:549
+#: src/pam/pam_poldi.c:641
 msgid "authentication succeeded"
 msgstr ""
 
@@ -308,41 +328,41 @@ msgstr ""
 msgid "agent protocol version %d is not supported"
 msgstr ""
 
-#: src/scd/scd.c:197 src/scd/scd.c:925
+#: src/scd/scd.c:197 src/scd/scd.c:941
 #, c-format
 msgid "warning: can't store getinfo data: %s"
 msgstr ""
 
-#: src/scd/scd.c:294
+#: src/scd/scd.c:295
 #, c-format
 msgid "connected to system scdaemon through socket '%s'"
 msgstr ""
 
-#: src/scd/scd.c:314
+#: src/scd/scd.c:315
 #, c-format
 msgid "got scdaemon socket name from gpg-agent, connected to socket '%s'"
 msgstr ""
 
-#: src/scd/scd.c:335
+#: src/scd/scd.c:336
 msgid "no running scdaemon - starting one"
 msgstr ""
 
-#: src/scd/scd.c:341
+#: src/scd/scd.c:342
 #, c-format
 msgid "error flushing pending output: %s"
 msgstr ""
 
-#: src/scd/scd.c:374
+#: src/scd/scd.c:385
 #, c-format
 msgid "spawned a new scdaemon (path: '%s')"
 msgstr ""
 
-#: src/scd/scd.c:381
+#: src/scd/scd.c:392
 #, c-format
 msgid "could not connect to any scdaemon: %s"
 msgstr ""
 
-#: src/scd/scd.c:404
+#: src/scd/scd.c:415
 msgid "connection to scdaemon established"
 msgstr ""
 

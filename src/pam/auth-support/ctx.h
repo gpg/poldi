@@ -70,6 +70,7 @@ struct poldi_ctx_s
 
   /* Scdaemon. */
   char *scdaemon_program;	/* Path of Scdaemon program to execute.  */
+  char *scdaemon_options;	/* Path of Scdaemon configuration file.  */
   scd_context_t scd;		/* Handle for the Scdaemon access
 				   layer.  */
 

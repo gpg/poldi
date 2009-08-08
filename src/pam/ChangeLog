@@ -1,3 +1,9 @@
+2009-08-08  Moritz  <moritz@gnu.org>
+
+	* pam_poldi.c: Implement new option: scdaemon-options.
+	(pam_sm_authenticate): Pass ctx->scdaemon_options to scd_connect().
+	(pam_sm_authenticate): Changed some user messages.
+
 2009-05-16  Moritz  <moritz@gnu.org>
 
 	* pam_poldi.c (enum opt_ids, opt_specs, pam_poldi_options_cb):

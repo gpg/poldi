@@ -5,7 +5,7 @@
 auth-method localdb
 
 # Specify the log file:
-log-file /home/moritz/logs/poldi.txt
+log-file /var/log/poldi
 
 # Enable debugging messages
 debug

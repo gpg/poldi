@@ -1,3 +1,8 @@
+2009-08-08  Moritz  <moritz@gnu.org>
+
+	* poldi-ctrl.c (main): Pass NULL as scd_connect's new scd_options
+	parameter.
+
 2008-08-07  Moritz  <moritz@gnu.org>
 
 	* poldi-ctrl.c (cmd_dump): Removed (disabled) workaround for older

@@ -53,6 +53,7 @@ gpg_error_t scd_connect (scd_context_t *scd_ctx,
 			 const char *scdaemon_socket,
 			 const char *agent_infostr,
 			 const char *scd_path,
+			 const char *scd_options,
 			 unsigned int flags,
 			 log_handle_t loghandle);
 

@@ -1,3 +1,7 @@
+2009-08-08  Moritz  <moritz@gnu.org>
+
+	* poldi.conf.skel: Fixed log-file path.
+
 2008-08-17  Moritz  <moritz@gnu.org>
 
 	* Makefile.am: Added several missing instances of DESTDIR. Thanks
