@@ -1,5 +1,7 @@
 2009-08-08  Moritz  <moritz@gnu.org>
 
+	* THANKS: Updated.
+	* configure.ac (AC_CONFIG_FILES): Added src/util/configure-stamp.
 	* AUTHORS (Homepage): Fixed.
 
 2009-08-03  Werner Koch  <wk@g10code.com>

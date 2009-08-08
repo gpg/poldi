@@ -1,3 +1,9 @@
+2009-08-08  Moritz  <moritz@gnu.org>
+
+	* configure-stamp.in: New file.
+	* Makefile.am (defs.h): Added dependency on configure-stamp.
+	(EXTRA_DIST, CLEANFILES): Added configure-stamp.
+
 2008-12-22  Moritz  <moritz@gnu.org>
 
 	* simpleparse.c (internal_process_tokens): Added error message in

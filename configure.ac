@@ -1,5 +1,5 @@
 # configure.ac - Configure script for Poldi
-# Copyright (C) 2004, 2005, 2007, 2008 g10 Code GmbH
+# Copyright (C) 2004, 2005, 2007, 2008, 2009 g10 Code GmbH
 # 
 # This file is part of Poldi.
 #
@@ -236,6 +236,7 @@ AC_CONFIG_FILES([Makefile
 		 src/Makefile
 		 src/assuan/Makefile
 		 src/util/Makefile
+		 src/util/configure-stamp
 		 src/scd/Makefile
 		 src/ctrl/Makefile
 		 src/pam/Makefile

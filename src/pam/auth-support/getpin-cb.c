@@ -221,7 +221,7 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
       if (err)
 	{
 	  log_msg_error (ctx->loghandle,
-			 _("frob_info_msg failed for info msg of size of size %u\n"),
+			 _("frob_info_msg failed for info msg of size %u\n"),
 			 (unsigned int) strlen (info));
 	  goto out;
 	}
@@ -235,7 +235,7 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
 	err = query_user (ctx, info_frobbed, buf, maxbuf);
       else
 	/* Use string which is more user friendly. */
-	err = query_user (ctx, _("||Please enter the PIN"), buf, maxbuf);
+	err = query_user (ctx, _("Please enter the PIN:"), buf, maxbuf);
     }
   else
     {
@@ -254,7 +254,7 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
 	  if (info_frobbed)
 	    err = keypad_mode_enter (ctx, info_frobbed);
 	  else
-	    err = keypad_mode_enter (ctx, _("||Please enter the PIN"));
+	    err = keypad_mode_enter (ctx, _("Please enter the PIN:"));
 	}
       else
         err = gpg_error (GPG_ERR_INV_VALUE); /* FIXME: must signal

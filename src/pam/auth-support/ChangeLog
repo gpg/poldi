@@ -1,5 +1,6 @@
 2009-08-08  Moritz  <moritz@gnu.org>
 
+	* getpin-cb.c (getpin_cb): Fixed fallback prompts. Thanks to Lionel.
 	* ctx.h (struct poldi_ctx_s): New member: scdaemon_options.
 
 2009-05-16  Moritz  <moritz@gnu.org>

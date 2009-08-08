@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: poldi 0.4-cvs\n"
 "Report-Msgid-Bugs-To: gnupg-devel@gnupg.org\n"
-"POT-Creation-Date: 2008-08-08 01:50+0200\n"
-"PO-Revision-Date: 2008-08-08 01:51+0200\n"
+"POT-Creation-Date: 2009-08-08 18:44+0200\n"
+"PO-Revision-Date: 2009-08-08 18:51+0200\n"
 "Last-Translator: Moritz Schulte <moritz@g10code.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -69,28 +69,30 @@ msgid "Please enter username: "
 msgstr "Bitte Benutzername eingeben: "
 
 #: src/pam/auth-method-localdb/auth-localdb.c:121
+#: src/pam/auth-method-localdb/auth-localdb.c:124
 #, c-format
 msgid "Trying authentication as user `%s'..."
 msgstr "Versuche Authentifizierung als Benutzer '%s'..."
 
-#: src/pam/auth-method-localdb/auth-localdb.c:129
+#: src/pam/auth-method-localdb/auth-localdb.c:133
+#: src/pam/auth-method-localdb/auth-localdb.c:136
 #, c-format
 msgid "Serial number %s is not associated with user %s"
 msgstr "Seriennummer %s ist nicht assoziiert mit Benutzer %s"
 
-#: src/pam/auth-method-localdb/auth-localdb.c:145
+#: src/pam/auth-method-localdb/auth-localdb.c:152
 #: src/pam/auth-method-x509/auth-x509.c:553
 #, c-format
 msgid "failed to generate challenge: %s"
 msgstr "Generierung der Challenge fehlgeschlagen: %s"
 
-#: src/pam/auth-method-localdb/auth-localdb.c:157
+#: src/pam/auth-method-localdb/auth-localdb.c:164
 #: src/pam/auth-method-x509/auth-x509.c:565
 #, c-format
 msgid "failed to retrieve challenge signature from card: %s"
 msgstr "konnte Signatur der Challenge nicht von der Karte empfangen: %s"
 
-#: src/pam/auth-method-localdb/auth-localdb.c:167
+#: src/pam/auth-method-localdb/auth-localdb.c:174
 msgid "failed to verify challenge"
 msgstr "Verifizierung der Challenge fehlgeschlagen"
 
@@ -132,13 +134,12 @@ msgstr "getpin-Callback mit nicht unterstützten Flags in '%s' aufgerufen\n"
 
 #: src/pam/auth-support/getpin-cb.c:224
 #, c-format
-msgid "frob_info_msg failed for info msg of size of size %u\n"
-msgstr "frob_info_msg() fehlgeschlagen für eine Nachricht der Länge %u\n"
+msgid "frob_info_msg failed for info msg of size %u\n"
+msgstr "frob_info_msg fehlgeschlagen für eine Nachricht der Länge %u\n"
 
 #: src/pam/auth-support/getpin-cb.c:238 src/pam/auth-support/getpin-cb.c:257
-#, fuzzy
-msgid "||Please enter the PIN"
-msgstr "Bitte Benutzername eingeben: "
+msgid "Please enter the PIN:"
+msgstr "Bitte PIN eingeben:"
 
 #: src/pam/auth-method-x509/dirmngr.c:153
 #, c-format
@@ -218,96 +219,108 @@ msgstr "fehlgeschlagen: %s"
 msgid "success"
 msgstr "Erfolg"
 
-#: src/pam/pam_poldi.c:135 src/pam/pam_poldi.c:148 src/pam/pam_poldi.c:162
+#: src/pam/pam_poldi.c:142 src/pam/pam_poldi.c:155 src/pam/pam_poldi.c:169
 #: src/scd/scd.c:124
 #, c-format
 msgid "failed to duplicate %s: %s"
 msgstr "Konnte %s nicht duplizieren: %s"
 
-#: src/pam/pam_poldi.c:177
+#: src/pam/pam_poldi.c:184
 #, c-format
 msgid "unknown authentication method '%s'"
 msgstr "unbekannte Authentifikationsmethode '%s'"
 
-#: src/pam/pam_poldi.c:338
+#: src/pam/pam_poldi.c:312
 #, c-format
-msgid "failed to parse configuration file: %s"
-msgstr "Konnte Konfigurationsdatei nicht lesen: %s"
+msgid "asprintf() failed in modify_environment_putenv(): %s"
+msgstr "asprintf() in modify_environment_putenv() fehlgeschlagen: %s"
 
-#: src/pam/pam_poldi.c:350
+#: src/pam/pam_poldi.c:321
+#, c-format
+msgid "pam_putenv() failed in modify_environment_putenv(): %s"
+msgstr "pam_putenv() in modify_environment_putenv() fehlgeschlagen: %s"
+
+#: src/pam/pam_poldi.c:406
+#, c-format
+msgid "failed to parse configuration file '%s': %s"
+msgstr "Lesen der Konfigurationsdatei '%s' fehlgeschlagen: %s"
+
+#: src/pam/pam_poldi.c:419
 #, c-format
 msgid "failed to parse PAM argument vector: %s"
 msgstr "Auswertung des PAM Argumentvektors fehlgeschlagen: %s"
 
-#: src/pam/pam_poldi.c:379
+#: src/pam/pam_poldi.c:448
 msgid "no authentication method specified"
 msgstr "Keine Authentifikationsmethode spezifiziert"
 
-#: src/pam/pam_poldi.c:393
+#: src/pam/pam_poldi.c:462
 #, c-format
 msgid "using authentication method `%s'"
 msgstr "benutze Authentifikationsmethode '%s'"
 
-#: src/pam/pam_poldi.c:397
-#, c-format
-msgid "using system scdaemon; socket is '%s'"
-msgstr "benutze System-Scdaaemon; Socket ist '%s'"
-
-#: src/pam/pam_poldi.c:409
+#: src/pam/pam_poldi.c:474
 #, c-format
 msgid "failed to initialize authentication method %i: %s"
 msgstr "Initialisierung der Authentifikationsmethode %i fehlgeschlagen: %s"
 
-#: src/pam/pam_poldi.c:423
+#: src/pam/pam_poldi.c:488
 #, c-format
 msgid ""
 "failed to initialize parsing of configuration file for authentication method "
 "%s: %s"
-msgstr ""
-"konnte Auswertung der Konfigurationsdatei für die Authentifikationsmethode %"
-"s nicht beginnen: %s"
+msgstr "konnte Auswertung der Konfigurationsdatei für die Authentifikationsmethode %s nicht beginnen: %s"
 
-#: src/pam/pam_poldi.c:444
+#: src/pam/pam_poldi.c:509
 #, c-format
 msgid "failed to parse configuration for authentication method %i: %s"
 msgstr ""
 "konnte Konfigurationsdatei für die Authentifikationsmethode %i nicht lesen: %"
 "s"
 
-#: src/pam/pam_poldi.c:463
+#: src/pam/pam_poldi.c:528
 msgid "failed to retrieve PAM conversation structure"
 msgstr "konnte PAM conversation-structure nicht empfangen"
 
-#: src/pam/pam_poldi.c:481
+#: src/pam/pam_poldi.c:546
 #, c-format
 msgid "failed to retrieve username from PAM: %s"
 msgstr "konnte Benutzername nicht von PAM empfangen: %s"
 
-#: src/pam/pam_poldi.c:502
+#: src/pam/pam_poldi.c:570
 #, c-format
 msgid "Waiting for card for user `%s'..."
 msgstr "Warte auf Karte für Benutzer '%s'..."
 
-#: src/pam/pam_poldi.c:504
+#: src/pam/pam_poldi.c:572
+#, c-format
+msgid "Insert authentication card for user `%s'"
+msgstr "Bitte Authentifikationskarte für Benutzer '%s' einlegen"
+
+#: src/pam/pam_poldi.c:577
 msgid "Waiting for card..."
 msgstr "Warte auf Karte..."
 
-#: src/pam/pam_poldi.c:510
+#: src/pam/pam_poldi.c:579
+msgid "Insert authentication card"
+msgstr "Bitte Authentifikationsschlüssel einlegen"
+
+#: src/pam/pam_poldi.c:586
 #, c-format
 msgid "failed to wait for card insertion: %s"
 msgstr "Warten auf Karte fehlgeschlagen: %s"
 
-#: src/pam/pam_poldi.c:523
+#: src/pam/pam_poldi.c:599
 #, c-format
 msgid "connected to card; serial number is: %s"
 msgstr "Verbunden zur Karte; Seriennummer ist: '%s'"
 
-#: src/pam/pam_poldi.c:561
+#: src/pam/pam_poldi.c:637
 #, c-format
 msgid "authentication failed: %s"
 msgstr "Authentifikation fehlgeschlagen: %s"
 
-#: src/pam/pam_poldi.c:563
+#: src/pam/pam_poldi.c:641
 msgid "authentication succeeded"
 msgstr "Authentifikation erfolgreich"
 
@@ -320,65 +333,73 @@ msgstr "syntaktisch ungültige GPG_AGENT_INFO Umgebungsvariable"
 msgid "agent protocol version %d is not supported"
 msgstr "Agent-Protokoll Version %d ist nicht unterstützt"
 
-#: src/scd/scd.c:197 src/scd/scd.c:925
+#: src/scd/scd.c:197 src/scd/scd.c:941
 #, c-format
 msgid "warning: can't store getinfo data: %s"
 msgstr "Warnung: konnte GETINFO Daten nicht speichern: %s"
 
-#: src/scd/scd.c:294
+#: src/scd/scd.c:295
 #, c-format
 msgid "connected to system scdaemon through socket '%s'"
 msgstr "über den Socket '%s' zu System Scdaemon verbunden"
 
-#: src/scd/scd.c:314
+#: src/scd/scd.c:315
 #, c-format
 msgid "got scdaemon socket name from gpg-agent, connected to socket '%s'"
 msgstr ""
 "Scdaemon Socket Namen über GPG-Agent empfangen, verbunden mit Socket '%s'"
 
-#: src/scd/scd.c:335
+#: src/scd/scd.c:336
 msgid "no running scdaemon - starting one"
 msgstr "Kein aktiver Scdaemon - starte einen"
 
-#: src/scd/scd.c:341
+#: src/scd/scd.c:342
 #, c-format
 msgid "error flushing pending output: %s"
 msgstr "konnte wartende Ausgabe nicht schreiben: %s"
 
-#: src/scd/scd.c:374
+#: src/scd/scd.c:385
 #, c-format
 msgid "spawned a new scdaemon (path: '%s')"
 msgstr "neuer Scdaemon gestartet (Pfad: '%s')"
 
-#: src/scd/scd.c:381
+#: src/scd/scd.c:392
 #, c-format
 msgid "could not connect to any scdaemon: %s"
 msgstr "Verbinden zu Scdaemon fehlgeschlagen: %s"
 
-#: src/scd/scd.c:404
+#: src/scd/scd.c:415
 msgid "connection to scdaemon established"
 msgstr "Verbindung zu Scdaemon hergestellt"
 
-#: src/util/simpleparse.c:137
+#: src/util/simpleparse.c:149
 #, c-format
 msgid "Please report bugs to <%s>.\n"
 msgstr "Bitte sende Fehlerberichte an <%s>.\n"
 
-#: src/util/simpleparse.c:296
+#: src/util/simpleparse.c:308 src/util/simpleparse.c:597
 #, c-format
-msgid "invalid option '%s'"
-msgstr "ungültige Option '%s'"
+msgid "unknown option '%s'"
+msgstr "unbekannte Option '%s'"
 
-#: src/util/simpleparse.c:309 src/util/simpleparse.c:323
-#: src/util/simpleparse.c:340 src/util/simpleparse.c:366
+#: src/util/simpleparse.c:321 src/util/simpleparse.c:335
+#: src/util/simpleparse.c:352 src/util/simpleparse.c:378
 #, c-format
 msgid "parse-callback returned error '%s' for argument '%s'"
 msgstr "parse-Callback hat Fehler '%s' für das Argument '%s' zurückgegeben"
 
-#: src/util/simpleparse.c:353
+#: src/util/simpleparse.c:365 src/util/simpleparse.c:619
 #, c-format
 msgid "missing required argument for '%s'"
 msgstr "fehlendes notwendiges Argument für '%s'"
+
+#: src/util/simpleparse.c:608 src/util/simpleparse.c:628
+#, c-format
+msgid "too many arguments specified for option '%s'"
+msgstr "zu viele Argumente für Options '%s' angegeben"
+
+#~ msgid "using system scdaemon; socket is '%s'"
+#~ msgstr "benutze System-Scdaaemon; Socket ist '%s'"
 
 #~ msgid "Please enter PIN on keypad"
 #~ msgstr "Bitte PIN auf der Tastatur des Kartenlesers eingeben"
