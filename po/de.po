@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: poldi 0.4-cvs\n"
 "Report-Msgid-Bugs-To: gnupg-devel@gnupg.org\n"
 "POT-Creation-Date: 2009-08-08 18:44+0200\n"
-"PO-Revision-Date: 2009-08-08 18:51+0200\n"
+"PO-Revision-Date: 2009-08-08 19:47+0200\n"
 "Last-Translator: Moritz Schulte <moritz@g10code.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -269,7 +269,9 @@ msgstr "Initialisierung der Authentifikationsmethode %i fehlgeschlagen: %s"
 msgid ""
 "failed to initialize parsing of configuration file for authentication method "
 "%s: %s"
-msgstr "konnte Auswertung der Konfigurationsdatei für die Authentifikationsmethode %s nicht beginnen: %s"
+msgstr ""
+"konnte Auswertung der Konfigurationsdatei für die Authentifikationsmethode %"
+"s nicht beginnen: %s"
 
 #: src/pam/pam_poldi.c:509
 #, c-format
@@ -303,7 +305,7 @@ msgstr "Warte auf Karte..."
 
 #: src/pam/pam_poldi.c:579
 msgid "Insert authentication card"
-msgstr "Bitte Authentifikationsschlüssel einlegen"
+msgstr "Bitte Authentifikationskarte einlegen"
 
 #: src/pam/pam_poldi.c:586
 #, c-format
