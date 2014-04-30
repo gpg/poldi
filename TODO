@@ -2,6 +2,9 @@ Final:
 * allow for Dirmngr to be started on demand (in pipe mode) (NO <- Why?!)
 
 Low priority:
+* allow user to skip card authentication without submitting a wrong
+   PIN to the card, e.g. by entering an empty PIN? Return
+   PAM_CRED_INSUFFICIENT in that case? PAM_AUTHINFO_UNAVAIL? PAM_AUTH_ERR?
 * figure out what exactly the dependencies on the OpenPGP smartcard are.
 * improve doc
 * work on MIGRATION text

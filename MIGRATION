@@ -51,3 +51,5 @@ or greater.
   - "fake-wait-for-card"
   - "require-card-switch"
   - "wait-timeout"
+  - "try_pin"
+  - "quiet"
