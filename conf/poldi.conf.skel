@@ -11,4 +11,4 @@ log-file /var/log/poldi
 debug
 
 # Specify SCDaemon executable
-scdaemon-program /usr/bin/scdaemon
+scdaemon-program /usr/lib/gnupg2/scdaemon
