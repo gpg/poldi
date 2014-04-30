@@ -61,7 +61,7 @@ libpam_poldi_a_SOURCES = \
 
 pam_poldi.so: libpam_poldi.a $(AUTH_METHODS_LIBS) auth-support/libpam-poldi-auth-support.a \
 		../scd/libscd_shared.a ../util/libpoldi-util_shared.a
-	gcc -shared -o pam_poldi.so -Wl,-u,pam_sm_authenticate \
+	$(CC) $(LDFLAGS) -shared -o pam_poldi.so -Wl,-u,pam_sm_authenticate \
 		libpam_poldi.a \
 		$(AUTH_METHODS_LIBS) auth-support/libpam-poldi-auth-support.a \
 		../scd/libscd_shared.a ../util/libpoldi-util_shared.a ../assuan/libassuan.a \
