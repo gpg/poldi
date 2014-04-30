@@ -117,7 +117,7 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
     username = username_desired;
 
   if (ctx->debug)
-    log_msg_debug (ctx->conv,
+    log_msg_debug (ctx->loghandle,
 		   _("Trying authentication as user `%s'..."), username);
   if (!ctx->quiet)
     conv_tell (ctx->conv,
