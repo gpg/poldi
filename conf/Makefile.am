@@ -33,5 +33,11 @@ install-conf-skeleton:
 		install -m 644 -T $(top_srcdir)/conf/poldi.conf.skel \
                   $(DESTDIR)$(POLDI_CONF_DIRECTORY)/poldi.conf; \
 	fi
+	if test -e $(DESTDIR)$(POLDI_CONF_DIRECTORY)/scdaemon.conf; then \
+		echo "$(DESTDIR)$(POLDI_CONF_DIRECTORY)/scdaemon.conf exists, doing nothing here"; \
+	else \
+		install -m 644 -T $(top_srcdir)/conf/scdaemon.conf.skel \
+                  $(DESTDIR)$(POLDI_CONF_DIRECTORY)/scdaemon.conf; \
+	fi
 
-EXTRA_DIST = poldi.conf.skel users.skel README.keys
+EXTRA_DIST = poldi.conf.skel users.skel scdaemon.conf.skel README.keys
