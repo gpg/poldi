@@ -81,9 +81,10 @@ query_user (poldi_ctx_t ctx, const char *info, char *pin, size_t pin_size)
 	 Shouldn't they be done in scdaemon itself?  -mo */
 
       if (strlen (buffer) < 6)	/* FIXME? is it really minimum of 6 bytes? */
-	log_msg_error (ctx->loghandle, _("invalid PIN"));
-      else if (!all_digitsp (buffer))
-	log_msg_error (ctx->loghandle, _("invalid characters in PIN"));
+	{
+	  log_msg_error (ctx->loghandle, _("PIN too short"));
+	  conv_tell (ctx->conv, "%s", _("PIN too short"));
+	}
       else
 	break;
     }
