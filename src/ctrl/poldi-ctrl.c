@@ -244,7 +244,7 @@ i18n_cb (void *cookie, const char *msg)
 
 /* Main.  */
 int
-main (int argc, char **argv)
+main (int argc, const char **argv)
 {
   simpleparse_handle_t parsehandle;
   unsigned int ncommands;
