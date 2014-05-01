@@ -558,7 +558,7 @@ assuan_process_done (assuan_context_t ctx, int rc)
             {
               /* Assume this is an libgpg-error.  */
               sprintf (errline, "ERR %d %.50s <%.30s>%s%.100s",
-                       rc, ebuf, esrc,
+                       code, ebuf, esrc,
                        text? " - ":"", text?text:"");
             }
           else
@@ -593,7 +593,7 @@ assuan_process_done (assuan_context_t ctx, int rc)
 	      
               gpg_strerror_r (rc, ebuf, sizeof ebuf );
               sprintf (errline, "ERR %d %.50s <%.30s>%s%.100s",
-                       rc,
+                       code,
                        ebuf,
                        gpg_strsource (rc),
                        text? " - ":"", text?text:"");
