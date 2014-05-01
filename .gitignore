@@ -1,0 +1,16 @@
+Makefile.in
+aclocal.m4
+compile
+config.guess
+config.sub
+depcomp
+install-sh
+missing
+autom4te.cache/
+configure
+config.h.in
+doc/poldi.info*
+doc/stamp-vti
+doc/version.texi
+po/*.gmo
+po/stamp-po
