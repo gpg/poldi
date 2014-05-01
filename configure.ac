@@ -23,8 +23,8 @@ AC_PREREQ(2.52)
 min_automake_version="1.7.9"
 
 # Version number: Remember to change it immediately *after* a release.
-#                 Add a "-git" prefix for non-released code.
-AC_INIT([poldi], [0.4.2-git], [gnupg-devel@gnupg.org])
+#                 Add a ".git" postfix for non-released code.
+AC_INIT([poldi], [0.4.2.git], [gnupg-devel@gnupg.org])
 AC_CONFIG_SRCDIR(src/pam/pam_poldi.c)
 AC_CONFIG_HEADERS(config.h)
 AC_CANONICAL_TARGET

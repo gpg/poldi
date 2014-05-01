@@ -7,10 +7,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: poldi 0.4-cvs\n"
 "Report-Msgid-Bugs-To: gnupg-devel@gnupg.org\n"
-"POT-Creation-Date: 2009-08-08 18:44+0200\n"
+"POT-Creation-Date: 2014-05-01 15:45+0900\n"
 "PO-Revision-Date: 2009-08-08 19:47+0200\n"
 "Last-Translator: Moritz Schulte <moritz@g10code.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -115,29 +116,25 @@ msgid "failed to convert key from `%s' into S-Expression: %s\n"
 msgstr ""
 "konnte Schlüssel aus '%s' nicht in eine S-Expression konvertieren: %s\n"
 
-#: src/pam/auth-support/getpin-cb.c:84
-msgid "invalid PIN"
-msgstr "ungültige PIN"
+#: src/pam/auth-support/getpin-cb.c:74 src/pam/auth-support/getpin-cb.c:75
+msgid "PIN too short"
+msgstr ""
 
-#: src/pam/auth-support/getpin-cb.c:86
-msgid "invalid characters in PIN"
-msgstr "ungültige Zeichen in PIN"
-
-#: src/pam/auth-support/getpin-cb.c:93
+#: src/pam/auth-support/getpin-cb.c:83
 msgid "PIN too long for buffer!"
 msgstr "PIN zu lang für Puffer"
 
-#: src/pam/auth-support/getpin-cb.c:214
+#: src/pam/auth-support/getpin-cb.c:204
 #, c-format
 msgid "getpin_cb called with flags set in info string `%s'\n"
 msgstr "getpin-Callback mit nicht unterstützten Flags in '%s' aufgerufen\n"
 
-#: src/pam/auth-support/getpin-cb.c:224
+#: src/pam/auth-support/getpin-cb.c:214
 #, c-format
 msgid "frob_info_msg failed for info msg of size %u\n"
 msgstr "frob_info_msg fehlgeschlagen für eine Nachricht der Länge %u\n"
 
-#: src/pam/auth-support/getpin-cb.c:238 src/pam/auth-support/getpin-cb.c:257
+#: src/pam/auth-support/getpin-cb.c:228 src/pam/auth-support/getpin-cb.c:247
 msgid "Please enter the PIN:"
 msgstr "Bitte PIN eingeben:"
 
@@ -270,15 +267,15 @@ msgid ""
 "failed to initialize parsing of configuration file for authentication method "
 "%s: %s"
 msgstr ""
-"konnte Auswertung der Konfigurationsdatei für die Authentifikationsmethode %"
-"s nicht beginnen: %s"
+"konnte Auswertung der Konfigurationsdatei für die Authentifikationsmethode "
+"%s nicht beginnen: %s"
 
 #: src/pam/pam_poldi.c:509
 #, c-format
 msgid "failed to parse configuration for authentication method %i: %s"
 msgstr ""
-"konnte Konfigurationsdatei für die Authentifikationsmethode %i nicht lesen: %"
-"s"
+"konnte Konfigurationsdatei für die Authentifikationsmethode %i nicht lesen: "
+"%s"
 
 #: src/pam/pam_poldi.c:528
 msgid "failed to retrieve PAM conversation structure"
@@ -399,6 +396,12 @@ msgstr "fehlendes notwendiges Argument für '%s'"
 #, c-format
 msgid "too many arguments specified for option '%s'"
 msgstr "zu viele Argumente für Options '%s' angegeben"
+
+#~ msgid "invalid PIN"
+#~ msgstr "ungültige PIN"
+
+#~ msgid "invalid characters in PIN"
+#~ msgstr "ungültige Zeichen in PIN"
 
 #~ msgid "using system scdaemon; socket is '%s'"
 #~ msgstr "benutze System-Scdaaemon; Socket ist '%s'"
