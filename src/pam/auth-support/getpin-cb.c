@@ -46,17 +46,6 @@
 #include "getpin-cb.h"
 
 
-
-/* Returns TRUE if the string S contains only decimal digits, FALSE
-   otherwise. */
-static int
-all_digitsp (const char *s)
-{
-  for (; *s && *s >= '0' && *s <= '9'; s++)
-    ;
-  return !*s;
-}  
-
 /* Query the user through PAM for his PIN.  Display INFO to the user.
    Store the retrieved pin in PIN, which is of size PIN_SIZE.  If it
    does not fit, return error. */
@@ -130,7 +119,7 @@ keypad_mode_leave (poldi_ctx_t ctx)
 /* Note, that it is sufficient to allocate the target string D as
    long as the source string S, i.e.: strlen(s)+1; */
 static void
-strcpy_escaped (char *d, const unsigned char *s)
+strcpy_escaped (char *d, const char *s)
 {
   while (*s)
     {
