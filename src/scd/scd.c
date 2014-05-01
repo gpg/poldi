@@ -449,7 +449,7 @@ scd_set_pincb (scd_context_t scd_ctx,
    silently be replaced by a 0xFF.  Function returns NULL to indicate
    an out of memory status. */
 static char *
-unescape_status_string (const unsigned char *s)
+unescape_status_string (const char *s)
 {
   char *buffer, *d;
 
@@ -487,7 +487,7 @@ unescape_status_string (const unsigned char *s)
 /* Take a 20 byte hexencoded string and put it into the the provided
    20 byte buffer FPR in binary format. */
 static int
-unhexify_fpr (const char *hexstr, unsigned char *fpr)
+unhexify_fpr (const char *hexstr, char *fpr)
 {
   const char *s;
   int n;
