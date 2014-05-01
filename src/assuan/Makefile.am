@@ -20,7 +20,7 @@
 # Modified for Poldi. Based von libassuans Makefile.am.
 
 EXTRA_DIST = mkerrors
-INCLUDES = -I.. -I$(top_srcdir)/include
+AM_CPPFLAGS = -I.. -I$(top_srcdir)/include
 BUILT_SOURCES = assuan-errors.c
 MOSTLYCLEANFILES = assuan-errors.c
 

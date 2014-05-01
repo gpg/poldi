@@ -23,23 +23,18 @@ AC_PREREQ(2.52)
 min_automake_version="1.7.9"
 
 # Version number: Remember to change it immediately *after* a release.
-#                 Add a "-cvs" prefix for non-released code.
-AC_INIT(poldi, 0.4.2-cvs, gnupg-devel@gnupg.org)
-
-PACKAGE=$PACKAGE_NAME
-VERSION=$PACKAGE_VERSION
+#                 Add a "-git" prefix for non-released code.
+AC_INIT([poldi], [0.4.2-git], [gnupg-devel@gnupg.org])
+AC_CONFIG_SRCDIR(src/pam/pam_poldi.c)
+AC_CONFIG_HEADERS(config.h)
+AC_CANONICAL_TARGET
+AM_INIT_AUTOMAKE
 
 NEED_LIBGCRYPT_VERSION=0
 NEED_GPG_ERROR_VERSION=0.7
 
 NEED_KSBA_API=1
 NEED_KSBA_VERSION=1.0.2
-
-	
-AC_CONFIG_SRCDIR(src/pam/pam_poldi.c)
-AM_CONFIG_HEADER(config.h)
-AC_CANONICAL_TARGET
-AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 
 POLDI_CONF_DIRECTORY="${sysconfdir}/poldi"
 AC_SUBST(POLDI_CONF_DIRECTORY)
@@ -63,8 +58,6 @@ POLDI_ENABLE_FEATURE(enable_auth_x509, yes, x509-auth, support for X509 authenti
 POLDI_ENABLE_FEATURE(enable_auth_localdb, yes, localdb-auth, support for local-db authentication)
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
-AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
-AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
 AC_DEFINE_UNQUOTED(PACKAGE_BUGREPORT, "$PACKAGE_BUGREPORT",
                                         [Bug report address])
 AC_DEFINE_UNQUOTED(NEED_LIBGCRYPT_VERSION, "$NEED_LIBGCRYPT_VERSION",
