@@ -406,67 +406,73 @@ settings:
 
 The other options required are rather self-explanitory.  After CA
 creation, we need to generate a signing request.  For this,
-gpgsm-gencert.sh can be used (after inserting the users smartcard and
-running gpg-agent):
+gpgsm --gen-key can be used (after inserting the users smartcard).
+Here is an example session (* at the beginning means user's input):
 
 @example
-$ gpgsm-gencert.sh
-Key type
- [1] RSA
- [2] Existing key
- [3] Direct from card
-Your selection: 3
-You selected: Direct from card
-Card with S/N D2760001240101010001000006550000 found
-gpg-agent uses OPENPGP.3 as ssh key
-Select key 
- [1] OPENPGP.1
- [2] OPENPGP.2
- [3] OPENPGP.3
- [4] back
-Your selection: 3
-You selected: OPENPGP.3
-Key usage
- [1] sign, encrypt
- [2] sign
- [3] encrypt
-Your selection: 2
-You selected: sign
-Name (DN)
-> CN=Moritz Schulte
-E-Mail addresses (end with an empty line)
-> Moritz.Schulte@@rub.de
-E-Mail addresses (end with an empty line)
-> 
-DNS Names (optional; end with an empty line)
-> 
-URIs (optional; end with an empty line)
-> 
-Parameters for certificate request to create:
-     1  Key-Type: card:OPENPGP.3
-     2  Key-Length: 
-     3  Key-Usage: sign
-     4  Name-DN: CN=Moritz Schulte
-     5  Name-Email: Moritz.Schulte@@rub.de
+*    $ gpgsm --gen-key
+     gpgsm (GnuPG) 2.1.10; Copyright (C) 2015 Free Software Foundation, Inc.
+     This is free software: you are free to change and redistribute it.
+     There is NO WARRANTY, to the extent permitted by law.
 
-Really create such a CSR?
- [1] yes
- [2] no
-Your selection: 1
-You selected: yes
-gpgsm: certificate request created
------BEGIN CERTIFICATE REQUEST-----
-MIIBnjCCAQcCAQAwGTEXMBUGA1UEAxMOTW9yaXR6IFNjaHVsdGUwgaEwDQYJKoZI
-hvcNAQEBBQADgY8AMIGLAoGBALjl58iz5T59otx5e6G2NMujUj949QAMLqYXL2Gw
-bugmlkY8eDQ4Gd1S1fKBXCbGQrZ1D+M8mMdqjLInI4BK9DxBBq7X91YonuJdR1WS
-6tSIYudMV0UoonbAyksB0zM2SatWz6roD8KgX8cPJbKgKlOmZ4VZGGa0GVayHaEE
-fQuDAgUA6o2s+aBDMEEGCSqGSIb3DQEJDjE0MDIwIAYDVR0RBBkwF4EVTW9yaXR6
-LlNjaHVsdGVAcnViLmRlMA4GA1UdDwEB/wQEAwIGwDANBgkqhkiG9w0BAQUFAAOB
-gQCpRvQK2gV0rjFK4+H7/rBgUZvA5L89tz3vlWSgXwCVqTewgPMKYmFYXViGobti
-c4laXQuGGqnCjmakbcs5/2Mt13bSTAaTOtfyzWZp+LwVtl8xwR9w/PbbsWyjKwnW
-9H/jfXaKtyoLQgyUyK3cplPw0jW8bqC/t6zQcHe0YMYfPA==
------END CERTIFICATE REQUEST-----
-$ 
+     Please select what kind of key you want:
+        (1) RSA
+        (2) Existing key
+        (3) Existing key from card
+*    Your selection? 3
+     Serial number of the card: D276000124010200F517000000010000
+     Available keys:
+        (1) 101DE7B639FE29F4636BDEECF442A9273AFA6565 OPENPGP.1
+        (2) 65F67E742101C7FE6D5B33FCEFCF4F65EAF0688C OPENPGP.2
+        (3) 5D6C89682D07CCFC034AF508420BF2276D8018ED OPENPGP.3
+*    Your selection? 3
+     Possible actions for a RSA key:
+        (1) sign, encrypt
+        (2) sign
+        (3) encrypt
+*    Your selection? 2
+*    Enter the X.509 subject name: CN=Niibe Yutaka
+     Enter email addresses (end with an empty line):
+*    > gniibe@@fsij.org
+*    > 
+     Enter DNS names (optional; end with an empty line):
+*    > 
+     Enter URIs (optional; end with an empty line):
+*    > 
+*    Create self-signed certificate? (y/N) y
+     These parameters are used:
+         Key-Type: card:OPENPGP.3
+         Key-Length: 1024
+         Key-Usage: sign
+         Serial: random
+         Name-DN: CN=Niibe Yutaka
+         Name-Email: gniibe@@fsij.org
+
+*    Proceed with creation? (y/N) y
+     Now creating self-signed certificate.  This may take a while ...
+     gpgsm: about to sign the certificate for key: &5D6C89682D07CCFC034AF508420BF2276D8018ED
+     gpgsm: certificate created
+     Ready.
+     -----BEGIN CERTIFICATE-----
+     MIIDBDCCAeygAwIBAgIIElClyprjBd8wDQYJKoZIhvcNAQELBQAwFzEVMBMGA1UE
+     AxMMTmlpYmUgWXV0YWthMCAXDTE1MTIxNzEwNDI0NloYDzIwNjMwNDA1MTcwMDAw
+     WjAXMRUwEwYDVQQDEwxOaWliZSBZdXRha2EwggEiMA0GCSqGSIb3DQEBAQUAA4IB
+     DwAwggEKAoIBAQC/XqCK831odBl7Po174AExdRlOcyNSCKfJR18Mrxi8LnKwyjDg
+     GH7Z29Qm4XyZvnLkJvSLcYiSx46iDMWbIYH7w1Or57kp/sUzdlj6clmlV8zklVth
+     ppYWpFd+x6Qif9CndRKcPr9S1+tbAIlU5k42RG90XnhEQF1/V3MR01mG0Ey9xBAI
+     oHizZKX5XAjPheVGdDyZERB7Zry3e8kDrU+OjsVTjzq7oXtCE7EwI5c+pBQdF8qf
+     XZC35nAizu0oqQEBne5MsF9ZIBaY/D+hhXVV51oyyCEwNGTr8Ol6KXKK7MWhf16g
+     d0zjulwvO9xH88Q0n1eYur3plH+BZVjXOQPrAgMBAAGjUjBQMBoGA1UdEQQTMBGB
+     D2duaWliZUBmc2lqLm9yZzARBgorBgEEAdpHAgIBBAMBAf8wDwYDVR0TAQH/BAUw
+     AwEB/zAOBgNVHQ8BAf8EBAMCBsAwDQYJKoZIhvcNAQELBQADggEBAKNdnJ/q3eBt
+     h42lsahgqyeRvgs7PS+PeqJyOA+36MuHf8/1rdJpqIH/zX6s7S0c/HNqTUKMiB+S
+     XRQ9g5JAbldsvurYGCiSLM2bT4evC7odE8v0LOL2oBVuNZshy2jPOyI19598J2E2
+     RjrJSqRguYGIG2m9B5Edog3Fe7Cd7aN8Xp69QEylb2gJqYfP1qfpyzAWQi6oE9MH
+     NXh1TxDbiSOee8+5PZdgLaIsnuFG37+9c529oaJV6kTm4Qv4eSQF6XemytMgQVOM
+     kM1VFCBFd62fdVPHWqI4K9hdUImdKC4KZKT+HNfXo7W1BE6mDQJbutQkcxsFpBTB
+     w9T8Z/SIJJc=
+     -----END CERTIFICATE-----
+     $ 
 @end example
 
 Import the new certificate signing request in your CA and sign it,
