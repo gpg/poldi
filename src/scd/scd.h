@@ -47,15 +47,10 @@ typedef struct scd_cardinfo scd_cardinfo_t;
 
 #define SCD_FLAG_VERBOSE (1 << 0)
 
-/* Try to connect to the agent via socket or fork it off and work by
-   pipes.  Returns proper error code or zero on success.  */
-gpg_error_t scd_connect (scd_context_t *scd_ctx,
-			 const char *scdaemon_socket,
-			 const char *agent_infostr,
-			 const char *scd_path,
-			 const char *scd_options,
-			 unsigned int flags,
-			 log_handle_t loghandle);
+/* Fork it off and work by pipes.  Returns proper error code or zero
+   on success.  */
+gpg_error_t scd_connect (scd_context_t *scd_ctx, const char *scd_path,
+			 const char *scd_options, log_handle_t loghandle);
 
 /* Disconnect from SCDaemon; destroy the context SCD_CTX.  */
 void scd_disconnect (scd_context_t scd_ctx);

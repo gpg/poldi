@@ -91,155 +91,9 @@ static assuan_error_t membuf_data_cb (void *opaque,
 
 
 static gpg_error_t scd_serialno_internal (assuan_context_t ctx,
-					  int agent, char **r_serialno);
+					  char **r_serialno);
 
 
-
-/* Helper function for get_scd_socket_from_agent(), which is used by
-   scd_connect().
-
-   Try to connect to gpg-agent, which is to be found through the
-   info-string contained in AGENT_INFOSTR.  On success, *AGENT_CTX is
-   filled with an assuan context.  Return proper error code or zero on
-   success. */
-static int
-agent_connect_from_infostr (const char *agent_infostr,
-			    assuan_context_t *agent_ctx,
-			    log_handle_t loghandle)
-{
-  char *infostr;
-  int prot;
-  int pid;
-  int rc;
-  char *p;
-
-  *agent_ctx = NULL;
-  rc = 0;
-
-  infostr = xtrystrdup (agent_infostr);
-  if (!infostr)
-    {
-      rc = gpg_error_from_syserror ();
-      log_msg_error (loghandle,
-		     _("failed to duplicate %s: %s"),
-		     "agent infostring", gpg_strerror (rc));
-      goto out;
-    }
-
-  p = strchr (infostr, ':');
-  if (!p || p == infostr)
-    {
-      log_msg_info (loghandle,
-		    _("malformed GPG_AGENT_INFO environment variable"));
-      /* FIXME: what error code is more appropriate here?  -mo */
-      rc = gpg_error (GPG_ERR_ASS_CONNECT_FAILED);
-      goto out;
-    }
-  *p++ = 0;
-  pid = atoi (p);
-  while (*p && *p != ':')
-    p++;
-  prot = *p? atoi (p+1) : 0;
-  if (prot != 1)
-    {
-      log_msg_error (loghandle,
-		     _("agent protocol version %d is not supported"),
-		     prot);
-      /* FIXME: what error code is more appropriate here?  -mo */
-      rc = gpg_error (GPG_ERR_ASS_CONNECT_FAILED);
-      goto out;
-    
-    }
-
-  /* Connect!  */
-  rc = assuan_socket_connect (agent_ctx, infostr, pid);
-
- out:
-
-  xfree (infostr);
-
-  return rc;
-}
-
-/* Helper function for get_scd_socket_from_agent(), which is used by
-   scd_connect().
-
-   Try to retrieve the SCDaemons socket naem from the gpg-agent
-   context CTX.  On success, *SOCKET_NAME is filled with a copy ot the
-   socket name.  Return proper error code or zero on success. */
-static int
-agent_scd_getinfo_socket_name (assuan_context_t ctx, char **socket_name,
-			       log_handle_t loghandle)
-{
-  unsigned char *databuf;
-  size_t datalen;
-  membuf_t data;
-  char *res;
-  int rc;
-
-  init_membuf (&data, 256);
-  *socket_name = NULL;
-  res = NULL;
-  rc = 0;
-
-  rc = assuan_transact (ctx, "SCD GETINFO socket_name", membuf_data_cb, &data,
-			NULL, NULL, NULL, NULL);
-  if (rc)
-    goto out;
-
-  databuf = get_membuf (&data, &datalen);
-  if (databuf && datalen)
-    {
-      res = xtrymalloc (datalen + 1);
-      if (!res)
-	{
-	  log_msg_error (loghandle,
-			 _("warning: can't store getinfo data: %s"),
-			 strerror (errno));
-	}
-      else
-	{
-	  memcpy (res, databuf, datalen);
-	  res[datalen] = 0;
-	  *socket_name = res;
-	}
-    }
-
- out:
-
-  xfree (get_membuf (&data, &datalen));
-
-  return rc;
-}
-
-/* Retrieve SCDaemons socket name through a running gpg-agent, which
-   is to be found through the info-string AGENT_INFOSTR.  On Success,
-   *SOCKET_NAME contains a copy of the socket name.  Returns proper
-   error code or zero on success.  */
-static int
-get_scd_socket_from_agent (const char *agent_infostr, char **socket_name,
-			   log_handle_t loghandle)
-{
-  assuan_context_t ctx;
-  int rc;
-
-  *socket_name = NULL;
-  ctx = NULL;
-  rc = 0;
-
-  rc = agent_connect_from_infostr (agent_infostr, &ctx, loghandle);
-  if (rc)
-    goto out;
-
-  rc = agent_scd_getinfo_socket_name (ctx, socket_name, loghandle);
-
- out:
-
-  assuan_disconnect (ctx);
-
-  return rc;
-}
-
 /* Send a RESTART to SCDaemon.  */
 static void
 restart_scd (scd_context_t ctx)
@@ -250,19 +104,11 @@ restart_scd (scd_context_t ctx)
 
 
 
-/* Try to connect to scdaemon.  We support three methods to access
-   scdaemon.  First: connect to a specified socket, second: connect to
-   a running gpg-agent, retrieve scdaemon socket name through the
-   agent and connect to that socket, third: fork of a new scdaemon.
-   Returns proper error code or zero on success.  */
+/* Fork off scdaemon and work by pipes.  Returns proper error code or
+   zero on success.  */
 gpg_error_t
-scd_connect (scd_context_t *scd_ctx,
-	     const char *scdaemon_socket,
-	     const char *agent_infostr,
-	     const char *scd_path,
-	     const char *scd_options,
-	     unsigned int flags,
-	     log_handle_t loghandle)
+scd_connect (scd_context_t *scd_ctx, const char *scd_path,
+	     const char *scd_options, log_handle_t loghandle)
 {
   assuan_context_t assuan_ctx;
   scd_context_t ctx;
@@ -280,60 +126,17 @@ scd_connect (scd_context_t *scd_ctx,
   ctx->assuan_ctx = NULL;
   ctx->flags = 0;
 
-#if 0
-  /* Scdaemon is not yet able to run as a system daemon, thus this
-     code is disabled. */
-
-  if (scdaemon_socket)
-    {
-      /* This has the highest priority; connect to system scdaemon. */
-
-      rc = assuan_socket_connect (&assuan_ctx, scdaemon_socket, 0);
-      if (!rc)
-	{
-	  log_msg_debug (loghandle,
-			 _("connected to system scdaemon through socket '%s'"),
-			 scdaemon_socket);
-	  goto out;
-	}
-    }
-#endif
-
-  if (agent_infostr && *agent_infostr)
-    {
-      /* Somehow connecting to a system scdaemon didn't work.  Try to
-	 retrieve a scdaemon socket name from gpg-agent. */
-
-      char *scd_socket;
-
-      rc = get_scd_socket_from_agent (agent_infostr, &scd_socket, loghandle);
-      if (!rc)
-	rc = assuan_socket_connect (&assuan_ctx, scd_socket, 0);
-
-      if (!rc)
-	log_msg_debug (loghandle,
-		       _("got scdaemon socket name from gpg-agent, "
-			 "connected to socket '%s'"), scd_socket);
-      
-      xfree (scd_socket);
-
-      if (!rc)
-	goto out;
-    }
-
   if (1)
     {
-      /* Neither of the above scdaemon connect methods worked,
-	 fallback: spawn a new scdaemon.  */
-
       const char *pgmname;
       const char *argv[5];
       int no_close_list[3];
       int i;
 
-      if (flags & SCD_FLAG_VERBOSE)
+#if 0
 	log_msg_debug (loghandle,
 		       _("no running scdaemon - starting one"));
+#endif
 
       if (fflush (NULL))
         {
@@ -376,7 +179,7 @@ scd_connect (scd_context_t *scd_ctx,
       no_close_list[i++] = fileno (stderr);
       no_close_list[i] = -1;
 
-      /* connect to the agent and perform initial handshaking */
+      /* connect to the scdaemon and perform initial handshaking */
       rc = assuan_pipe_connect (&assuan_ctx, scd_path, argv,
                                 no_close_list);
       if (!rc)
@@ -404,15 +207,16 @@ scd_connect (scd_context_t *scd_ctx,
     {
       /* FIXME: is this the best way?  -mo */
       //reset_scd (assuan_ctx);
-      scd_serialno_internal (assuan_ctx, 0, NULL);
+      scd_serialno_internal (assuan_ctx, NULL);
 
       ctx->assuan_ctx = assuan_ctx;
-      ctx->flags = flags;
+      ctx->flags = 0;
       ctx->loghandle = loghandle;
       *scd_ctx = ctx;
-      if (flags & SCD_FLAG_VERBOSE)
+#if 0
 	log_msg_debug (loghandle,
 		       _("connection to scdaemon established"));
+#endif
     }
 
   return rc;
@@ -642,7 +446,7 @@ get_serialno_cb (void *opaque, const char *line)
 }
 
 static gpg_error_t
-scd_serialno_internal (assuan_context_t ctx, int agent, char **r_serialno)
+scd_serialno_internal (assuan_context_t ctx, char **r_serialno)
 {
   char *serialno;
   int rc;
@@ -672,7 +476,7 @@ scd_serialno (scd_context_t ctx, char **r_serialno)
 {
   gpg_error_t err;
 
-  err = scd_serialno_internal (ctx->assuan_ctx, 0, r_serialno);
+  err = scd_serialno_internal (ctx->assuan_ctx, r_serialno);
 
   return err;
 }

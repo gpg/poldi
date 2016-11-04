@@ -549,10 +549,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
   /*** Connect to Scdaemon. ***/
 
-  err = scd_connect (&scd_ctx,
-		     NULL, getenv ("GPG_AGENT_INFO"),
-		     ctx->scdaemon_program, ctx->scdaemon_options,
-		     0, ctx->loghandle);
+  err = scd_connect (&scd_ctx, ctx->scdaemon_program, ctx->scdaemon_options,
+		     ctx->loghandle);
   if (err)
     goto out;
 
