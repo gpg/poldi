@@ -142,9 +142,9 @@ associated with many users and one user can be associated with many
 smartcards.
 
 The public keys are stored in files in a subdirectory named
-``keys''. The files are named after the card serial numbers and must
+``keys''.  The files are named after the card serial numbers and must
 contain the public key as a single S-Expression as it is printed out
-by poldi-ctrl.
+by gpg-connect-agent (See below).
 
 The mapping between keys and Unix accounts is to be established by
 adding appropriate entries to the user database file named ``users''.
@@ -288,9 +288,10 @@ local usernames.  Syntax: this file consists of entries - one entry
 per line.  Entries are of the form:
 "<SERIALNO><WHITESPACES><USERNAME>\n" (without quotation marks and
 without angle brackets.  Allowed whitespaces are spaces and tabs.
-<SERIALNO> is the serial number of an OpenPGP smartcard as reported by
-poldi-ctrl --print-serialno.  <USERNAME> is a valid username on the
-system.  Comments are opened with "#" and terminated by a newline.
+<SERIALNO> is the serial number of an OpenPGP smartcard.  It can be
+obtained by "gpg --card-status" command as ``Application ID''.
+<USERNAME> is a valid username on the system.  Comments are opened
+with "#" and terminated by a newline.
 
 @item Directory: keys
 
@@ -354,7 +355,7 @@ card-specific key file.  Therefore he inserts Moritz' smartcard and
 executes:
 
 @example
-$ poldi-ctrl --print-key > /etc/poldi/localdb/keys/D2760001240101010001000006550000
+$ gpg-connect-agent "/datafile /etc/poldi/localdb/keys/D2760001240101010001000006550000" "SCD READKEY --advanced OPENPGP.3" /bye
 @end example
 
 The administrator wants to allow Moritz to update his card's key

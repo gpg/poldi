@@ -17,55 +17,6 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/ctrl/poldi-ctrl.c:85
-msgid "Dump certain card information"
-msgstr ""
-
-#: src/ctrl/poldi-ctrl.c:87
-msgid "Print authentication key from card"
-msgstr ""
-
-#: src/ctrl/poldi-ctrl.c:89
-msgid "Print serial number from card"
-msgstr ""
-
-#: src/ctrl/poldi-ctrl.c:93
-msgid "Enable debugging mode"
-msgstr ""
-
-#: src/ctrl/poldi-ctrl.c:269
-#, c-format
-msgid "failed to initialize logging: %s\n"
-msgstr ""
-
-#: src/ctrl/poldi-ctrl.c:277
-#, c-format
-msgid "failed to set logging backend: %s\n"
-msgstr ""
-
-#: src/ctrl/poldi-ctrl.c:316
-#, c-format
-msgid "parsing argument vector failed: %s"
-msgstr ""
-
-#: src/ctrl/poldi-ctrl.c:328
-msgid "more than one command specified (try --help)"
-msgstr ""
-
-#: src/ctrl/poldi-ctrl.c:333
-msgid "no command specified (try --help)"
-msgstr ""
-
-#: src/ctrl/poldi-ctrl.c:343
-#, c-format
-msgid "failed to connect to scdaemon: %s"
-msgstr ""
-
-#: src/ctrl/poldi-ctrl.c:352
-#, c-format
-msgid "failed to retrieve smartcard data: %s"
-msgstr ""
-
 #: src/pam/auth-method-localdb/auth-localdb.c:109
 msgid "Please enter username: "
 msgstr ""

@@ -1,6 +1,5 @@
 # List of source files which contain translatable strings.
 
-./src/ctrl/poldi-ctrl.c
 ./src/pam/auth-method-localdb/usersdb.c
 ./src/pam/auth-method-localdb/auth-localdb.c
 ./src/pam/auth-method-localdb/key-lookup.h

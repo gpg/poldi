@@ -16,55 +16,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/ctrl/poldi-ctrl.c:85
-msgid "Dump certain card information"
-msgstr "Informationen der Smartcard ausgeben"
-
-#: src/ctrl/poldi-ctrl.c:87
-msgid "Print authentication key from card"
-msgstr "Zeige Authentifikationsschlüssel der Karte an"
-
-#: src/ctrl/poldi-ctrl.c:89
-msgid "Print serial number from card"
-msgstr "Zeige Seriennummer der Karte an"
-
-#: src/ctrl/poldi-ctrl.c:93
-msgid "Enable debugging mode"
-msgstr "Aktiviere Debugging-Modus"
-
-#: src/ctrl/poldi-ctrl.c:269
-#, c-format
-msgid "failed to initialize logging: %s\n"
-msgstr "konnte Protokollierung nicht initialisieren: %s\n"
-
-#: src/ctrl/poldi-ctrl.c:277
-#, c-format
-msgid "failed to set logging backend: %s\n"
-msgstr "konnte Protokollierungs-Backend nicht aktivieren: %s\n"
-
-#: src/ctrl/poldi-ctrl.c:316
-#, c-format
-msgid "parsing argument vector failed: %s"
-msgstr "Auswerten des Argumentvektors fehlgeschlagen: %s"
-
-#: src/ctrl/poldi-ctrl.c:328
-msgid "more than one command specified (try --help)"
-msgstr "mehr als ein Kommando angegeben (versuche --help)"
-
-#: src/ctrl/poldi-ctrl.c:333
-msgid "no command specified (try --help)"
-msgstr "kein Kommando angegeben (versuche --help)"
-
-#: src/ctrl/poldi-ctrl.c:343
-#, c-format
-msgid "failed to connect to scdaemon: %s"
-msgstr "Verbinden zum Scdaemon fehlgeschlagen: %s"
-
-#: src/ctrl/poldi-ctrl.c:352
-#, c-format
-msgid "failed to retrieve smartcard data: %s"
-msgstr "konnte Daten der Smartcard nicht empfangen: %s"
-
 #: src/pam/auth-method-localdb/auth-localdb.c:109
 msgid "Please enter username: "
 msgstr "Bitte Benutzername eingeben: "
