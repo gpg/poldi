@@ -231,7 +231,6 @@ AC_CONFIG_FILES([Makefile
 		 src/util/Makefile
 		 src/util/configure-stamp
 		 src/scd/Makefile
-		 src/ctrl/Makefile
 		 src/pam/Makefile
 		 src/pam/auth-support/Makefile
 		 src/pam/auth-method-localdb/Makefile
