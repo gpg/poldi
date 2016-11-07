@@ -15,7 +15,7 @@
 
 @dircategory GNU Utilities
 @direntry
-* poldi: (poldi) PAM authenciation via OpenPGP smartcards.
+* poldi: (poldi) PAM authentication via OpenPGP smartcards.
 @end direntry
 
 @include version.texi
@@ -104,7 +104,7 @@ and currently supports two authentication methods:
 @table @asis
 @item ``local-database'' authentication method
 
-This method establishs the mapping between user accounts and
+This method establishes the mapping between user accounts and
 smartcards through a locally administered database.
 
 @item ``X509'' authentication
@@ -158,10 +158,10 @@ Such an entry is of the following form:
 @section X509 authentication
 
 With X509 authentication smartcards need to be associated with X509
-certicates.  This mapping is to be established through the ``url''
+certificates.  This mapping is to be established through the ``url''
 field on the OpenPGP smartcard.  The url field is expected to hold
 either a valid LDAP url (``ldap://...'') or a file url
-(``file:///...'').  After a certificate has been successfuly looked
+(``file:///...'').  After a certificate has been successfully looked
 up, it is validated through Dirmngr and a challenge-response
 authentication is triggered against the smartcard.  The mapping
 between smartcards and local accounts is established through the list
@@ -172,12 +172,12 @@ addresses for the local username on the system. Note: semantics might
 change.
 
 To illustrate this with an example: lets assume a user is trying to
-authenticate himself trough Poldi's X509 method.  Poldi looks up the
+authenticate himself through Poldi's X509 method.  Poldi looks up the
 url field of the user's smartcard and retrieves his X509 certificate.
 The certificate contains two e-mail addresses: ``<dude@@example.com>''
 and ``<fry@@gnupg.org>''.  Since the administrator set the ``X509
 domain'' to ``gnupg.org'' in Poldi's configuration file, Poldi will
-pick out the address ``fry@@gnupg.org'' and (after succesful
+pick out the address ``fry@@gnupg.org'' and (after successful
 challenge-response authentication) will let the user login as ``fry''.
 
 @node Installation from Source
@@ -190,7 +190,7 @@ dependencies may vary with the enabled authentication methods.
 Independent from enabled authentication methods, Poldi depends on
 Libgpg-error, Libgcrypt, Libassuan, Scdaemon and of course Libpam.
 
-The ``X509'' authentication method additionaly has a build-time
+The ``X509'' authentication method additionally has a build-time
 dependency on libksba and requires Dirmngr to be properly setup at
 runtime.  The ``local database'' authentication method has no
 additional requirements.
@@ -224,7 +224,7 @@ Poldi's main configuration file is
 ``@code{sysconfdir}/poldi/poldi.conf''.  The syntax of Poldi's
 configuration file is identical to the one used by several other GnuPG
 components; options and their values are written next to each other,
-seperated by a whitespace - one such configuration item per line.
+separated by a white space - one such configuration item per line.
 
 Poldi supports the following authentication method independent
 options, which can be specified in the main configuration file and in
@@ -405,7 +405,7 @@ settings:
 @item Organizational Unit: Testing
 @end table
 
-The other options required are rather self-explanitory.  After CA
+The other options required are rather self-explanatory.  After CA
 creation, we need to generate a signing request.  For this,
 gpgsm --gen-key can be used (after inserting the users smartcard).
 Here is an example session (* at the beginning means user's input):
@@ -540,7 +540,7 @@ Again, it's a very good idea to also add:
 
 @example
 debug
-log-file /some/where/poldi.og
+log-file /some/where/poldi.log
 @end example
 
 Add the following to ``poldi-x509.conf'':
