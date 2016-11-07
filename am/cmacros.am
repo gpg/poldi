@@ -1,4 +1,5 @@
-AM_CPPFLAGS += -DGNUPG_BINDIR="\"$(bindir)\""
+AM_CPPFLAGS += -DGNUPG_BINDIR="\"$(bindir)\"" \
+               -DGNUPG_LIBEXECDIR="\"$(libexecdir)\""
 datadir = @datadir@
 localedir = $(datadir)/locale
 DEFS = -DLOCALEDIR=\"$(localedir)\" @DEFS@

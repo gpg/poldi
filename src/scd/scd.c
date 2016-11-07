@@ -180,8 +180,7 @@ scd_connect (scd_context_t *scd_ctx, const char *scd_path,
       no_close_list[i] = -1;
 
       /* connect to the scdaemon and perform initial handshaking */
-      rc = assuan_pipe_connect (&assuan_ctx, scd_path, argv,
-                                no_close_list);
+      rc = assuan_pipe_connect (&assuan_ctx, scd_path, argv, no_close_list);
       if (!rc)
 	{
 	  log_msg_debug (loghandle,
