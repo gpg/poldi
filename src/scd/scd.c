@@ -452,8 +452,7 @@ scd_serialno_internal (assuan_context_t ctx, char **r_serialno)
 
   serialno = NULL;
 
-  rc = assuan_transact (ctx, agent ? "SCD SERIALNO" : "SERIALNO",
-                        NULL, NULL, NULL, NULL,
+  rc = assuan_transact (ctx, "SERIALNO", NULL, NULL, NULL, NULL,
                         get_serialno_cb, &serialno);
   if (rc)
     goto out;
