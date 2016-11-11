@@ -84,7 +84,8 @@ enum opt_ids
     opt_scdaemon_program,
     opt_scdaemon_options,
     opt_modify_environment,
-    opt_quiet
+    opt_quiet,
+    opt_use_agent,
   };
 
 /* Full specifications for options. */
@@ -104,6 +105,8 @@ static simpleparse_opt_spec_t opt_specs[] =
       0, SIMPLEPARSE_ARG_NONE, 0, "Set Poldi related variables in the PAM environment" },
     { opt_quiet, "quiet",
       0, SIMPLEPARSE_ARG_NONE, 0, "Be more quiet during PAM conversation with user" },
+    { opt_use_agent, "use-agent",
+      0, SIMPLEPARSE_ARG_NONE, 0, "Use gpg-agent for scdaemon" },
     { 0 }
   };
 
@@ -201,6 +204,10 @@ pam_poldi_options_cb (void *cookie, simpleparse_opt_spec_t spec, const char *arg
     {
       /* QUIET.  */
       ctx->quiet = 1;
+    }
+  else if (!strcmp (spec.long_opt, "use-agent"))
+    {
+      ctx->use_agent = 1;
     }
 
   return gpg_error (err);
@@ -549,7 +556,8 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
   /*** Connect to Scdaemon. ***/
 
-  err = scd_connect (&scd_ctx, ctx->scdaemon_program, ctx->scdaemon_options,
+  err = scd_connect (&scd_ctx, ctx->use_agent,
+		     ctx->scdaemon_program, ctx->scdaemon_options,
 		     ctx->loghandle);
   if (err)
     goto out;

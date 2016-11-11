@@ -67,6 +67,7 @@ struct poldi_ctx_s
 				   PAM environment.  */
   int quiet;			/* Be more quiet during PAM
 				   conversation with user. */
+  int use_agent;		/* Use gpg-agent to connect scdaemon.  */
 
   /* Scdaemon. */
   char *scdaemon_program;	/* Path of Scdaemon program to execute.  */

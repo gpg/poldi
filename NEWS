@@ -5,15 +5,23 @@ Changes since version 0.4.1:
 * poldi-ctrl is removed
   Please use gpg-connect-agent instead.
 
-* Poldi always invokes scdaemon to connect it through pipe
+* New "use-agent" PAM option for backward compatibility
+  In GnuPG 2.1, the environment variable GPG_AGENT_INFO is gone.  And
+  now, Poldi's default is invoking scdaemon directly.  Still, there
+  are use cases (like su/sudo) which expect connecting user's
+  gpg-agent.  For this purpose, we now have "use-agent" option.  Don't
+  enable this option for login authentication.
+
+* Poldi invokes scdaemon to connect it through pipe
   Older Poldi has a feature of connecting to scdaemon with help of
   gpg-agent using the GPG_AGENT_INFO enviornment variable.  In GnuPG
-  2.1, the GPG_AGENT_INFO is gone and scdaemon no longer keeps locking
-  the reader after card removal, it is good to always invoke scdaemon
-  for the authentication.  If there is an existing scdaemon with card
-  inserted, a failure is expected and this is safer fallback.  That's
-  because Poldi should not connect to a smartcard which is in use for
-  other purpose and possibly already authenticated.
+  2.1, the environment variable GPG_AGENT_INFO is gone and scdaemon no
+  longer keeps locking the reader after card removal, it is good to
+  always invoke scdaemon for the authentication by default.  If there
+  is an existing scdaemon with card inserted, a failure is expected
+  and this is safer fallback.  That's because Poldi should not connect
+  to a smartcard which is in use for other purpose and possibly
+  already authenticated.
 
 * New option "scdaemon-options"
   Added a new option "scdaemon-options", which can be used to specify

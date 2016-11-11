@@ -94,6 +94,111 @@ static gpg_error_t scd_serialno_internal (assuan_context_t ctx,
 					  char **r_serialno);
 
 
+
+/* Get the socket of GPG-AGENT by gpgconf. */
+static gpg_error_t
+get_agent_socket_name (char **gpg_agent_sockname)
+{
+  gpg_error_t err = 0;
+  FILE *input;
+  char *result;
+  size_t len;
+
+  *gpg_agent_sockname = NULL;
+
+  result = xtrymalloc (256);
+  if (!result)
+    return gpg_error_from_syserror ();
+
+  input = popen ("gpgconf --list-dirs agent-socket", "r");
+  if (input == NULL)
+    {
+      xfree (result);
+      return gpg_error (GPG_ERR_NOT_FOUND);
+    }
+
+  len = fread (result, 1, 256, input);
+  fclose (input);
+
+  if (len)
+    {
+      *gpg_agent_sockname = result;
+      result[len-1] = 0;	/* Chop off the newline.  */
+    }
+  else
+    {
+      xfree (result);
+      err =  gpg_error (GPG_ERR_NOT_FOUND);
+    }
+
+  return err;
+}
+
+/* Helper function for get_scd_socket_from_agent(), which is used by
+   scd_connect().
+
+   Try to retrieve the SCDaemons socket name from the gpg-agent
+   context CTX.  On success, *SOCKET_NAME is filled with a copy ot the
+   socket name.  Return proper error code or zero on success. */
+static gpg_error_t
+agent_scd_getinfo_socket_name (assuan_context_t ctx, char **socket_name)
+{
+  membuf_t data;
+  gpg_error_t err = 0;
+  unsigned char *databuf;
+  size_t datalen;
+
+  init_membuf (&data, 256);
+  *socket_name = NULL;
+
+  err = assuan_transact (ctx, "SCD GETINFO socket_name", membuf_data_cb, &data,
+			 NULL, NULL, NULL, NULL);
+  databuf = get_membuf (&data, &datalen);
+  if (!err)
+    {
+      if (databuf && datalen)
+	{
+	  char *res = xtrymalloc (datalen + 1);
+	  if (!res)
+	    err = gpg_error_from_syserror ();
+	  else
+	    {
+	      memcpy (res, databuf, datalen);
+	      res[datalen] = 0;
+	      *socket_name = res;
+	    }
+	}
+    }
+
+  xfree (databuf);
+
+  return err;
+}
+
+/* Retrieve SCDaemons socket name through a running gpg-agent.  On
+   Success, *SOCKET_NAME contains a copy of the socket name.  Returns
+   proper error code or zero on success.  */
+static gpg_error_t
+get_scd_socket_from_agent (char **socket_name)
+{
+  assuan_context_t ctx = NULL;
+  gpg_error_t err;
+  char *gpg_agent_sockname;
+
+  err = get_agent_socket_name (&gpg_agent_sockname);
+  if (err)
+    return err;
+
+  err = assuan_socket_connect (&ctx, gpg_agent_sockname, 0);
+  xfree (gpg_agent_sockname);
+  if (!err)
+    err = agent_scd_getinfo_socket_name (ctx, socket_name);
+
+  assuan_disconnect (ctx);
+
+  return err;
+}
+
 /* Send a RESTART to SCDaemon.  */
 static void
 restart_scd (scd_context_t ctx)
@@ -107,7 +212,7 @@ restart_scd (scd_context_t ctx)
 /* Fork off scdaemon and work by pipes.  Returns proper error code or
    zero on success.  */
 gpg_error_t
-scd_connect (scd_context_t *scd_ctx, const char *scd_path,
+scd_connect (scd_context_t *scd_ctx, int use_agent, const char *scd_path,
 	     const char *scd_options, log_handle_t loghandle)
 {
   assuan_context_t assuan_ctx;
@@ -116,40 +221,58 @@ scd_connect (scd_context_t *scd_ctx, const char *scd_path,
 
   assuan_ctx = NULL;
 
-  ctx = xtrymalloc (sizeof (*ctx));
-  if (! ctx)
+  if (fflush (NULL))
     {
       rc = gpg_error_from_syserror ();
-      goto out;
+      log_msg_error (loghandle,
+		     _("error flushing pending output: %s"),
+		     strerror (errno));
+      return rc;
+    }
+
+  ctx = xtrymalloc (sizeof (*ctx));
+  if (!ctx)
+    {
+      rc = gpg_error_from_syserror ();
+      return rc;
     }
 
   ctx->assuan_ctx = NULL;
   ctx->flags = 0;
 
-  if (1)
+  if (use_agent)
+    {
+      /* Retrieve a scdaemon socket name from gpg-agent.  */
+      char *scd_socket_name = NULL;
+
+      rc = get_scd_socket_from_agent (&scd_socket_name);
+      if (!rc)
+	rc = assuan_socket_connect (&assuan_ctx, scd_socket_name, 0);
+
+      if (!rc)
+	log_msg_debug (loghandle,
+		       _("got scdaemon socket name from gpg-agent, "
+			 "connected to socket '%s'"), scd_socket_name);
+
+      xfree (scd_socket_name);
+
+      if (rc)
+	{
+	  log_msg_error (loghandle,
+			 _("could not connect to scdaemon: %s"),
+			 gpg_strerror (rc));
+	}
+    }
+  else
     {
       const char *pgmname;
       const char *argv[5];
       int no_close_list[3];
       int i;
 
-#if 0
-	log_msg_debug (loghandle,
-		       _("no running scdaemon - starting one"));
-#endif
-
-      if (fflush (NULL))
-        {
-          rc = gpg_error_from_syserror ();
-	  log_msg_error (loghandle,
-			 _("error flushing pending output: %s"),
-			 strerror (errno));
-	  goto out;
-        }
-
       if (!scd_path || !*scd_path)
         scd_path = GNUPG_DEFAULT_SCD;
-      if ( !(pgmname = strrchr (scd_path, '/')))
+      if (!(pgmname = strrchr (scd_path, '/')))
         pgmname = scd_path;
       else
         pgmname++;
@@ -168,9 +291,9 @@ scd_connect (scd_context_t *scd_ctx, const char *scd_path,
 
       i=0;
 
+#if 0
       /* FIXME! Am I right in assumung that we do not need this?
 	 -mo */
-#if 0
       if (log_get_fd () != -1)
         no_close_list[i++] = log_get_fd ();
 #endif
@@ -181,26 +304,24 @@ scd_connect (scd_context_t *scd_ctx, const char *scd_path,
 
       /* connect to the scdaemon and perform initial handshaking */
       rc = assuan_pipe_connect (&assuan_ctx, scd_path, argv, no_close_list);
-      if (!rc)
+      if (rc)
+	{
+	  log_msg_error (loghandle,
+			 _("could not spawn scdaemon: %s"),
+			 gpg_strerror (rc));
+	}
+      else
 	{
 	  log_msg_debug (loghandle,
 			 _("spawned a new scdaemon (path: '%s')"),
 			 scd_path);
-	  goto out;
 	}
     }
-
-  log_msg_error (loghandle,
-		 _("could not connect to any scdaemon: %s"),
-		 gpg_strerror (rc));
-
- out:
 
   if (rc)
     {
       assuan_disconnect (assuan_ctx);
       xfree (ctx);
-
     }
   else
     {
@@ -212,10 +333,6 @@ scd_connect (scd_context_t *scd_ctx, const char *scd_path,
       ctx->flags = 0;
       ctx->loghandle = loghandle;
       *scd_ctx = ctx;
-#if 0
-	log_msg_debug (loghandle,
-		       _("connection to scdaemon established"));
-#endif
     }
 
   return rc;
