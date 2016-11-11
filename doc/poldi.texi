@@ -15,7 +15,7 @@
 
 @dircategory GNU Utilities
 @direntry
-* poldi: (poldi) PAM authentication via OpenPGP smartcards.
+* poldi: (poldi).	PAM authentication via OpenPGP smartcards.
 @end direntry
 
 @include version.texi
