@@ -41,5 +41,4 @@ libpam_poldi_auth_support_a_SOURCES = \
  ctx.h \
  conv.c conv.h \
  getpin-cb.c getpin-cb.h \
- pam-util.c pam-util.h \
  wait-for-card.c wait-for-card.h

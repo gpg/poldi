@@ -35,7 +35,6 @@
 #include "util/support.h"
 #include "auth-support/ctx.h"
 #include "auth-support/wait-for-card.h"
-#include "auth-support/pam-util.h"
 
 #include "usersdb.h"
 #include "key-lookup.h"

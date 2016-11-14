@@ -34,7 +34,6 @@
 #include "util/support.h"
 #include "auth-support/ctx.h"
 #include "auth-support/getpin-cb.h"
-#include "auth-support/pam-util.h"
 #include "auth-methods.h"
 #include "util/defs.h"
 #include "util/simplelog.h"

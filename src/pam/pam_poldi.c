@@ -37,7 +37,6 @@
 #include "scd/scd.h"
 
 #include "auth-support/wait-for-card.h"
-#include "auth-support/pam-util.h"
 #include "auth-support/conv.h"
 #include "auth-support/getpin-cb.h"
 #include "auth-methods.h"
@@ -349,6 +348,43 @@ modify_environment (pam_handle_t *pam_handle, poldi_ctx_t ctx)
 			     "PAM_POLDI_LANGUAGE", cardinfo->disp_lang);
 }
 
+/* Retrieve the username through the PAM handle contained in CTX and
+   store it in *USERNAME.  Returns proper error code.  */
+static gpg_error_t
+retrieve_username_from_pam (pam_handle_t *handle, const char **username)
+{
+  const void *username_void;
+  gpg_error_t err;
+  int ret;
+
+  ret = pam_get_item (handle, PAM_USER, &username_void);
+  if (ret == PAM_SUCCESS)
+    {
+      err = 0;
+      *username = username_void;
+    }
+  else
+    err = gpg_error (GPG_ERR_INTERNAL);
+
+  return err;
+}
+
+/* Make USERNAME available to the application through the PAM handle
+   contained in CTX.  Returns proper error code.  */
+static gpg_error_t
+send_username_to_pam (pam_handle_t *handle, const char *username)
+{
+  gpg_error_t err;
+  int ret;
+
+  ret = pam_set_item (handle, PAM_USER, username);
+  if (ret == PAM_SUCCESS)
+    err = 0;
+  else
+    err = gpg_error (GPG_ERR_INTERNAL);
+
+  return err;
+}
 
 
 /*
