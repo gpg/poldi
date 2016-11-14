@@ -347,44 +347,6 @@ modify_environment (pam_handle_t *pam_handle, poldi_ctx_t ctx)
   modify_environment_putenv (pam_handle, ctx,
 			     "PAM_POLDI_LANGUAGE", cardinfo->disp_lang);
 }
-
-/* Retrieve the username through the PAM handle contained in CTX and
-   store it in *USERNAME.  Returns proper error code.  */
-static gpg_error_t
-retrieve_username_from_pam (pam_handle_t *handle, const char **username)
-{
-  const void *username_void;
-  gpg_error_t err;
-  int ret;
-
-  ret = pam_get_item (handle, PAM_USER, &username_void);
-  if (ret == PAM_SUCCESS)
-    {
-      err = 0;
-      *username = username_void;
-    }
-  else
-    err = gpg_error (GPG_ERR_INTERNAL);
-
-  return err;
-}
-
-/* Make USERNAME available to the application through the PAM handle
-   contained in CTX.  Returns proper error code.  */
-static gpg_error_t
-send_username_to_pam (pam_handle_t *handle, const char *username)
-{
-  gpg_error_t err;
-  int ret;
-
-  ret = pam_set_item (handle, PAM_USER, username);
-  if (ret == PAM_SUCCESS)
-    err = 0;
-  else
-    err = gpg_error (GPG_ERR_INTERNAL);
-
-  return err;
-}
 
 
 /*
@@ -582,12 +544,12 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
   /*** Retrieve username from PAM.  ***/
 
-  err = retrieve_username_from_pam (ctx->pam_handle, &pam_username);
-  if (err)
+  ret = pam_get_item (ctx->pam_handle, PAM_USER, (const void **)&pam_username);
+  if (ret != PAM_SUCCESS)
     {
+      /* It's not fatal, username can be in the card.  */
       log_msg_error (ctx->loghandle,
-		     _("failed to retrieve username from PAM: %s"),
-		     gpg_strerror (err));
+		     _("Can't retrieve username from PAM"));
     }
 
   /*** Connect to Scdaemon. ***/
@@ -667,7 +629,13 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 	{
 	  /* Send username received during authentication process back
 	     to PAM.  */
-	  err = send_username_to_pam (ctx->pam_handle, username_authenticated);
+	  ret = pam_set_item (ctx->pam_handle, PAM_USER,
+			      username_authenticated);
+	  if (ret == PAM_SUCCESS)
+	    err = 0;
+	  else
+	    err = gpg_error (GPG_ERR_INTERNAL);
+
 	  xfree (username_authenticated);
 	}
     }
