@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: poldi 0.4-cvs\n"
 "Report-Msgid-Bugs-To: gnupg-devel@gnupg.org\n"
-"POT-Creation-Date: 2015-12-18 04:31+0000\n"
+"POT-Creation-Date: 2016-11-15 13:02+0900\n"
 "PO-Revision-Date: 2009-08-08 19:47+0200\n"
 "Last-Translator: Moritz Schulte <moritz@g10code.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,311 +16,44 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pam/auth-method-localdb/auth-localdb.c:109
+#: src/pam/auth-method-localdb/auth-localdb.c:108
 msgid "Please enter username: "
 msgstr "Bitte Benutzername eingeben: "
 
-#: src/pam/auth-method-localdb/auth-localdb.c:121
-#: src/pam/auth-method-localdb/auth-localdb.c:124
+#: src/pam/auth-method-localdb/auth-localdb.c:123
 #, c-format
 msgid "Trying authentication as user `%s'..."
 msgstr "Versuche Authentifizierung als Benutzer '%s'..."
 
-#: src/pam/auth-method-localdb/auth-localdb.c:133
-#: src/pam/auth-method-localdb/auth-localdb.c:136
+#: src/pam/auth-method-localdb/auth-localdb.c:135
 #, c-format
 msgid "Serial number %s is not associated with user %s"
 msgstr "Seriennummer %s ist nicht assoziiert mit Benutzer %s"
 
-#: src/pam/auth-method-localdb/auth-localdb.c:152
-#: src/pam/auth-method-x509/auth-x509.c:553
-#, c-format
-msgid "failed to generate challenge: %s"
-msgstr "Generierung der Challenge fehlgeschlagen: %s"
+#: src/pam/auth-method-x509/auth-x509.c:102
+msgid "Specify local socket for dirmngr access"
+msgstr "Spezifiziert den lokalen Socket fuer Dirmngr Zugriff"
 
-#: src/pam/auth-method-localdb/auth-localdb.c:164
-#: src/pam/auth-method-x509/auth-x509.c:565
-#, c-format
-msgid "failed to retrieve challenge signature from card: %s"
-msgstr "konnte Signatur der Challenge nicht von der Karte empfangen: %s"
+#: src/pam/auth-method-x509/auth-x509.c:104
+msgid "Specify X509 domain for this host"
+msgstr "Spezifiziere die X509 Domäne für dieses System"
 
-#: src/pam/auth-method-localdb/auth-localdb.c:174
-msgid "failed to verify challenge"
-msgstr "Verifizierung der Challenge fehlgeschlagen"
-
-#: src/pam/auth-method-localdb/key-lookup.c:63
-#, c-format
-msgid "failed to construct key file path for serial number `%s': %s\n"
-msgstr ""
-"konnte Pfad fuer die Schlüsseldatei für die Seriennummer '%s' nicht "
-"konstruieren: %s\n"
-
-#: src/pam/auth-method-localdb/key-lookup.c:75
-#, c-format
-msgid "failed to retrieve key from key file `%s': %s\n"
-msgstr ""
-"Auslesen des Schlüssels aus der Schlüsseldatei '%s' fehlgeschlagen: %s\n"
-
-#: src/pam/auth-method-localdb/key-lookup.c:84
-#, c-format
-msgid "failed to convert key from `%s' into S-Expression: %s\n"
-msgstr ""
-"konnte Schlüssel aus '%s' nicht in eine S-Expression konvertieren: %s\n"
-
-#: src/pam/auth-support/getpin-cb.c:74 src/pam/auth-support/getpin-cb.c:75
+#: src/pam/auth-support/getpin-cb.c:75
 msgid "PIN too short"
 msgstr ""
-
-#: src/pam/auth-support/getpin-cb.c:83
-msgid "PIN too long for buffer!"
-msgstr "PIN zu lang für Puffer"
-
-#: src/pam/auth-support/getpin-cb.c:204
-#, c-format
-msgid "getpin_cb called with flags set in info string `%s'\n"
-msgstr "getpin-Callback mit nicht unterstützten Flags in '%s' aufgerufen\n"
-
-#: src/pam/auth-support/getpin-cb.c:214
-#, c-format
-msgid "frob_info_msg failed for info msg of size %u\n"
-msgstr "frob_info_msg fehlgeschlagen für eine Nachricht der Länge %u\n"
 
 #: src/pam/auth-support/getpin-cb.c:228 src/pam/auth-support/getpin-cb.c:247
 msgid "Please enter the PIN:"
 msgstr "Bitte PIN eingeben:"
 
-#: src/pam/auth-method-x509/dirmngr.c:153
-#, c-format
-msgid "ignored inquiry from dirmngr: `%s'"
-msgstr "ignorierte Anfrage von Dirmngr: '%s'"
-
-#: src/pam/auth-method-x509/dirmngr.c:157
-#, c-format
-msgid "failed to send back empty value to dirmngr: %s"
-msgstr "zurücksenden eines leeren Werts an Dirmngr fehlgeschlagen: %s"
-
-#: src/pam/auth-method-x509/dirmngr.c:162
-#, c-format
-msgid "unsupported assuan inquiry `%s'"
-msgstr "nicht unterstützte Assuan Anfrage '%s'"
-
-#: src/pam/auth-method-x509/dirmngr.c:258
-#, c-format
-msgid "failed to create new ksba certificate object: %s"
-msgstr "erzeugen eines neuen KSBA Zertifikatobjekts fehlgeschlagen: %s"
-
-#: src/pam/auth-method-x509/auth-x509.c:103
-msgid "Specify local socket for dirmngr access"
-msgstr "Spezifiziert den lokalen Socket fuer Dirmngr Zugriff"
-
-#: src/pam/auth-method-x509/auth-x509.c:105
-msgid "Specify X509 domain for this host"
-msgstr "Spezifiziere die X509 Domäne für dieses System"
-
-#: src/pam/auth-method-x509/auth-x509.c:124
-#: src/pam/auth-method-x509/auth-x509.c:136
-#, c-format
-msgid "failed to duplicate %s (length: %i): %s"
-msgstr "konnte %s (Länge: %i) nicht duplizieren: %s"
-
-#: src/pam/auth-method-x509/auth-x509.c:168
-msgid "libksba did not return a proper S-Exp"
-msgstr "libksba gab keine gültige S-Expression zurück"
-
-#: src/pam/auth-method-x509/auth-x509.c:177
-#, c-format
-msgid "failed to convert KSBA s-expression into s-expression object: %s"
-msgstr "konnte KSBA S-Expression nicht in S-Expression Objekt konvertieren: %s"
-
-#: src/pam/auth-method-x509/auth-x509.c:409
-msgid "failed to extract username from certificate"
-msgstr "konnte Benutzername nicht aus dem Zertifikat extrahieren: %s"
-
-#: src/pam/auth-method-x509/auth-x509.c:443
-msgid "invalid certificate URL on card"
-msgstr "ungültige Zertifikats URL auf der Karte"
-
-#: src/pam/auth-method-x509/auth-x509.c:490
-msgid "x509 authentication method not properly configured"
-msgstr "X509 Authentifikationsmethode nicht richtig konfiguriert"
-
-#: src/pam/auth-method-x509/auth-x509.c:504
-#, c-format
-msgid "public key url is '%s'"
-msgstr "URL des Öffentlichen Schlüssels ist '%s'"
-
-#: src/pam/auth-method-x509/auth-x509.c:512
-#, c-format
-msgid "failed to look up certificate `%s': %s"
-msgstr "nachschlagen des Zertifikats '%s' gescheitert: %s"
-
-#: src/pam/auth-method-x509/auth-x509.c:578
-msgid "failed to verify challenge signature"
-msgstr "Verifizierung der Signatur der Challenge fehlgeschlagen"
-
-#: src/pam/auth-method-x509/auth-x509.c:598
-#, c-format
-msgid "failure: %s"
-msgstr "fehlgeschlagen: %s"
-
-#: src/pam/auth-method-x509/auth-x509.c:600
-msgid "success"
-msgstr "Erfolg"
-
-#: src/pam/pam_poldi.c:142 src/pam/pam_poldi.c:155 src/pam/pam_poldi.c:169
-#: src/scd/scd.c:124
-#, c-format
-msgid "failed to duplicate %s: %s"
-msgstr "Konnte %s nicht duplizieren: %s"
-
-#: src/pam/pam_poldi.c:184
-#, c-format
-msgid "unknown authentication method '%s'"
-msgstr "unbekannte Authentifikationsmethode '%s'"
-
-#: src/pam/pam_poldi.c:312
-#, c-format
-msgid "asprintf() failed in modify_environment_putenv(): %s"
-msgstr "asprintf() in modify_environment_putenv() fehlgeschlagen: %s"
-
-#: src/pam/pam_poldi.c:321
-#, c-format
-msgid "pam_putenv() failed in modify_environment_putenv(): %s"
-msgstr "pam_putenv() in modify_environment_putenv() fehlgeschlagen: %s"
-
-#: src/pam/pam_poldi.c:406
-#, c-format
-msgid "failed to parse configuration file '%s': %s"
-msgstr "Lesen der Konfigurationsdatei '%s' fehlgeschlagen: %s"
-
-#: src/pam/pam_poldi.c:419
-#, c-format
-msgid "failed to parse PAM argument vector: %s"
-msgstr "Auswertung des PAM Argumentvektors fehlgeschlagen: %s"
-
-#: src/pam/pam_poldi.c:448
-msgid "no authentication method specified"
-msgstr "Keine Authentifikationsmethode spezifiziert"
-
-#: src/pam/pam_poldi.c:462
-#, c-format
-msgid "using authentication method `%s'"
-msgstr "benutze Authentifikationsmethode '%s'"
-
-#: src/pam/pam_poldi.c:474
-#, c-format
-msgid "failed to initialize authentication method %i: %s"
-msgstr "Initialisierung der Authentifikationsmethode %i fehlgeschlagen: %s"
-
-#: src/pam/pam_poldi.c:488
-#, c-format
-msgid ""
-"failed to initialize parsing of configuration file for authentication method "
-"%s: %s"
-msgstr ""
-"konnte Auswertung der Konfigurationsdatei für die Authentifikationsmethode "
-"%s nicht beginnen: %s"
-
-#: src/pam/pam_poldi.c:509
-#, c-format
-msgid "failed to parse configuration for authentication method %i: %s"
-msgstr ""
-"konnte Konfigurationsdatei für die Authentifikationsmethode %i nicht lesen: "
-"%s"
-
-#: src/pam/pam_poldi.c:528
-msgid "failed to retrieve PAM conversation structure"
-msgstr "konnte PAM conversation-structure nicht empfangen"
-
-#: src/pam/pam_poldi.c:546
-#, c-format
-msgid "failed to retrieve username from PAM: %s"
-msgstr "konnte Benutzername nicht von PAM empfangen: %s"
-
-#: src/pam/pam_poldi.c:570
-#, c-format
-msgid "Waiting for card for user `%s'..."
-msgstr "Warte auf Karte für Benutzer '%s'..."
-
-#: src/pam/pam_poldi.c:572
+#: src/pam/pam_poldi.c:591
 #, c-format
 msgid "Insert authentication card for user `%s'"
 msgstr "Bitte Authentifikationskarte für Benutzer '%s' einlegen"
 
-#: src/pam/pam_poldi.c:577
-msgid "Waiting for card..."
-msgstr "Warte auf Karte..."
-
-#: src/pam/pam_poldi.c:579
+#: src/pam/pam_poldi.c:598
 msgid "Insert authentication card"
 msgstr "Bitte Authentifikationskarte einlegen"
-
-#: src/pam/pam_poldi.c:586
-#, c-format
-msgid "failed to wait for card insertion: %s"
-msgstr "Warten auf Karte fehlgeschlagen: %s"
-
-#: src/pam/pam_poldi.c:599
-#, c-format
-msgid "connected to card; serial number is: %s"
-msgstr "Verbunden zur Karte; Seriennummer ist: '%s'"
-
-#: src/pam/pam_poldi.c:637
-#, c-format
-msgid "authentication failed: %s"
-msgstr "Authentifikation fehlgeschlagen: %s"
-
-#: src/pam/pam_poldi.c:641
-msgid "authentication succeeded"
-msgstr "Authentifikation erfolgreich"
-
-#: src/scd/scd.c:133
-msgid "malformed GPG_AGENT_INFO environment variable"
-msgstr "syntaktisch ungültige GPG_AGENT_INFO Umgebungsvariable"
-
-#: src/scd/scd.c:146
-#, c-format
-msgid "agent protocol version %d is not supported"
-msgstr "Agent-Protokoll Version %d ist nicht unterstützt"
-
-#: src/scd/scd.c:197 src/scd/scd.c:941
-#, c-format
-msgid "warning: can't store getinfo data: %s"
-msgstr "Warnung: konnte GETINFO Daten nicht speichern: %s"
-
-#: src/scd/scd.c:295
-#, c-format
-msgid "connected to system scdaemon through socket '%s'"
-msgstr "über den Socket '%s' zu System Scdaemon verbunden"
-
-#: src/scd/scd.c:315
-#, c-format
-msgid "got scdaemon socket name from gpg-agent, connected to socket '%s'"
-msgstr ""
-"Scdaemon Socket Namen über GPG-Agent empfangen, verbunden mit Socket '%s'"
-
-#: src/scd/scd.c:336
-msgid "no running scdaemon - starting one"
-msgstr "Kein aktiver Scdaemon - starte einen"
-
-#: src/scd/scd.c:342
-#, c-format
-msgid "error flushing pending output: %s"
-msgstr "konnte wartende Ausgabe nicht schreiben: %s"
-
-#: src/scd/scd.c:385
-#, c-format
-msgid "spawned a new scdaemon (path: '%s')"
-msgstr "neuer Scdaemon gestartet (Pfad: '%s')"
-
-#: src/scd/scd.c:392
-#, c-format
-msgid "could not connect to any scdaemon: %s"
-msgstr "Verbinden zu Scdaemon fehlgeschlagen: %s"
-
-#: src/scd/scd.c:415
-msgid "connection to scdaemon established"
-msgstr "Verbindung zu Scdaemon hergestellt"
 
 #: src/util/simpleparse.c:149
 #, c-format
@@ -347,6 +80,179 @@ msgstr "fehlendes notwendiges Argument für '%s'"
 #, c-format
 msgid "too many arguments specified for option '%s'"
 msgstr "zu viele Argumente für Options '%s' angegeben"
+
+#~ msgid "failed to generate challenge: %s"
+#~ msgstr "Generierung der Challenge fehlgeschlagen: %s"
+
+#~ msgid "failed to retrieve challenge signature from card: %s"
+#~ msgstr "konnte Signatur der Challenge nicht von der Karte empfangen: %s"
+
+#~ msgid "failed to verify challenge"
+#~ msgstr "Verifizierung der Challenge fehlgeschlagen"
+
+#~ msgid "failed to construct key file path for serial number `%s': %s\n"
+#~ msgstr ""
+#~ "konnte Pfad fuer die Schlüsseldatei für die Seriennummer '%s' nicht "
+#~ "konstruieren: %s\n"
+
+#~ msgid "failed to retrieve key from key file `%s': %s\n"
+#~ msgstr ""
+#~ "Auslesen des Schlüssels aus der Schlüsseldatei '%s' fehlgeschlagen: %s\n"
+
+#~ msgid "failed to convert key from `%s' into S-Expression: %s\n"
+#~ msgstr ""
+#~ "konnte Schlüssel aus '%s' nicht in eine S-Expression konvertieren: %s\n"
+
+#~ msgid "failed to duplicate %s (length: %i): %s"
+#~ msgstr "konnte %s (Länge: %i) nicht duplizieren: %s"
+
+#~ msgid "libksba did not return a proper S-Exp"
+#~ msgstr "libksba gab keine gültige S-Expression zurück"
+
+#~ msgid "failed to convert KSBA s-expression into s-expression object: %s"
+#~ msgstr ""
+#~ "konnte KSBA S-Expression nicht in S-Expression Objekt konvertieren: %s"
+
+#~ msgid "failed to extract username from certificate"
+#~ msgstr "konnte Benutzername nicht aus dem Zertifikat extrahieren: %s"
+
+#~ msgid "invalid certificate URL on card"
+#~ msgstr "ungültige Zertifikats URL auf der Karte"
+
+#~ msgid "x509 authentication method not properly configured"
+#~ msgstr "X509 Authentifikationsmethode nicht richtig konfiguriert"
+
+#~ msgid "failed to look up certificate `%s': %s"
+#~ msgstr "nachschlagen des Zertifikats '%s' gescheitert: %s"
+
+#~ msgid "failed to verify challenge signature"
+#~ msgstr "Verifizierung der Signatur der Challenge fehlgeschlagen"
+
+#~ msgid "failure: %s"
+#~ msgstr "fehlgeschlagen: %s"
+
+#~ msgid "failed to send back empty value to dirmngr: %s"
+#~ msgstr "zurücksenden eines leeren Werts an Dirmngr fehlgeschlagen: %s"
+
+#~ msgid "unsupported assuan inquiry `%s'"
+#~ msgstr "nicht unterstützte Assuan Anfrage '%s'"
+
+#~ msgid "failed to create new ksba certificate object: %s"
+#~ msgstr "erzeugen eines neuen KSBA Zertifikatobjekts fehlgeschlagen: %s"
+
+#~ msgid "PIN too long for buffer!"
+#~ msgstr "PIN zu lang für Puffer"
+
+#~ msgid "getpin_cb called with flags set in info string `%s'\n"
+#~ msgstr "getpin-Callback mit nicht unterstützten Flags in '%s' aufgerufen\n"
+
+#~ msgid "frob_info_msg failed for info msg of size %u\n"
+#~ msgstr "frob_info_msg fehlgeschlagen für eine Nachricht der Länge %u\n"
+
+#~ msgid "failed to duplicate %s: %s"
+#~ msgstr "Konnte %s nicht duplizieren: %s"
+
+#~ msgid "unknown authentication method '%s'"
+#~ msgstr "unbekannte Authentifikationsmethode '%s'"
+
+#~ msgid "asprintf() failed in modify_environment_putenv(): %s"
+#~ msgstr "asprintf() in modify_environment_putenv() fehlgeschlagen: %s"
+
+#~ msgid "pam_putenv() failed in modify_environment_putenv(): %s"
+#~ msgstr "pam_putenv() in modify_environment_putenv() fehlgeschlagen: %s"
+
+#~ msgid "failed to parse configuration file '%s': %s"
+#~ msgstr "Lesen der Konfigurationsdatei '%s' fehlgeschlagen: %s"
+
+#~ msgid "failed to parse PAM argument vector: %s"
+#~ msgstr "Auswertung des PAM Argumentvektors fehlgeschlagen: %s"
+
+#~ msgid "no authentication method specified"
+#~ msgstr "Keine Authentifikationsmethode spezifiziert"
+
+#~ msgid "using authentication method `%s'"
+#~ msgstr "benutze Authentifikationsmethode '%s'"
+
+#~ msgid "failed to initialize authentication method %i: %s"
+#~ msgstr "Initialisierung der Authentifikationsmethode %i fehlgeschlagen: %s"
+
+#~ msgid ""
+#~ "failed to initialize parsing of configuration file for authentication "
+#~ "method %s: %s"
+#~ msgstr ""
+#~ "konnte Auswertung der Konfigurationsdatei für die "
+#~ "Authentifikationsmethode %s nicht beginnen: %s"
+
+#~ msgid "failed to parse configuration for authentication method %i: %s"
+#~ msgstr ""
+#~ "konnte Konfigurationsdatei für die Authentifikationsmethode %i nicht "
+#~ "lesen: %s"
+
+#~ msgid "failed to retrieve PAM conversation structure"
+#~ msgstr "konnte PAM conversation-structure nicht empfangen"
+
+#, fuzzy
+#~ msgid "Can't retrieve username from PAM"
+#~ msgstr "konnte Benutzername nicht von PAM empfangen: %s"
+
+#~ msgid "failed to wait for card insertion: %s"
+#~ msgstr "Warten auf Karte fehlgeschlagen: %s"
+
+#~ msgid "authentication failed: %s"
+#~ msgstr "Authentifikation fehlgeschlagen: %s"
+
+#~ msgid "error flushing pending output: %s"
+#~ msgstr "konnte wartende Ausgabe nicht schreiben: %s"
+
+#, fuzzy
+#~ msgid "could not spawn scdaemon: %s"
+#~ msgstr "Verbinden zu Scdaemon fehlgeschlagen: %s"
+
+#~ msgid "warning: can't store getinfo data: %s"
+#~ msgstr "Warnung: konnte GETINFO Daten nicht speichern: %s"
+
+#~ msgid "ignored inquiry from dirmngr: `%s'"
+#~ msgstr "ignorierte Anfrage von Dirmngr: '%s'"
+
+#~ msgid "public key url is '%s'"
+#~ msgstr "URL des Öffentlichen Schlüssels ist '%s'"
+
+#~ msgid "success"
+#~ msgstr "Erfolg"
+
+#~ msgid "Waiting for card for user `%s'..."
+#~ msgstr "Warte auf Karte für Benutzer '%s'..."
+
+#~ msgid "Waiting for card..."
+#~ msgstr "Warte auf Karte..."
+
+#~ msgid "connected to card; serial number is: %s"
+#~ msgstr "Verbunden zur Karte; Seriennummer ist: '%s'"
+
+#~ msgid "authentication succeeded"
+#~ msgstr "Authentifikation erfolgreich"
+
+#~ msgid "malformed GPG_AGENT_INFO environment variable"
+#~ msgstr "syntaktisch ungültige GPG_AGENT_INFO Umgebungsvariable"
+
+#~ msgid "agent protocol version %d is not supported"
+#~ msgstr "Agent-Protokoll Version %d ist nicht unterstützt"
+
+#~ msgid "connected to system scdaemon through socket '%s'"
+#~ msgstr "über den Socket '%s' zu System Scdaemon verbunden"
+
+#~ msgid "got scdaemon socket name from gpg-agent, connected to socket '%s'"
+#~ msgstr ""
+#~ "Scdaemon Socket Namen über GPG-Agent empfangen, verbunden mit Socket '%s'"
+
+#~ msgid "no running scdaemon - starting one"
+#~ msgstr "Kein aktiver Scdaemon - starte einen"
+
+#~ msgid "spawned a new scdaemon (path: '%s')"
+#~ msgstr "neuer Scdaemon gestartet (Pfad: '%s')"
+
+#~ msgid "connection to scdaemon established"
+#~ msgstr "Verbindung zu Scdaemon hergestellt"
 
 #~ msgid "invalid PIN"
 #~ msgstr "ungültige PIN"
