@@ -140,7 +140,7 @@ pam_poldi_options_cb (void *cookie, simpleparse_opt_spec_t spec, const char *arg
 	{
 	  err = gpg_error_from_errno (errno);
 	  log_msg_error (ctx->loghandle,
-			 _("failed to duplicate %s: %s"),
+			 "failed to duplicate %s: %s",
 			 "logfile name", gpg_strerror (err));
 	}
     }
@@ -153,7 +153,7 @@ pam_poldi_options_cb (void *cookie, simpleparse_opt_spec_t spec, const char *arg
 	{
 	  err = gpg_error_from_errno (errno);
 	  log_msg_error (ctx->loghandle,
-			 _("failed to duplicate %s: %s"),
+			 "failed to duplicate %s: %s",
 			 "scdaemon program name",
 			 gpg_strerror (err));
 	}
@@ -167,7 +167,7 @@ pam_poldi_options_cb (void *cookie, simpleparse_opt_spec_t spec, const char *arg
 	{
 	  err = gpg_error_from_errno (errno);
 	  log_msg_error (ctx->loghandle,
-			 _("failed to duplicate %s: %s"),
+			 "failed to duplicate %s: %s",
 			 "scdaemon options name",
 			 gpg_strerror (err));
 	}
@@ -182,7 +182,7 @@ pam_poldi_options_cb (void *cookie, simpleparse_opt_spec_t spec, const char *arg
       else
 	{
 	  log_msg_error (ctx->loghandle,
-			 _("unknown authentication method '%s'"),
+			 "unknown authentication method '%s'",
 			 arg);
 	  err = GPG_ERR_INV_VALUE;
 	}
@@ -310,7 +310,7 @@ modify_environment_putenv (pam_handle_t *pam_handle, poldi_ctx_t ctx,
   if (ret < 0)
     {
       log_msg_error (ctx->loghandle,
-		     _("asprintf() failed in modify_environment_putenv(): %s"),
+		     "asprintf() failed in modify_environment_putenv(): %s",
 		     errno);
       return;
     }
@@ -319,7 +319,7 @@ modify_environment_putenv (pam_handle_t *pam_handle, poldi_ctx_t ctx,
   if (ret != PAM_SUCCESS)
     {
       log_msg_error (ctx->loghandle,
-		     _("pam_putenv() failed in modify_environment_putenv(): %s"),
+		     "pam_putenv() failed in modify_environment_putenv(): %s",
 		     pam_strerror (pam_handle, ret));
     }
   free (str);
@@ -404,7 +404,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     _("failed to parse configuration file '%s': %s"),
+		     "failed to parse configuration file '%s': %s",
 		     POLDI_CONF_FILE,
 		     gpg_strerror (err));
       goto out;
@@ -417,7 +417,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
       if (err)
 	{
 	  log_msg_error (ctx->loghandle,
-			 _("failed to parse PAM argument vector: %s"),
+			 "failed to parse PAM argument vector: %s",
 			 gpg_strerror (err));
 	  goto out;
 	}
@@ -446,7 +446,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   if (ctx->auth_method < 0)
     {
       log_msg_error (ctx->loghandle,
-		     _("no authentication method specified"));
+		     "no authentication method specified");
       err = GPG_ERR_CONFIGURATION;
       goto out;
     }
@@ -460,7 +460,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   if (ctx->debug)
     {
       log_msg_debug (ctx->loghandle,
-		     _("using authentication method `%s'"),
+		     "using authentication method `%s'",
 		     auth_methods[ctx->auth_method].name);
     }
 
@@ -472,7 +472,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
       if (err)
 	{
 	  log_msg_error (ctx->loghandle,
-			 _("failed to initialize authentication method %i: %s"),
+			 "failed to initialize authentication method %i: %s",
 			 -1, gpg_strerror (err));
 	  goto out;
 	}
@@ -486,7 +486,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
       if (err)
 	{
 	  log_msg_error (ctx->loghandle,
-			 _("failed to initialize parsing of configuration file for authentication method %s: %s"),
+			 "failed to initialize parsing of configuration file for authentication method %s: %s",
 			 auth_methods[ctx->auth_method].name, gpg_strerror (err));
 	  goto out_parsing;
 	}
@@ -507,7 +507,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
       if (err)
 	{
 	  log_msg_error (ctx->loghandle,
-			 _("failed to parse configuration for authentication method %i: %s"),
+			 "failed to parse configuration for authentication method %i: %s",
 			 auth_methods[ctx->auth_method].name, gpg_strerror (err));
 	  goto out_parsing;
 	}
@@ -526,7 +526,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   if (ret != PAM_SUCCESS)
     {
       log_msg_error (ctx->loghandle,
-		     _("failed to retrieve PAM conversation structure"));
+		     "failed to retrieve PAM conversation structure");
       err = GPG_ERR_INTERNAL;
       goto out;
     }
@@ -544,8 +544,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   if (ret != PAM_SUCCESS)
     {
       /* It's not fatal, username can be in the card.  */
-      log_msg_error (ctx->loghandle,
-		     _("Can't retrieve username from PAM"));
+      log_msg_error (ctx->loghandle, "Can't retrieve username from PAM");
     }
 
   /*** Check if we use gpg-agent. ***/
@@ -602,8 +601,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   err = wait_for_card (ctx->scd, 0);
   if (err)
     {
-      log_msg_error (ctx->loghandle,
-		     _("failed to wait for card insertion: %s"),
+      log_msg_error (ctx->loghandle, "failed to wait for card insertion: %s",
 		     gpg_strerror (err));
       goto out;
     }
@@ -660,7 +658,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
   /* Log result.  */
   if (err)
-    log_msg_error (ctx->loghandle, _("authentication failed: %s"), gpg_strerror (err));
+    log_msg_error (ctx->loghandle, "authentication failed: %s", gpg_strerror (err));
   else
     {
       if (ctx->debug)

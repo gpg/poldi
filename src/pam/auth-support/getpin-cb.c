@@ -71,7 +71,7 @@ query_user (poldi_ctx_t ctx, const char *info, char *pin, size_t pin_size)
 
       if (strlen (buffer) < 6)	/* FIXME? is it really minimum of 6 bytes? */
 	{
-	  log_msg_error (ctx->loghandle, _("PIN too short"));
+	  log_msg_error (ctx->loghandle, "PIN too short");
 	  conv_tell (ctx->conv, "%s", _("PIN too short"));
 	}
       else
@@ -80,7 +80,7 @@ query_user (poldi_ctx_t ctx, const char *info, char *pin, size_t pin_size)
 
   if (strlen (buffer) >= pin_size)
     {
-      log_msg_error (ctx->loghandle, _("PIN too long for buffer!"));
+      log_msg_error (ctx->loghandle, "PIN too long for buffer!");
       rc = gpg_error (GPG_ERR_INV_DATA); /* ? */
       goto out;
     }
@@ -201,7 +201,7 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
 	      /* Weird that we received flags - they are neither expected nor
 		 implemented here.  */
 	      log_msg_error (ctx->loghandle,
-			     _("getpin_cb called with flags set in info string `%s'\n"),
+			     "getpin_cb called with flags set in info string `%s'\n",
 			     info);
 	      err = gpg_error (GPG_ERR_INV_VALUE); /* FIXME? */
 	      goto out;
@@ -211,7 +211,7 @@ getpin_cb (void *opaque, const char *info, char *buf, size_t maxbuf)
       if (err)
 	{
 	  log_msg_error (ctx->loghandle,
-			 _("frob_info_msg failed for info msg of size %u\n"),
+			 "frob_info_msg failed for info msg of size %u\n",
 			 (unsigned int) strlen (info));
 	  goto out;
 	}

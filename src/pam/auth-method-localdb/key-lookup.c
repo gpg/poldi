@@ -60,8 +60,8 @@ key_lookup_by_serialno (poldi_ctx_t ctx, const char *serialno, gcry_sexp_t *key)
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     _("failed to construct key file path "
-		       "for serial number `%s': %s\n"),
+		     "failed to construct key file path "
+		     "for serial number `%s': %s\n",
 		     serialno, gpg_strerror (err));
       goto out;
     }
@@ -72,7 +72,7 @@ key_lookup_by_serialno (poldi_ctx_t ctx, const char *serialno, gcry_sexp_t *key)
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     _("failed to retrieve key from key file `%s': %s\n"),
+		     "failed to retrieve key from key file `%s': %s\n",
 		     key_path, gpg_strerror (err));
       goto out;
     }
@@ -81,8 +81,8 @@ key_lookup_by_serialno (poldi_ctx_t ctx, const char *serialno, gcry_sexp_t *key)
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     _("failed to convert key "
-		       "from `%s' into S-Expression: %s\n"),
+		     "failed to convert key "
+		     "from `%s' into S-Expression: %s\n",
 		     key_path, gpg_strerror (err));
       goto out;
     }

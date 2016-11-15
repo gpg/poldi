@@ -154,12 +154,12 @@ inq_cert (void *opaque, const char *line)
       err = assuan_send_data (parm->ctx->assuan, NULL, 0);
       if (err)
 	log_msg_error (parm->ctx->log_handle,
-		       _("failed to send back empty value to dirmngr: %s"),
+		       "failed to send back empty value to dirmngr: %s",
 		       gpg_strerror (err));
     }
   else
     {
-      log_msg_error (parm->ctx->log_handle, _("unsupported assuan inquiry `%s'"), line);
+      log_msg_error (parm->ctx->log_handle, "unsupported assuan inquiry `%s'", line);
       err = gpg_error (GPG_ERR_ASS_UNKNOWN_INQUIRE);
       /* Note that this error will let assuan_transact terminate
          immediately instead of return the error to the caller.  It is
@@ -255,7 +255,7 @@ lookup_cb (void *opaque, const void *buffer, size_t length)
       if (rc)
 	{
 	  log_msg_error (parm->ctx->log_handle,
-			 _("failed to create new ksba certificate object: %s"),
+			 "failed to create new ksba certificate object: %s",
 			 gpg_strerror (rc));
 	  /* FIXME: better error handling?  -mo */
 	}

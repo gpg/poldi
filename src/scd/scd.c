@@ -225,8 +225,7 @@ scd_connect (scd_context_t *scd_ctx, int use_agent, const char *scd_path,
   if (fflush (NULL))
     {
       err = gpg_error_from_syserror ();
-      log_msg_error (loghandle,
-		     _("error flushing pending output: %s"),
+      log_msg_error (loghandle, "error flushing pending output: %s",
 		     strerror (errno));
       return err;
     }
@@ -305,14 +304,12 @@ scd_connect (scd_context_t *scd_ctx, int use_agent, const char *scd_path,
       err = assuan_pipe_connect (&assuan_ctx, scd_path, argv, no_close_list);
       if (err)
 	{
-	  log_msg_error (loghandle,
-			 _("could not spawn scdaemon: %s"),
+	  log_msg_error (loghandle, "could not spawn scdaemon: %s",
 			 gpg_strerror (err));
 	}
       else
 	{
-	  log_msg_debug (loghandle,
-			 "spawned a new scdaemon (path: '%s')",
+	  log_msg_debug (loghandle, "spawned a new scdaemon (path: '%s')",
 			 scd_path);
 	}
     }
@@ -856,7 +853,7 @@ scd_getinfo (scd_context_t ctx, const char *what, char **result)
       if (!res)
 	{
 	  log_msg_error (ctx->loghandle,
-			 _("warning: can't store getinfo data: %s"),
+			 "warning: can't store getinfo data: %s",
 			 strerror (errno));
 	  rc = gpg_error_from_syserror ();
 	}

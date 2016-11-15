@@ -120,7 +120,7 @@ auth_method_x509_parsecb (void *opaque, simpleparse_opt_spec_t spec, const char 
       if (!x509_ctx->x509_domain)
 	{
 	  log_msg_error (ctx->loghandle,
-			 _("failed to duplicate %s (length: %i): %s"),
+			 "failed to duplicate %s (length: %i): %s",
 			 "x509-domain option string",
 			 strlen (arg), strerror (errno));
 	  err = gpg_error_from_syserror ();
@@ -132,7 +132,7 @@ auth_method_x509_parsecb (void *opaque, simpleparse_opt_spec_t spec, const char 
       if (!x509_ctx->dirmngr_socket)
 	{
 	  log_msg_error (ctx->loghandle,
-			 _("failed to duplicate %s (length: %i): %s"),
+			 "failed to duplicate %s (length: %i): %s",
 			 "dirmngr-socket option string",
 			 strlen (arg), strerror (errno));
 	  err = gpg_error_from_syserror ();
@@ -164,7 +164,7 @@ extract_public_key_from_cert (poldi_ctx_t ctx, ksba_cert_t cert, gcry_sexp_t *pu
   if (!sexp_len)
     {
       log_msg_error (ctx->loghandle,
-		     _("libksba did not return a proper S-Exp"));
+		     "libksba did not return a proper S-Exp");
       err = GPG_ERR_BUG;
       goto out;
     }
@@ -173,7 +173,7 @@ extract_public_key_from_cert (poldi_ctx_t ctx, ksba_cert_t cert, gcry_sexp_t *pu
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     _("failed to convert KSBA s-expression into s-expression object: %s"),
+		     "failed to convert KSBA s-expression into s-expression object: %s",
 		     gpg_strerror (err));
       goto out;
     }
@@ -405,7 +405,7 @@ extract_username_from_cert (poldi_ctx_t ctx, ksba_cert_t cert,
   else
     {
       log_msg_error (ctx->loghandle,
-		     _("failed to extract username from certificate"));
+		     "failed to extract username from certificate");
       err = gpg_error (GPG_ERR_UNSUPPORTED_CERT);
     }
 
@@ -439,7 +439,7 @@ lookup_cert (poldi_ctx_t ctx, dirmngr_ctx_t dirmngr, const char *url,
   else
     {
       log_msg_error (ctx->loghandle,
-		     _("invalid certificate URL on card"));
+		     "invalid certificate URL on card");
       err = GPG_ERR_INV_CARD;
     }
   if (err)
@@ -486,7 +486,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
     {
       err = gpg_error (GPG_ERR_CONFIGURATION);
       log_msg_error (ctx->loghandle,
-		     _("x509 authentication method not properly configured"));
+		     "x509 authentication method not properly configured");
       goto out;
     }
 
@@ -508,7 +508,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     _("failed to look up certificate `%s': %s"),
+		     "failed to look up certificate `%s': %s",
 		     ctx->cardinfo.pubkey_url, gpg_strerror (err));
       goto out;
     }
@@ -548,8 +548,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
   err = challenge_generate (&challenge, &challenge_n);
   if (err)
     {
-      log_msg_error (ctx->loghandle,
-		     _("failed to generate challenge: %s"),
+      log_msg_error (ctx->loghandle, "failed to generate challenge: %s",
 		     gpg_strerror (err));
       goto out;
     }
@@ -561,7 +560,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     _("failed to retrieve challenge signature from card: %s"),
+		     "failed to retrieve challenge signature from card: %s",
 		     gpg_strerror (err));
       goto out;
     }
@@ -573,8 +572,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
 			      response, response_n);
   if (err)
     {
-      log_msg_error (ctx->loghandle,
-		     _("failed to verify challenge signature"));
+      log_msg_error (ctx->loghandle, "failed to verify challenge signature");
       goto out;
     }
 
@@ -594,7 +592,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
 
   /* Log result.  */
   if (err)
-    log_msg_error (ctx->loghandle, _("failure: %s"), gpg_strerror (err));
+    log_msg_error (ctx->loghandle, "failure: %s", gpg_strerror (err));
   else if (ctx->debug)
     log_msg_debug (ctx->loghandle, "success");
 

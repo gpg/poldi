@@ -148,7 +148,7 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     _("failed to generate challenge: %s"),
+		     "failed to generate challenge: %s",
 		     gpg_strerror (err));
       goto out;
     }
@@ -160,7 +160,7 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
   if (err)
     {
       log_msg_error (ctx->loghandle,
-		     _("failed to retrieve challenge signature from card: %s"),
+		     "failed to retrieve challenge signature from card: %s",
 		     gpg_strerror (err));
       goto out;
     }
@@ -169,8 +169,7 @@ auth_method_localdb_auth_do (poldi_ctx_t ctx,
   err = challenge_verify (key, challenge, challenge_n, response, response_n);
   if (err)
     {
-      log_msg_error (ctx->loghandle,
-		     _("failed to verify challenge"));
+      log_msg_error (ctx->loghandle, "failed to verify challenge");
       goto out;
     }
 
