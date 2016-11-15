@@ -24,6 +24,8 @@
 #include <syslog.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <unistd.h>
+#include <sys/types.h>
 #include <pwd.h>
 #include <assert.h>
 
@@ -84,7 +86,6 @@ enum opt_ids
     opt_scdaemon_options,
     opt_modify_environment,
     opt_quiet,
-    opt_use_agent,
   };
 
 /* Full specifications for options. */
@@ -104,8 +105,6 @@ static simpleparse_opt_spec_t opt_specs[] =
       0, SIMPLEPARSE_ARG_NONE, 0, "Set Poldi related variables in the PAM environment" },
     { opt_quiet, "quiet",
       0, SIMPLEPARSE_ARG_NONE, 0, "Be more quiet during PAM conversation with user" },
-    { opt_use_agent, "use-agent",
-      0, SIMPLEPARSE_ARG_NONE, 0, "Use gpg-agent for scdaemon" },
     { 0 }
   };
 
@@ -203,10 +202,6 @@ pam_poldi_options_cb (void *cookie, simpleparse_opt_spec_t spec, const char *arg
     {
       /* QUIET.  */
       ctx->quiet = 1;
-    }
-  else if (!strcmp (spec.long_opt, "use-agent"))
-    {
-      ctx->use_agent = 1;
     }
 
   return gpg_error (err);
@@ -369,6 +364,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   struct auth_method_parse_cookie method_parse_cookie = { NULL, NULL };
   simpleparse_handle_t method_parse;
   struct getpin_cb_data getpin_cb_data;
+  int use_agent = 0;
 
   pam_username = NULL;
   scd_ctx = NULL;
@@ -552,9 +548,29 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 		     _("Can't retrieve username from PAM"));
     }
 
+  /*** Check if we use gpg-agent. ***/
+  {
+    struct passwd *pw;
+    pw = getpwuid (getuid ());
+
+    if (pw == NULL)
+      {
+	err = gpg_error_from_syserror ();
+	goto out;
+      }
+
+    /* Supporting backward compatibility of old Poldi.
+     *
+     * For use cases of sudo and screen unlock where a user wants to
+     * use smartcard using the existing scdaemon under gpg-agent.
+     */
+    if (pam_username && !strcmp (pw->pw_name, pam_username))
+      use_agent = 1;
+  }
+
   /*** Connect to Scdaemon. ***/
 
-  err = scd_connect (&scd_ctx, ctx->use_agent,
+  err = scd_connect (&scd_ctx, use_agent,
 		     ctx->scdaemon_program, ctx->scdaemon_options,
 		     ctx->loghandle);
   if (err)

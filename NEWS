@@ -5,12 +5,13 @@ Changes since version 0.4.1:
 * poldi-ctrl is removed
   Please use gpg-connect-agent instead.
 
-* New "use-agent" PAM option for backward compatibility
+* For backward compatibility of sudo and screen unlock
   In GnuPG 2.1, the environment variable GPG_AGENT_INFO is gone.  And
   now, Poldi's default is invoking scdaemon directly.  Still, there
-  are use cases (like su/sudo) which expect connecting user's
-  gpg-agent.  For this purpose, we now have "use-agent" option.  Don't
-  enable this option for login authentication.
+  are use cases (like sudo and screen unlock) which expect connecting
+  user's gpg-agent.  For this purpose, Poldi now distinguishes a case
+  where pam_username == username_of_process_uid.  Only for such a case,
+  Poldi tries to find scdaemon under gpg-agent.
 
 * Poldi invokes scdaemon to connect it through pipe
   Older Poldi has a feature of connecting to scdaemon with help of
