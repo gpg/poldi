@@ -69,13 +69,10 @@ AC_DEFINE_UNQUOTED(NEED_KSBA_VERSION, "$NEED_KSBA_VERSION",
 AH_BOTTOM([
 /* Setup the hardwired names of modules. */
 #ifndef GNUPG_DEFAULT_GPGCONF
-#define GNUPG_DEFAULT_GPGCONF    ( GNUPG_BINDIR "/gpgconf" )
+#define GNUPG_DEFAULT_GPGCONF GNUPG_BINDIR "/gpgconf"
 #endif
 #ifndef GNUPG_DEFAULT_SCD
-#define GNUPG_DEFAULT_SCD    ( GNUPG_LIBEXECDIR "/scdaemon" )
-#endif
-#ifndef GNUPG_DEFAULT_DIRMNGR
-#define GNUPG_DEFAULT_DIRMNGR    ( GNUPG_BINDIR "/dirmngr" )
+#define GNUPG_DEFAULT_SCD     GNUPG_LIBEXECDIR "/scdaemon"
 #endif
 ])
 

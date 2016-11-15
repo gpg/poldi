@@ -110,7 +110,8 @@ get_agent_socket_name (char **gpg_agent_sockname)
   if (!result)
     return gpg_error_from_syserror ();
 
-  input = popen ("gpgconf --list-dirs agent-socket", "r");
+  /* It is good if we have popen with execv (no SHELL) */
+  input = popen (GNUPG_DEFAULT_GPGCONF " --list-dirs agent-socket", "r");
   if (input == NULL)
     {
       xfree (result);
