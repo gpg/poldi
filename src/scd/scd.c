@@ -177,7 +177,7 @@ agent_scd_getinfo_socket_name (assuan_context_t ctx, char **socket_name)
 }
 
 /* Retrieve SCDaemons socket name through a running gpg-agent.  On
-   Success, *SOCKET_NAME contains a copy of the socket name.  Returns
+   success, *SOCKET_NAME contains a copy of the socket name.  Returns
    proper error code or zero on success.  */
 static gpg_error_t
 get_scd_socket_from_agent (char **socket_name)
@@ -218,53 +218,51 @@ scd_connect (scd_context_t *scd_ctx, int use_agent, const char *scd_path,
 {
   assuan_context_t assuan_ctx;
   scd_context_t ctx;
-  int rc = 0;
+  gpg_error_t err;
 
   assuan_ctx = NULL;
 
   if (fflush (NULL))
     {
-      rc = gpg_error_from_syserror ();
+      err = gpg_error_from_syserror ();
       log_msg_error (loghandle,
 		     _("error flushing pending output: %s"),
 		     strerror (errno));
-      return rc;
+      return err;
     }
 
   ctx = xtrymalloc (sizeof (*ctx));
   if (!ctx)
-    {
-      rc = gpg_error_from_syserror ();
-      return rc;
-    }
+    return gpg_error_from_syserror ();
 
   ctx->assuan_ctx = NULL;
   ctx->flags = 0;
 
+  /* Try using scdaemon under gpg-agent.  */
   if (use_agent)
     {
-      /* Retrieve a scdaemon socket name from gpg-agent.  */
       char *scd_socket_name = NULL;
 
-      rc = get_scd_socket_from_agent (&scd_socket_name);
-      if (!rc)
-	rc = assuan_socket_connect (&assuan_ctx, scd_socket_name, 0);
+      /* Note that if gpg-agent is there but no scdaemon yet,
+       * gpg-agent automatically invokes scdaemon by this query
+       * itself.
+       */
+      err = get_scd_socket_from_agent (&scd_socket_name);
+      if (!err)
+	err = assuan_socket_connect (&assuan_ctx, scd_socket_name, 0);
 
-      if (!rc)
+      if (!err)
 	log_msg_debug (loghandle,
 		       _("got scdaemon socket name from gpg-agent, "
 			 "connected to socket '%s'"), scd_socket_name);
 
       xfree (scd_socket_name);
-
-      if (rc)
-	{
-	  log_msg_error (loghandle,
-			 _("could not connect to scdaemon: %s"),
-			 gpg_strerror (rc));
-	}
     }
-  if (!use_agent || rc)
+
+  /* If scdaemon under gpg-agent is irrelevant or not available,
+   * let Poldi invoke scdaemon.
+   */
+  if (!use_agent || err)
     {
       const char *pgmname;
       const char *argv[5];
@@ -304,12 +302,12 @@ scd_connect (scd_context_t *scd_ctx, int use_agent, const char *scd_path,
       no_close_list[i] = -1;
 
       /* connect to the scdaemon and perform initial handshaking */
-      rc = assuan_pipe_connect (&assuan_ctx, scd_path, argv, no_close_list);
-      if (rc)
+      err = assuan_pipe_connect (&assuan_ctx, scd_path, argv, no_close_list);
+      if (err)
 	{
 	  log_msg_error (loghandle,
 			 _("could not spawn scdaemon: %s"),
-			 gpg_strerror (rc));
+			 gpg_strerror (err));
 	}
       else
 	{
@@ -319,7 +317,7 @@ scd_connect (scd_context_t *scd_ctx, int use_agent, const char *scd_path,
 	}
     }
 
-  if (rc)
+  if (err)
     {
       assuan_disconnect (assuan_ctx);
       xfree (ctx);
@@ -336,7 +334,7 @@ scd_connect (scd_context_t *scd_ctx, int use_agent, const char *scd_path,
       *scd_ctx = ctx;
     }
 
-  return rc;
+  return err;
 }
 
 /* Disconnect from SCDaemon; destroy the context SCD_CTX.  */
