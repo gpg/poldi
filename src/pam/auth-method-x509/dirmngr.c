@@ -150,7 +150,7 @@ inq_cert (void *opaque, const char *line)
     {
       /* We don't support this but dirmngr might ask for it.  So
 	 simply ignore it by sending back an empty value. */
-      log_msg_debug (parm->ctx->log_handle, _("ignored inquiry from dirmngr: `%s'"), line);
+      log_msg_debug (parm->ctx->log_handle, "ignored inquiry from dirmngr: `%s'", line);
       err = assuan_send_data (parm->ctx->assuan, NULL, 0);
       if (err)
 	log_msg_error (parm->ctx->log_handle,

@@ -587,14 +587,14 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   if (pam_username)
     {
       if (ctx->debug)
-	log_msg_debug (ctx->loghandle, _("Waiting for card for user `%s'..."), pam_username);
+	log_msg_debug (ctx->loghandle, "Waiting for card for user `%s'...", pam_username);
       if (!ctx->quiet)
 	conv_tell (ctx->conv, _("Insert authentication card for user `%s'"), pam_username);
     }
   else
     {
       if (ctx->debug)
-	log_msg_debug (ctx->loghandle, _("Waiting for card..."));
+	log_msg_debug (ctx->loghandle, "Waiting for card...");
       if (!ctx->quiet)
 	conv_tell (ctx->conv, _("Insert authentication card"));
     }
@@ -616,7 +616,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
 
   if (ctx->debug)
     log_msg_debug (ctx->loghandle,
-		   _("connected to card; serial number is: %s"),
+		   "connected to card; serial number is: %s",
 		   ctx->cardinfo.serialno);
 
   /*** Authenticate.  ***/
@@ -664,7 +664,7 @@ pam_sm_authenticate (pam_handle_t *pam_handle,
   else
     {
       if (ctx->debug)
-	log_msg_debug (ctx->loghandle, _("authentication succeeded"));
+	log_msg_debug (ctx->loghandle, "authentication succeeded");
       if (ctx->modify_environment)
 	modify_environment (pam_handle, ctx);
     }

@@ -500,7 +500,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
 
   if (ctx->debug)
     log_msg_debug (ctx->loghandle,
-		   _("public key url is '%s'"), ctx->cardinfo.pubkey_url);
+		   "public key url is '%s'", ctx->cardinfo.pubkey_url);
 
   /*** Fetch certificate. ***/
 
@@ -596,7 +596,7 @@ auth_method_x509_auth_do (poldi_ctx_t ctx, x509_ctx_t cookie,
   if (err)
     log_msg_error (ctx->loghandle, _("failure: %s"), gpg_strerror (err));
   else if (ctx->debug)
-    log_msg_debug (ctx->loghandle, _("success"));
+    log_msg_debug (ctx->loghandle, "success");
 
   return !err;
 }

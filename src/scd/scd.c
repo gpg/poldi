@@ -253,8 +253,8 @@ scd_connect (scd_context_t *scd_ctx, int use_agent, const char *scd_path,
 
       if (!err)
 	log_msg_debug (loghandle,
-		       _("got scdaemon socket name from gpg-agent, "
-			 "connected to socket '%s'"), scd_socket_name);
+		       "got scdaemon socket name from gpg-agent, "
+		       "connected to socket '%s'", scd_socket_name);
 
       xfree (scd_socket_name);
     }
@@ -312,7 +312,7 @@ scd_connect (scd_context_t *scd_ctx, int use_agent, const char *scd_path,
       else
 	{
 	  log_msg_debug (loghandle,
-			 _("spawned a new scdaemon (path: '%s')"),
+			 "spawned a new scdaemon (path: '%s')",
 			 scd_path);
 	}
     }
