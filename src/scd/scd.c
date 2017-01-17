@@ -119,7 +119,7 @@ get_agent_socket_name (char **gpg_agent_sockname)
     }
 
   len = fread (result, 1, 256, input);
-  fclose (input);
+  pclose (input);
 
   if (len)
     {
