@@ -71,6 +71,13 @@ void char_vector_free (char **a);
 
 int my_strlen (const char *s);
 
+int pk_algo (gcry_sexp_t sexp_key);
+
+gpg_error_t challenge_data (gcry_sexp_t *data, int algo,
+                            unsigned char *challenge, size_t challenge_n);
+
+gpg_error_t response_signature (gcry_sexp_t *sig, int algo,
+                                unsigned char *response, size_t response_n);
 #endif
 
 /* END */

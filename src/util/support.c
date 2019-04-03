@@ -86,26 +86,17 @@ challenge_verify_sexp (gcry_sexp_t sexp_key,
   gpg_error_t err = GPG_ERR_NO_ERROR;
   gcry_sexp_t sexp_signature = NULL;
   gcry_sexp_t sexp_data = NULL;
-  gcry_mpi_t mpi_signature = NULL;
+  int algo = pk_algo (sexp_key);
 
-  /* Convert buffers into MPIs.  */
-  if (! err)
-    {
-      if (gcry_mpi_scan (&mpi_signature, GCRYMPI_FMT_USG, response, response_n,
-			 NULL))
-	err = gpg_error (GPG_ERR_BAD_MPI);
-    }
+  if (algo == 0)
+    return gpg_error (GPG_ERR_UNSUPPORTED_ALGORITHM);
 
-  /* Create according S-Expressions.  */
-  if (! err)
-    err = gcry_sexp_build (&sexp_data, NULL,
-			   "(data (flags pkcs1) (hash sha1 %b))",
-			   challenge_n, challenge);
-  if (! err)
-    err = gcry_sexp_build (&sexp_signature, NULL, "(sig-val (rsa (s %m)))",
-			   mpi_signature);
+  err = challenge_data (&sexp_data, algo, challenge, challenge_n);
 
-  /* Verify.  */
+  if (! err)
+    err = response_signature (&sexp_signature, algo,
+                              response, response_n);
+
   if (! err)
     err = gcry_pk_verify (sexp_signature, sexp_data, sexp_key);
 
@@ -113,8 +104,6 @@ challenge_verify_sexp (gcry_sexp_t sexp_key,
     gcry_sexp_release (sexp_data);
   if (sexp_signature)
     gcry_sexp_release (sexp_signature);
-  if (mpi_signature)
-    gcry_mpi_release (mpi_signature);
 
   return err;
 }
@@ -387,4 +376,69 @@ my_strlen (const char *s)
   return ret;
 }
 
+int
+pk_algo (gcry_sexp_t sexp_key)
+{
+  gcry_sexp_t sexp_data;
+  char *algoname;
+  int algo;
+
+  sexp_data = gcry_sexp_find_token (sexp_key, "public-key", 0);
+  if (!sexp_data)
+    return 0;
+
+  gcry_sexp_t sexp_tmp = gcry_sexp_cadr (sexp_data);
+  gcry_sexp_release (sexp_data);
+  sexp_data = sexp_tmp;
+
+  algoname = gcry_sexp_nth_string (sexp_data, 0);
+  gcry_sexp_release (sexp_data);
+  if (!algoname)
+    return 0;
+
+  algo = gcry_pk_map_name (algoname);
+  xfree(algoname);
+  return algo;
+}
+
+gpg_error_t
+challenge_data (gcry_sexp_t *data, int algo,
+                unsigned char *challenge, size_t challenge_n)
+{
+  if (algo == GCRY_PK_ECC)
+    {
+      return gcry_sexp_build (data, NULL,
+                              "(data (flags eddsa) (hash-algo sha512) (value %b))",
+                              challenge_n, challenge);
+    }
+
+  return gcry_sexp_build (data, NULL,
+                          "(data (flags pkcs1) (hash sha1 %b))",
+                          challenge_n, challenge);
+}
+
+gpg_error_t
+response_signature (gcry_sexp_t *sig, int algo,
+                    unsigned char *response, size_t response_n)
+{
+  switch (algo)
+    {
+    case GCRY_PK_RSA:
+      return gcry_sexp_build (sig, NULL,
+                              "(sig-val (rsa (s %b)))",
+                              response_n, response);
+    case GCRY_PK_DSA:
+      return gcry_sexp_build (sig, NULL,
+                              "(sig-val (dsa (r %b) (s %b)))",
+                              response_n / 2, response,
+                              response_n / 2, response + response_n / 2);
+    case GCRY_PK_ECC:
+      return gcry_sexp_build (sig, NULL,
+                              "(sig-val (eddsa (r %b) (s %b)))",
+                              response_n / 2, response,
+                              response_n / 2, response + response_n / 2);
+    default:
+      return gpg_error (GPG_ERR_UNSUPPORTED_ALGORITHM);
+    }
+}
 /* END */
