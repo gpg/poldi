@@ -19,12 +19,12 @@
 # 02111-1307, USA
 
 # Process this file with autoconf to produce a configure script.
-AC_PREREQ(2.52)
+AC_PREREQ([2.52])
 min_automake_version="1.7.9"
 
 # Version number: Remember to change it immediately *after* a release.
 #                 Add a ".git" postfix for non-released code.
-AC_INIT([poldi], [0.4.2.git], [gnupg-devel@gnupg.org])
+AC_INIT([poldi],[0.4.2.git],[gnupg-devel@gnupg.org])
 AC_CONFIG_SRCDIR(src/pam/pam_poldi.c)
 AC_CONFIG_HEADERS(config.h)
 AC_CANONICAL_TARGET
@@ -48,7 +48,7 @@ AC_ARG_WITH(pam-module-directory,
 	    PAM_MODULE_DIRECTORY="$DEFAULT_PAM_MODULE_DIRECTORY")
 AC_SUBST(PAM_MODULE_DIRECTORY)
 
-AC_GNU_SOURCE
+AC_USE_SYSTEM_EXTENSIONS
 
 have_gpg_error=no
 have_libgcrypt=no 
@@ -140,7 +140,6 @@ fi
 #
 
 AC_CHECK_HEADERS([string.h locale.h sys/uio.h])
-AC_TYPE_SIGNAL
 #AC_DEFINE(USE_DESCRIPTOR_PASSING, 0, [We do not need this feature])
 AC_REPLACE_FUNCS(setenv)
 # Check for funopen

@@ -102,11 +102,11 @@ define(GNUPG_CHECK_ENDIAN,
 AC_DEFUN([POLDI_ENABLE_FEATURE],
   [$1=$2
    m4_if([$2],[yes],[
-      AC_ARG_ENABLE([$3], AC_HELP_STRING([--disable-$3],
+      AC_ARG_ENABLE([$3], AS_HELP_STRING([--disable-$3],
                                          [disable $4]),
                            $1=$enableval, $1=$2)
     ],[
-      AC_ARG_ENABLE([$3], AC_HELP_STRING([--enable-$3],
+      AC_ARG_ENABLE([$3], AS_HELP_STRING([--enable-$3],
                                          [enable $4]),
                            $1=$enableval, $1=$2)
     ])
